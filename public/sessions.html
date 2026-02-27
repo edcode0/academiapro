@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sesiones - AcademiaPro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1e293b;
+            --secondary: #3b82f6;
+            --background: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --border: #e2e8f0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--background);
+            color: var(--text-main);
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Unified Style */
+        aside {
+            width: 260px;
+            background: #1e293b;
+            color: #94a3b8;
+            padding: 2rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            z-index: 100;
+        }
+
+        aside h1 {
+            color: white;
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin-bottom: 2.5rem;
+        }
+
+        .user-info {
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 0.75rem;
+        }
+
+        .user-info strong {
+            display: block;
+            color: white;
+            font-size: 0.95rem;
+            margin-bottom: 0.4rem;
+        }
+
+        .badge-admin {
+            background: #10b981;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        nav a {
+            color: #94a3b8;
+            text-decoration: none;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: all 0.2s;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        nav a:hover,
+        nav a.active {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-logout {
+            color: #ef4444 !important;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 0.75rem 1rem;
+            display: block;
+            border-radius: 0.5rem;
+            transition: background 0.2s;
+        }
+
+        /* Main Content */
+        main {
+            flex: 1;
+            margin-left: 260px;
+            padding: 2.5rem;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h2 {
+            font-size: 1.875rem;
+            font-weight: 700;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 1rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border);
+        }
+
+        .stat-card h3 {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-card .value {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        /* Search & Filters */
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            align-items: center;
+        }
+
+        .search-container {
+            position: relative;
+            flex: 1;
+        }
+
+        .search-container input {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            outline: none;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        .search-container::before {
+            content: '🔍';
+            position: absolute;
+            left: 0.875rem;
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: 0.5;
+        }
+
+        .month-filter {
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            outline: none;
+            background: white;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        /* Table Card */
+        .card {
+            background: var(--card-bg);
+            border-radius: 1rem;
+            border: 1px solid var(--border);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #f8fafc;
+            text-align: left;
+            padding: 1rem;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 700;
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.875rem;
+            vertical-align: middle;
+        }
+
+        .student-cell {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: white;
+            font-size: 0.8rem;
+        }
+
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-yes {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .badge-no {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .action-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--border);
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .action-btn:hover {
+            background: #f8fafc;
+        }
+
+        .btn-edit:hover {
+            color: var(--secondary);
+            border-color: var(--secondary);
+        }
+
+        .btn-delete:hover {
+            color: var(--danger);
+            border-color: var(--danger);
+        }
+
+        /* Notes truncation */
+        .notes-text {
+            max-width: 250px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--text-muted);
+            cursor: help;
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal {
+            background: white;
+            width: 500px;
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .modal h3 {
+            font-size: 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-group textarea {
+            height: 100px;
+            resize: none;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        #toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            color: white;
+            font-weight: 600;
+            display: none;
+            z-index: 2000;
+        }
+
+        .toast-success {
+            background: var(--success);
+        }
+    </style>
+</head>
+
+<body>
+    <aside>
+        <h1>AcademiaPro</h1>
+        <div class="user-info">
+            <strong id="userNameInSidebar">Administrador</strong>
+            <span class="badge-admin">Admin</span>
+        </div>
+        <nav id="mainNav" style="flex:1;">
+            <a href="/">🏠 Dashboard</a>
+            <a href="/students">👥 Estudiantes</a>
+            <a href="/sessions" class="active">📅 Sesiones</a>
+            <a href="/calendar">🗓️ Calendario</a>
+            <a href="/exams">📝 Exámenes</a>
+            <a href="/payments">💳 Pagos</a>
+            <a href="/chat">💬 Chat</a>
+            <a href="/settings">⚙️ Configuración</a>
+        </nav>
+        <div style="margin-top: auto;">
+            <a href="/auth/logout" class="btn-logout">🚪 Cerrar Sesión</a>
+        </div>
+    </aside>
+
+    <main>
+        <div class="header">
+            <h2>Sesiones</h2>
+            <button class="btn btn-primary" onclick="openModal('sessionModal')">+ Nueva Sesión</button>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Sesiones este mes</h3>
+                <div class="value" id="stats-total">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Duración Media</h3>
+                <div class="value" id="stats-duration">0 min</div>
+            </div>
+            <div class="stat-card">
+                <h3>Tareas completadas</h3>
+                <div class="value" id="stats-homework">0%</div>
+            </div>
+            <div class="stat-card">
+                <h3>Sesiones esta semana</h3>
+                <div class="value" id="stats-week">0</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="search-container">
+                <input type="text" id="searchInput" placeholder="Buscar por alumno..." onkeyup="filterTable()">
+            </div>
+            <input type="month" id="monthFilter" class="month-filter" onchange="filterTable()">
+        </div>
+
+        <div class="card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Alumno</th>
+                        <th>Fecha</th>
+                        <th>Duración</th>
+                        <th>Tareas</th>
+                        <th>Notas</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="sessionsTableBody">
+                    <!-- Data here -->
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- Session Modal -->
+    <div id="sessionModal" class="modal-overlay">
+        <div class="modal">
+            <h3 id="modalTitle">Nueva Sesión</h3>
+            <form id="sessionForm">
+                <input type="hidden" id="sessionIdField">
+                <div class="form-group">
+                    <label>Alumno</label>
+                    <select id="m_student" required></select>
+                </div>
+                <div class="form-group">
+                    <label>Fecha</label>
+                    <input type="date" id="m_date" required>
+                </div>
+                <div class="form-group">
+                    <label>Duración (minutos)</label>
+                    <input type="number" id="m_duration" value="60" required>
+                </div>
+                <div class="form-group">
+                    <label>¿Tareas hechas?</label>
+                    <select id="m_homework">
+                        <option value="1">Sí</option>
+                        <option value="0">No</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Notas del Profesor</label>
+                    <textarea id="m_notes" placeholder="Resumen de la clase..."></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-ghost" onclick="closeModal('sessionModal')">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Sesión</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="toast"></div>
+
+    <script>
+        let allSessions = [];
+        let allStudents = [];
+
+        async function init() {
+            // Set current month filter as default
+            const now = new Date();
+            const currentMonth = now.toISOString().slice(0, 7);
+            document.getElementById('monthFilter').value = currentMonth;
+
+            await loadStudents();
+            await loadSessions();
+        }
+
+        async function loadStudents() {
+            try {
+                const res = await fetch('/api/students');
+                allStudents = await res.json();
+                const select = document.getElementById('m_student');
+                select.innerHTML = allStudents
+                    .filter(s => s.status !== 'inactive')
+                    .map(s => `<option value="${s.id}">${s.name}</option>`)
+                    .join('');
+            } catch (err) { console.error(err); }
+        }
+
+        async function loadSessions() {
+            try {
+                const res = await fetch('/api/sessions-list');
+                const data = await res.json();
+                allSessions = data.sessions;
+
+                // Update stats
+                document.getElementById('stats-total').textContent = data.stats.totalThisMonth;
+                document.getElementById('stats-duration').textContent = `${data.stats.avgDuration} min`;
+                document.getElementById('stats-homework').textContent = `${data.stats.homeworkRate}%`;
+                document.getElementById('stats-week').textContent = data.stats.sessionsThisWeek;
+
+                renderTable();
+            } catch (err) { console.error(err); }
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('sessionsTableBody');
+            const searchText = document.getElementById('searchInput').value.toLowerCase();
+            const monthFilter = document.getElementById('monthFilter').value;
+
+            const filtered = allSessions.filter(s => {
+                const matchesSearch = s.student_name.toLowerCase().includes(searchText);
+                const matchesMonth = !monthFilter || s.date.startsWith(monthFilter);
+                return matchesSearch && matchesMonth;
+            });
+
+            tbody.innerHTML = filtered.map(s => {
+                const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+                const avatarColor = colors[s.student_id % colors.length];
+
+                return `
+                <tr>
+                    <td>
+                        <div class="student-cell">
+                            <div class="avatar" style="background-color: ${avatarColor}">${s.student_name.charAt(0)}</div>
+                            <a href="/student/${s.student_id}" style="color: var(--secondary); text-decoration: none; font-weight: 600;">${s.student_name}</a>
+                        </div>
+                    </td>
+                    <td>${s.date}</td>
+                    <td>${s.duration_minutes} min</td>
+                    <td><span class="badge ${s.homework_done ? 'badge-yes' : 'badge-no'}">${s.homework_done ? 'Sí' : 'No'}</span></td>
+                    <td><div class="notes-text" title="${s.teacher_notes || ''}">${s.teacher_notes || '-'}</div></td>
+                    <td>
+                        <div class="actions">
+                            <button class="action-btn btn-edit" title="Editar" onclick="editSession(${s.id})">✏️</button>
+                            <button class="action-btn btn-delete" title="Eliminar" onclick="deleteSession(${s.id})">🗑️</button>
+                        </div>
+                    </td>
+                </tr>
+                `;
+            }).join('') || '<tr><td colspan="6" style="text-align:center; padding: 2rem;">No se encontraron sesiones</td></tr>';
+        }
+
+        function filterTable() {
+            renderTable();
+        }
+
+        function openModal(modalId, session = null) {
+            document.getElementById(modalId).style.display = 'flex';
+            const form = document.getElementById('sessionForm');
+            const title = document.getElementById('modalTitle');
+
+            if (session) {
+                title.textContent = 'Editar Sesión';
+                document.getElementById('sessionIdField').value = session.id;
+                document.getElementById('m_student').value = session.student_id;
+                document.getElementById('m_date').value = session.date;
+                document.getElementById('m_duration').value = session.duration_minutes;
+                document.getElementById('m_homework').value = session.homework_done ? '1' : '0';
+                document.getElementById('m_notes').value = session.teacher_notes || '';
+            } else {
+                title.textContent = 'Nueva Sesión';
+                form.reset();
+                document.getElementById('sessionIdField').value = '';
+                document.getElementById('m_date').value = new Date().toISOString().split('T')[0];
+            }
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        async function editSession(id) {
+            const session = allSessions.find(s => s.id === id);
+            openModal('sessionModal', session);
+        }
+
+        async function deleteSession(id) {
+            if (confirm('¿Eliminar esta sesión? El estado de riesgo del alumno se recalculará.')) {
+                try {
+                    const res = await fetch(`/api/sessions/${id}`, { method: 'DELETE' });
+                    if (res.ok) {
+                        showToast('Sesión eliminada');
+                        loadSessions();
+                    }
+                } catch (err) { console.error(err); }
+            }
+        }
+
+        document.getElementById('sessionForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('sessionIdField').value;
+            const data = {
+                student_id: parseInt(document.getElementById('m_student').value),
+                date: document.getElementById('m_date').value,
+                duration_minutes: parseInt(document.getElementById('m_duration').value),
+                homework_done: document.getElementById('m_homework').value === '1',
+                teacher_notes: document.getElementById('m_notes').value
+            };
+
+            try {
+                const url = id ? `/api/sessions/${id}` : '/api/sessions';
+                const method = id ? 'PUT' : 'POST';
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                if (res.ok) {
+                    showToast(id ? 'Sesión actualizada' : 'Sesión guardada');
+                    closeModal('sessionModal');
+                    loadSessions();
+                }
+            } catch (err) { console.error(err); }
+        });
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.className = 'toast-success';
+            toast.style.display = 'block';
+            setTimeout(() => toast.style.display = 'none', 3000);
+        }
+
+        async function loadUser() {
+            const res = await fetch('/auth/me');
+            if (res.ok) {
+                const user = await res.json();
+                const userNameEl = document.getElementById('userNameInSidebar');
+                if (userNameEl) userNameEl.textContent = user.name;
+            }
+        }
+        loadUser();
+        init();
+
+        function highlightActiveLink() {
+            const currentPath = window.location.pathname;
+            document.querySelectorAll('#mainNav a').forEach(link => {
+                const href = link.getAttribute('href');
+                const isHome = currentPath === '/' && href === '/';
+                const isExact = href !== '/' && currentPath.startsWith(href);
+                const isStudentProfile = currentPath.startsWith('/student/') && href === '/students';
+
+                if (isHome || isExact || isStudentProfile) {
+                    link.classList.add('active');
+                } else {
+                    link.classList.remove('active');
+                }
+            });
+        }
+        highlightActiveLink();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendario Profesor - AcademiaPro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+    <style>
+        :root {
+            --primary: #1e293b;
+            --secondary: #3b82f6;
+            --background: #f8fafc;
+            --border: #e2e8f0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--background);
+            display: flex;
+            min-height: 100vh;
+        }
+
+        aside {
+            width: 260px;
+            background: var(--primary);
+            color: white;
+            padding: 2rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            z-index: 10;
+        }
+
+        aside h1 {
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+            color: #38bdf8;
+        }
+
+        nav a {
+            color: #94a3b8;
+            text-decoration: none;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        nav a:hover,
+        nav a.active {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        nav a.active {
+            background-color: #1a56a0;
+        }
+
+        main {
+            flex: 1;
+            margin-left: 260px;
+            padding: 2.5rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            margin-bottom: 1.5rem;
+            font-weight: 700;
+        }
+
+        .fc .fc-toolbar-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .fc .fc-button-primary {
+            background-color: var(--secondary);
+            border-color: var(--secondary);
+            text-transform: capitalize;
+            font-weight: 600;
+        }
+
+        .fc-event {
+            cursor: pointer;
+            border: none !important;
+        }
+    </style>
+</head>
+
+<body>
+    <aside>
+        <h1>AcademiaPro</h1>
+        <nav>
+            <a href="/teacher/dashboard">Mis Alumnos</a>
+            <a href="/teacher/sessions">Sesiones</a>
+            <a href="/teacher/exams">Exámenes</a>
+            <a href="/teacher/calendar" class="active">Calendario</a>
+            <a href="/chat">Chat</a>
+        </nav>
+    </aside>
+
+    <main>
+        <h2>Mi Agenda de Sesiones</h2>
+        <div class="card">
+            <div id="calendar"></div>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async function () {
+            const calendarEl = document.getElementById('calendar');
+            const res = await fetch('/api/sessions');
+            const sessions = await res.json();
+
+            const events = sessions.map(s => ({
+                id: s.id,
+                title: s.student_name,
+                start: s.date,
+                backgroundColor: s.homework_done ? '#10b981' : '#3b82f6',
+                extendedProps: { notes: s.teacher_notes }
+            }));
+
+            const calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'es',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                },
+                events: events,
+                eventClick: function (info) {
+                    alert(`Sesión con ${info.event.title}\nNotas: ${info.event.extendedProps.notes || 'Sin notas'}`);
+                }
+            });
+            calendar.render();
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pagos - AcademiaPro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1e293b;
+            --secondary: #3b82f6;
+            --background: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --border: #e2e8f0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--background);
+            color: var(--text-main);
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        aside {
+            width: 260px;
+            background: var(--primary);
+            color: white;
+            padding: 2rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+        }
+
+        aside h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 2.5rem;
+        }
+
+        nav a {
+            color: #94a3b8;
+            text-decoration: none;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: all 0.2s;
+            margin-bottom: 0.5rem;
+        }
+
+        nav a:hover,
+        nav a.active {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        /* Main Content */
+        main {
+            flex: 1;
+            margin-left: 260px;
+            padding: 2.5rem;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h2 {
+            font-size: 1.875rem;
+            font-weight: 700;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+
+        /* Alert Banner */
+        .alert-banner {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+            padding: 1rem 1.5rem;
+            border-radius: 0.75rem;
+            margin-bottom: 2rem;
+            display: none;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 500;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 1rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border);
+        }
+
+        .stat-card h3 {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-card .value {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .stat-danger .value {
+            color: var(--danger);
+        }
+
+        .trend {
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+            display: block;
+        }
+
+        .trend-up {
+            color: var(--success);
+        }
+
+        .trend-down {
+            color: var(--danger);
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            align-items: center;
+        }
+
+        .filter-select {
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            outline: none;
+            background: white;
+            font-size: 1rem;
+        }
+
+        /* Table Card */
+        .card {
+            background: var(--card-bg);
+            border-radius: 1rem;
+            border: 1px solid var(--border);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #f8fafc;
+            text-align: left;
+            padding: 1rem;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 700;
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.875rem;
+        }
+
+        .student-cell {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: white;
+            font-size: 0.75rem;
+        }
+
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-pagado {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .badge-pendiente {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge-vencido {
+            background: #ffedd5;
+            color: #9a3412;
+            border: 1px solid #fed7aa;
+        }
+
+        .actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .action-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--border);
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .action-btn:hover {
+            background: #f8fafc;
+        }
+
+        .btn-pay:hover {
+            color: var(--success);
+            border-color: var(--success);
+        }
+
+        .btn-delete:hover {
+            color: var(--danger);
+            border-color: var(--danger);
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal {
+            background: white;
+            width: 500px;
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-muted);
+        }
+
+        #toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            color: white;
+            font-weight: 600;
+            display: none;
+            z-index: 2000;
+        }
+    </style>
+</head>
+
+<body>
+    <aside>
+        <h1>AcademiaPro</h1>
+        <nav id="mainNav" style="flex:1;">
+            <a href="/">Dashboard</a>
+            <a href="/students">Estudiantes</a>
+            <a href="/sessions">Sesiones</a>
+            <a href="/calendar">Calendario</a>
+            <a href="/exams">Exámenes</a>
+            <a href="/payments">Pagos</a>
+            <a href="/chat">Chat</a>
+            <a href="/settings">Configuración</a>
+        </nav>
+        <div style="margin-top: auto;">
+            <a href="/auth/logout"
+                style="color: #fca5a5; text-decoration: none; padding: 0.75rem 1rem; display: block; border-radius: 0.5rem; transition: background 0.2s;">Cerrar
+                Sesión</a>
+        </div>
+    </aside>
+
+    <main>
+        <div class="header">
+            <h2>Pagos</h2>
+            <button class="btn btn-primary" onclick="openModal('paymentModal')">+ Registrar Pago</button>
+        </div>
+
+        <div id="overdueAlert" class="alert-banner">
+            <span id="overdueText"></span>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Recaudado este mes</h3>
+                <div class="value" id="stat-collected">0€</div>
+                <span id="stat-trend" class="trend"></span>
+            </div>
+            <div class="stat-card stat-danger">
+                <h3>Total Pendiente</h3>
+                <div class="value" id="stat-pending">0€</div>
+            </div>
+            <div class="stat-card">
+                <h3>Pagos Vencidos</h3>
+                <div class="value" id="stat-overdue-count">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Previsión Mensual</h3>
+                <div class="value" id="stat-forecast">0€</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <select id="statusFilter" class="filter-select" onchange="renderTable()">
+                <option value="all">Todos los estados</option>
+                <option value="pagado">Pagados</option>
+                <option value="pendiente">Pendientes</option>
+                <option value="vencido">Vencidos</option>
+            </select>
+        </div>
+
+        <div class="card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Alumno</th>
+                        <th>Importe</th>
+                        <th>Vencimiento</th>
+                        <th>Fecha Pago</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="paymentsTableBody"></tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- Payment Modal -->
+    <div id="paymentModal" class="modal-overlay">
+        <div class="modal">
+            <h3>Registrar Nuevo Pago</h3>
+            <form id="paymentForm">
+                <div class="form-group">
+                    <label>Alumno</label>
+                    <select id="m_student" required></select>
+                </div>
+                <div class="form-group">
+                    <label>Importe (€)</label>
+                    <input type="number" id="m_amount" value="60" required>
+                </div>
+                <div class="form-group">
+                    <label>Fecha de Vencimiento</label>
+                    <input type="date" id="m_due_date" required>
+                </div>
+                <div class="form-group">
+                    <label>Estado Inicial</label>
+                    <select id="m_status">
+                        <option value="pendiente">Pendiente</option>
+                        <option value="pagado">Pagado hoy</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-ghost" onclick="closeModal('paymentModal')">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Pago</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="toast"></div>
+
+    <script>
+        let allPayments = [];
+        const todayStr = new Date().toISOString().split('T')[0];
+
+        async function init() {
+            await loadStudents();
+            await loadPaymentsData();
+            highlightActiveLink();
+        }
+
+        async function loadStudents() {
+            try {
+                const res = await fetch('/api/students');
+                const students = await res.json();
+                const select = document.getElementById('m_student');
+                select.innerHTML = students
+                    .filter(s => s.status !== 'inactive')
+                    .map(s => `<option value="${s.id}">${s.name}</option>`)
+                    .join('');
+            } catch (err) { console.error(err); }
+        }
+
+        async function loadPaymentsData() {
+            try {
+                const res = await fetch('/api/payments-data');
+                const data = await res.json();
+                allPayments = data.payments;
+
+                // Stats
+                document.getElementById('stat-collected').textContent = `${data.stats.collectedThisMonth}€`;
+                document.getElementById('stat-pending').textContent = `${data.stats.pendingTotal}€`;
+                document.getElementById('stat-overdue-count').textContent = data.stats.overdueCount;
+                document.getElementById('stat-forecast').textContent = `${data.stats.collectedThisMonth + data.stats.pendingTotal}€`;
+
+                const trendEl = document.getElementById('stat-trend');
+                trendEl.textContent = `${data.stats.trend} ${Math.abs(data.stats.percentChange)}% vs mes ant.`;
+                trendEl.className = `trend ${data.stats.percentChange >= 0 ? 'trend-up' : 'trend-down'}`;
+
+                // Overdue Banner
+                const banner = document.getElementById('overdueAlert');
+                if (data.stats.overdueCount > 0) {
+                    banner.style.display = 'flex';
+                    document.getElementById('overdueText').textContent = `⚠️ Tienes ${data.stats.overdueCount} pagos vencidos por un total de ${data.stats.overdueAmount}€. Considera enviar recordatorios.`;
+                } else {
+                    banner.style.display = 'none';
+                }
+
+                renderTable();
+            } catch (err) { console.error(err); }
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('paymentsTableBody');
+            const filter = document.getElementById('statusFilter').value;
+
+            const filtered = allPayments.filter(p => {
+                const isOverdue = p.status === 'pendiente' && p.due_date < todayStr;
+                if (filter === 'all') return true;
+                if (filter === 'vencido') return isOverdue;
+                if (filter === 'pendiente') return p.status === 'pendiente' && !isOverdue;
+                return p.status === filter;
+            });
+
+            tbody.innerHTML = filtered.map(p => {
+                const isOverdue = p.status === 'pendiente' && p.due_date < todayStr;
+                const statusLabel = isOverdue ? 'Vencido' : (p.status.charAt(0).toUpperCase() + p.status.slice(1));
+                const badgeClass = isOverdue ? 'badge-vencido' : `badge-${p.status}`;
+
+                const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+                const avatarColor = colors[p.student_id % colors.length];
+
+                return `
+                <tr>
+                    <td>
+                        <div class="student-cell">
+                            <div class="avatar" style="background-color: ${avatarColor}">${p.student_name.charAt(0)}</div>
+                            <a href="/student/${p.student_id}" style="color: var(--secondary); text-decoration: none; font-weight: 600;">${p.student_name}</a>
+                        </div>
+                    </td>
+                    <td><strong>${p.amount}€</strong></td>
+                    <td>${p.due_date}</td>
+                    <td>${p.paid_date || '-'}</td>
+                    <td><span class="badge ${badgeClass}">${statusLabel}</span></td>
+                    <td>
+                        <div class="actions">
+                            ${p.status === 'pendiente' ? `<button class="action-btn btn-pay" title="Marcar como pagado" onclick="markAsPaid(${p.id})">✓</button>` : ''}
+                            <button class="action-btn btn-delete" title="Eliminar" onclick="deletePayment(${p.id})">🗑️</button>
+                        </div>
+                    </td>
+                </tr>
+                `;
+            }).join('') || '<tr><td colspan="6" style="text-align:center; padding: 2rem;">No hay pagos registrados</td></tr>';
+        }
+
+        async function markAsPaid(id) {
+            try {
+                const res = await fetch(`/api/payments/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: 'pagado', paid_date: todayStr })
+                });
+                if (res.ok) {
+                    showToast('Pago registrado correctamente');
+                    loadPaymentsData();
+                }
+            } catch (err) { console.error(err); }
+        }
+
+        async function deletePayment(id) {
+            if (confirm('¿Eliminar este registro de pago?')) {
+                try {
+                    const res = await fetch(`/api/payments/${id}`, { method: 'DELETE' });
+                    if (res.ok) {
+                        showToast('Registro eliminado');
+                        loadPaymentsData();
+                    }
+                } catch (err) { console.error(err); }
+            }
+        }
+
+        function openModal(id) {
+            document.getElementById(id).style.display = 'flex';
+            document.getElementById('m_due_date').value = todayStr;
+        }
+
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+        document.getElementById('paymentForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const status = document.getElementById('m_status').value;
+            const data = {
+                student_id: parseInt(document.getElementById('m_student').value),
+                amount: parseFloat(document.getElementById('m_amount').value),
+                due_date: document.getElementById('m_due_date').value,
+                status: status,
+                paid_date: status === 'pagado' ? todayStr : null
+            };
+
+            try {
+                const res = await fetch('/api/payments', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                if (res.ok) {
+                    showToast('Pago registrado');
+                    closeModal('paymentModal');
+                    loadPaymentsData();
+                }
+            } catch (err) { console.error(err); }
+        });
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.style.display = 'block';
+            toast.style.backgroundColor = '#10b981';
+            setTimeout(() => toast.style.display = 'none', 3000);
+        }
+
+        function highlightActiveLink() {
+            const currentPath = window.location.pathname;
+            document.querySelectorAll('#mainNav a').forEach(link => {
+                const href = link.getAttribute('href');
+                if (href === currentPath || (currentPath === '/' && href === '/')) link.classList.add('active');
+                else link.classList.remove('active');
+            });
+        }
+
+        init();
+    </script>
+</body>
+
+</html>

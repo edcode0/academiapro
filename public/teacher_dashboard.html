@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Profesor - AcademiaPro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1e293b;
+            --accent: #3b82f6;
+            --background: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --border: #e2e8f0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--background);
+            color: var(--text-main);
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Styles Unified */
+        aside {
+            width: 260px;
+            background: var(--primary);
+            color: var(--text-muted);
+            padding: 2rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            z-index: 100;
+        }
+
+        aside h1 {
+            color: white;
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin-bottom: 2.5rem;
+        }
+
+        .user-info {
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 0.75rem;
+        }
+
+        .user-info strong {
+            display: block;
+            color: white;
+            font-size: 0.95rem;
+            margin-bottom: 0.4rem;
+        }
+
+        .badge-teacher {
+            background: #3b82f6;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        nav {
+            flex: 1;
+        }
+
+        nav a {
+            color: var(--text-muted);
+            text-decoration: none;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: all 0.2s;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            position: relative;
+        }
+
+        nav a:hover,
+        nav a.active {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-logout {
+            color: #ef4444;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 0.75rem 1rem;
+            display: block;
+            border-radius: 0.5rem;
+            transition: background 0.2s;
+        }
+
+        /* Main Content */
+        main {
+            flex: 1;
+            margin-left: 260px;
+            padding: 2.5rem;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2.5rem;
+        }
+
+        header h2 {
+            font-size: 1.875rem;
+            font-weight: 700;
+        }
+
+        /* Stats Grid with Colored Borders and Icons */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 1rem;
+            border: 1px solid var(--border);
+            border-left-width: 4px;
+            position: relative;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .stat-card h3 {
+            color: #64748b;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+        }
+
+        .stat-card .value {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .stat-card .icon {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            font-size: 1.5rem;
+            opacity: 0.2;
+        }
+
+        /* Accent Colors */
+        .border-blue {
+            border-left-color: #3b82f6;
+        }
+
+        .border-green {
+            border-left-color: #22c55e;
+        }
+
+        .border-orange {
+            border-left-color: #f59e0b;
+        }
+
+        .border-purple {
+            border-left-color: #8b5cf6;
+        }
+
+        .border-red {
+            border-left-color: #ef4444;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 1rem;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .card-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .unread-badge-sidebar {
+            position: absolute;
+            right: 0.75rem;
+            background: #ef4444;
+            color: white;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 10px;
+            display: none;
+            font-weight: 600;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 1rem 1.5rem;
+            font-size: 0.8rem;
+            color: #64748b;
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.875rem;
+        }
+
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-active {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-risk {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        @media (max-width: 1024px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            aside {
+                display: none;
+            }
+
+            main {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <aside>
+        <h1>AcademiaPro</h1>
+        <div class="user-info">
+            <strong id="userName">Profesor</strong>
+            <span class="badge-teacher">Profesor</span>
+        </div>
+        <nav id="mainNav">
+            <a href="/teacher/dashboard" class="active">👥 Mis Alumnos</a>
+            <a href="/teacher/sessions">📅 Sesiones</a>
+            <a href="/teacher/exams">📝 Exámenes</a>
+            <a href="/teacher/calendar">🗓️ Calendario</a>
+            <a href="/chat">💬 Chat <span class="unread-badge-sidebar" id="global-unread"></span></a>
+        </nav>
+        <div style="margin-top: auto;">
+            <a href="/auth/logout" class="btn-logout">🚪 Cerrar Sesión</a>
+        </div>
+    </aside>
+
+    <main>
+        <header>
+            <h2 id="welcomeText">¡Hola! 👋</h2>
+        </header>
+
+        <div class="stats-grid">
+            <div class="stat-card border-blue">
+                <div class="icon">👥</div>
+                <h3>Mis Alumnos Activos</h3>
+                <div class="value" id="stat-students">0</div>
+            </div>
+            <div class="stat-card border-green">
+                <div class="icon">📅</div>
+                <h3>Sesiones este mes</h3>
+                <div class="value" id="stat-sessions">0</div>
+            </div>
+            <div class="stat-card border-red" id="card-risk">
+                <div class="icon">⚠️</div>
+                <h3>Alumnos en Riesgo</h3>
+                <div class="value" id="stat-risk">0</div>
+            </div>
+            <div class="stat-card border-purple">
+                <div class="icon">📊</div>
+                <h3>Puntuación Media</h3>
+                <div class="value" id="stat-score">0</div>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Mis Alumnos</h3>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Alumno</th>
+                                <th>Curso</th>
+                                <th>Asignatura</th>
+                                <th>Estado</th>
+                                <th>Última Sesión</th>
+                            </tr>
+                        </thead>
+                        <tbody id="students-table"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <h3>Actividad Reciente</h3>
+                </div>
+                <div id="activity-feed" style="padding: 1.5rem;"></div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        async function init() {
+            const userRes = await fetch('/auth/me');
+            if (!userRes.ok) window.location.href = '/login';
+            const user = await userRes.json();
+            document.getElementById('userName').textContent = user.name;
+            document.getElementById('welcomeText').textContent = `¡Hola, ${user.name.split(' ')[0]}! 👋`;
+
+            const urRes = await fetch('/api/chat/unread-count');
+            const urData = await urRes.json();
+            if (urData.count > 0) {
+                const badge = document.getElementById('global-unread');
+                badge.textContent = urData.count;
+                badge.style.display = 'block';
+            }
+
+            const statsRes = await fetch('/api/teacher/dashboard-stats');
+            const stats = await statsRes.json();
+            document.getElementById('stat-students').textContent = stats.studentCount;
+            document.getElementById('stat-sessions').textContent = stats.sessionCount;
+            document.getElementById('stat-risk').textContent = stats.atRiskCount;
+            document.getElementById('stat-score').textContent = stats.avgScore;
+
+            const feed = document.getElementById('activity-feed');
+            feed.innerHTML = stats.recentActivity.map(act => `
+                <div style="padding: 1rem 0; border-bottom: 1px solid var(--border);">
+                    <p style="font-size: 0.9rem;"><strong>${act.student_name}</strong> - Sesión</p>
+                    <span style="font-size: 0.75rem; color: #64748b;">${new Date(act.date).toLocaleDateString()}</span>
+                </div>
+            `).join('');
+
+            const studentsRes = await fetch('/api/teacher/students');
+            const students = await studentsRes.json();
+            document.getElementById('students-table').innerHTML = students.map(s => `
+                <tr>
+                    <td><a href="/student/${s.id}" style="color:var(--accent); text-decoration:none; font-weight:600;">${s.name}</a></td>
+                    <td>${s.course}</td>
+                    <td>${s.subject}</td>
+                    <td><span class="status-badge ${s.status === 'at_risk' ? 'status-risk' : 'status-active'}">${s.status === 'at_risk' ? 'En Riesgo' : 'Activo'}</span></td>
+                    <td style="color: #64748b;">${s.last_session ? new Date(s.last_session).toLocaleDateString() : 'Sin sesiones'}</td>
+                </tr>
+            `).join('');
+        }
+        init();
+    </script>
+</body>
+
+</html>
