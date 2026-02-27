@@ -57,11 +57,12 @@ app.use('/assets', express.static(path.join(__dirname, 'public/assets')));
 // Generate Codes
 const generateCode = () => Math.random().toString(36).substring(2, 8).toUpperCase();
 
-// Google OAuth
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID || 'dummy',
     clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'dummy',
-    callbackURL: "/auth/google/callback"
+    callbackURL: process.env.NODE_ENV === 'production'
+        ? 'https://web-production-d02f4.up.railway.app/auth/google/callback'
+        : 'http://localhost:3000/auth/google/callback'
 },
     (accessToken, refreshToken, profile, cb) => {
         db.query('SELECT * FROM users WHERE google_id = $1 OR email = $2', [profile.id, profile.emails[0].value], (err, result) => {

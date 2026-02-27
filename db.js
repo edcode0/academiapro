@@ -5,19 +5,21 @@ const path = require('path');
 
 let pool;
 let sqliteDb;
-const isPostgres = !!process.env.DATABASE_URL;
+const isPostgres = process.env.DATABASE_URL &&
+  !process.env.DATABASE_URL.includes('user:password') &&
+  !process.env.DATABASE_URL.includes('your_postgres');
 
 if (isPostgres) {
   pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
   });
-  console.log('Connected to PostgreSQL');
+  console.log('Detected environment: PostgreSQL');
 } else {
   const dbPath = path.resolve(__dirname, 'academia.db');
   sqliteDb = new sqlite3.Database(dbPath, (err) => {
     if (err) console.error('Error opening SQLite', err);
-    else console.log('Connected to SQLite');
+    else console.log('Detected environment: SQLite');
   });
 }
 

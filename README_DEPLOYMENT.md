@@ -15,6 +15,7 @@ Debes configurar las siguientes variables en la sección **Settings -> Variables
 *   `RESEND_API_KEY`: Tu clave de API de Resend para el envío de correos.
 *   `GOOGLE_CLIENT_ID`: ID de cliente para Google OAuth.
 *   `GOOGLE_CLIENT_SECRET`: Secreto de cliente para Google OAuth.
+*   `GOOGLE_CALLBACK_URL`: URL completa de callback (ej: `https://tu-app.up.railway.app/auth/google/callback`).
 *   `NODE_ENV`: cámbialo a `production`.
 
 ## 3. Pasos para el Despliegue
