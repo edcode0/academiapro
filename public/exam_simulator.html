@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulacro - AcademiaPro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        :root {
+            --primary: #1e293b;
+            --secondary: #3b82f6;
+            --secondary-hover: #2563eb;
+            --background: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--background);
+            color: var(--text-main);
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar structure logic for layout */
+        aside {
+            width: 260px;
+            background: var(--primary);
+            color: white;
+            padding: 2rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        aside h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 2.5rem;
+        }
+
+        nav a {
+            color: #94a3b8;
+            text-decoration: none;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: all 0.2s;
+            margin-bottom: 0.5rem;
+        }
+
+        nav a:hover,
+        nav a.active {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        main {
+            flex: 1;
+            margin-left: 260px;
+            padding: 2.5rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h2 {
+            font-size: 1.875rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 1rem;
+            border: 1px solid var(--border);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--secondary-hover);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 0.5rem;
+        }
+
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .chip {
+            background: #e2e8f0;
+            color: var(--text-main);
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            display: inline-block;
+        }
+
+        .chip:hover {
+            background: #eff6ff;
+            color: var(--secondary);
+            border-color: var(--secondary);
+        }
+
+        /* Wizard Steps */
+        .step {
+            display: none;
+        }
+
+        .step.active {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Exam Interface */
+        .timer {
+            font-size: 1.5rem;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            color: var(--secondary);
+            background: #eff6ff;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            display: inline-block;
+        }
+
+        .question-card {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            background: #fafafa;
+        }
+
+        .question-title {
+            font-weight: 600;
+            font-size: 1.125rem;
+            margin-bottom: 1rem;
+        }
+
+        .option-label {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: white;
+        }
+
+        .option-label:hover {
+            border-color: var(--secondary);
+            background: #eff6ff;
+        }
+
+        .option-input:checked+.option-label {
+            border-color: var(--secondary);
+            background: #eff6ff;
+            font-weight: 600;
+            box-shadow: inset 0 0 0 1px var(--secondary);
+        }
+
+        .textarea-answer {
+            width: 100%;
+            min-height: 100px;
+            padding: 1rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            resize: vertical;
+            margin-top: 0.5rem;
+        }
+
+        /* Result Screen */
+        .score-circle {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            font-weight: 700;
+            margin: 0 auto 2rem;
+            color: white;
+        }
+
+        .score-good {
+            background: var(--success);
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+        }
+
+        .score-avg {
+            background: var(--warning);
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
+        }
+
+        .score-bad {
+            background: var(--danger);
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
+        }
+
+        .result-item {
+            margin-bottom: 1.5rem;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            border-left: 4px solid var(--border);
+            background: white;
+        }
+
+        .result-item.correct {
+            border-left-color: var(--success);
+            background: #f0fdf4;
+        }
+
+        .result-item.wrong {
+            border-left-color: var(--danger);
+            background: #fef2f2;
+        }
+
+        .explanation {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+
+        #loadingOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 1000;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid var(--border);
+            border-top-color: var(--secondary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="/glassmorphism.css">
+    <script src="/global.js"></script>
+</head>
+
+<body>
+
+<div class="loading-overlay" id="globalLoading">
+  <svg xmlns="http://www.w3.org/2000/svg" height="200px" width="200px" viewBox="0 0 200 200" class="pencil">
+  	<defs>
+  		<clipPath id="pencil-eraser">
+  			<rect height="30" width="30" ry="5" rx="5"></rect>
+  		</clipPath>
+  	</defs>
+  	<circle transform="rotate(-113,100,100)" stroke-linecap="round" stroke-dashoffset="439.82" stroke-dasharray="439.82 439.82" stroke-width="2" stroke="currentColor" fill="none" r="70" class="pencil__stroke"></circle>
+  	<g transform="translate(100,100)" class="pencil__rotate">
+  		<g fill="none">
+  			<circle transform="rotate(-90)" stroke-dashoffset="402" stroke-dasharray="402.12 402.12" stroke-width="30" stroke="hsl(223,90%,50%)" r="64" class="pencil__body1"></circle>
+  			<circle transform="rotate(-90)" stroke-dashoffset="465" stroke-dasharray="464.96 464.96" stroke-width="10" stroke="hsl(223,90%,60%)" r="74" class="pencil__body2"></circle>
+  			<circle transform="rotate(-90)" stroke-dashoffset="339" stroke-dasharray="339.29 339.29" stroke-width="10" stroke="hsl(223,90%,40%)" r="54" class="pencil__body3"></circle>
+  		</g>
+  		<g transform="rotate(-90) translate(49,0)" class="pencil__eraser">
+  			<g class="pencil__eraser-skew">
+  				<rect height="30" width="30" ry="5" rx="5" fill="hsl(223,90%,70%)"></rect>
+  				<rect clip-path="url(#pencil-eraser)" height="30" width="5" fill="hsl(223,90%,60%)"></rect>
+  				<rect height="20" width="30" fill="hsl(223,10%,90%)"></rect>
+  				<rect height="20" width="15" fill="hsl(223,10%,70%)"></rect>
+  				<rect height="20" width="5" fill="hsl(223,10%,80%)"></rect>
+  				<rect height="2" width="30" y="6" fill="hsla(223,10%,10%,0.2)"></rect>
+  				<rect height="2" width="30" y="13" fill="hsla(223,10%,10%,0.2)"></rect>
+  			</g>
+  		</g>
+  		<g transform="rotate(-90) translate(49,-30)" class="pencil__point">
+  			<polygon points="15 0,30 30,0 30" fill="hsl(33,90%,70%)"></polygon>
+  			<polygon points="15 0,6 30,0 30" fill="hsl(33,90%,50%)"></polygon>
+  			<polygon points="15 0,20 10,10 10" fill="hsl(223,10%,10%)"></polygon>
+  		</g>
+  	</g>
+  </svg>
+  <p id="loadingText">Cargando...</p>
+</div>
+
+    <!-- BG Blobs -->
+    <div class="bg-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <aside>
+        <h1>AcademiaPro</h1>
+        <div class="user-info"
+            style="margin-bottom:1.5rem;padding:1rem;background:rgba(255,255,255,0.05);border-radius:0.75rem;">
+            <strong id="sidebar-name"
+                style="display:block;color:white;font-size:0.95rem;margin-bottom:0.4rem;">Cargando...</strong>
+            <span
+                style="background:#f59e0b;color:white;font-size:0.7rem;padding:2px 8px;border-radius:12px;font-weight:700;">ALUMNO</span>
+            <div style="margin-top:0.5rem;font-size:0.8rem;color:#94a3b8;">
+                Código: <b id="sidebar-code" style="color:white;">---</b>
+            </div>
+        </div>
+        <nav id="mainNav" style="flex:1;">
+            <a href="/student-portal">🏠 Mi Panel</a>
+            <a href="/student-portal/calendar">📅 Mi Calendario</a>
+            <a href="/student-portal/exams">📝 Mis Notas</a>
+            <a href="/student-portal/payments">💳 Mis Pagos</a>
+            <a href="/exam-simulator">📋 Simulacro</a>
+            <a href="/ai-tutor">🤖 Tutor IA</a>
+            <a href="/chat">💬 Chat</a>
+        </nav>
+        <div style="margin-top: auto;">
+            <a href="/auth/logout"
+                style="color: #fca5a5; text-decoration: none; padding: 0.75rem 1rem; display: block; border-radius: 0.5rem; font-weight:600;">🚪
+                Cerrar Sesión</a>
+        </div>
+    </aside>
+
+    <main>
+        <div class="header">
+            <h2>📝 Simulacro de Examen</h2>
+            <div id="timerDisplay" class="timer" style="display:none;">00:00</div>
+        </div>
+
+        <!-- Step 1: Configuration -->
+        <div id="step-1" class="step active">
+            <div class="card" style="max-width: 600px; margin: 0 auto;">
+                <h3 style="margin-bottom: 1.5rem;">Configuración del Simulacro</h3>
+
+                <div class="form-group">
+                    <label>Tema a evaluar</label>
+                    <input type="text" id="configTopic"
+                        placeholder="Escribe el tema (ej: Leyes de Newton, Tabla periódica, Ondas...)">
+                    <div style="margin-top: 0.75rem;">
+                        <span
+                            style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 0.5rem;">Sugerencias
+                            ESO:</span>
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.75rem;">
+                            <span class="chip"
+                                onclick="document.getElementById('configTopic').value=this.innerText">Cinemática</span>
+                            <span class="chip"
+                                onclick="document.getElementById('configTopic').value=this.innerText">Fuerzas</span>
+                            <span class="chip"
+                                onclick="document.getElementById('configTopic').value=this.innerText">Energía</span>
+                            <span class="chip"
+                                onclick="document.getElementById('configTopic').value=this.innerText">Electricidad</span>
+                            <span class="chip"
+                                onclick="document.getElementById('configTopic').value=this.innerText">Átomo</span>
+                            <span class="chip"
+                                onclick="document.getElementById('configTopic').value=this.innerText">Mezclas</span>
+                        </div>
+                        <span
+                            style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 0.5rem;">Sugerencias
+                            Bachillerato:</span>
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                            <span class="chip"
+                                onclick="document.getElementById('configTopic').value=this.innerText">Termodinámica</span>
+                            <span class="chip"
+                                onclick="document.getElementById('configTopic').value=this.innerText">Campo
+                                eléctrico</span>
+                            <span class="chip"
+                                onclick="document.getElementById('configTopic').value=this.innerText">Estequiometría</span>
+                            <span class="chip"
+                                onclick="document.getElementById('configTopic').value=this.innerText">Enlace
+                                químico</span>
+                            <span class="chip"
+                                onclick="document.getElementById('configTopic').value=this.innerText">Movimiento
+                                armónico</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Curso / Nivel</label>
+                    <input type="text" id="configCourse" value="3º ESO" readonly
+                        style="background: whitesmoke; color: var(--text-muted); cursor: not-allowed;">
+                </div>
+
+                <div class="form-group">
+                    <label>Dificultad</label>
+                    <select id="configDifficulty">
+                        <option value="fácil">Fácil (Conceptos básicos)</option>
+                        <option value="normal" selected>Normal (Nivel de examen estándar)</option>
+                        <option value="difícil">Difícil (Reto avanzado)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Cantidad de preguntas</label>
+                    <select id="configCount">
+                        <option value="5">5 Preguntas (Corto)</option>
+                        <option value="10" selected>10 Preguntas (Completo)</option>
+                        <option value="15">15 Preguntas (Largo)</option>
+                    </select>
+                </div>
+
+                <button class="btn btn-primary" style="width:100%; justify-content: center; margin-top: 1rem;"
+                    onclick="generateExam()">
+                    ⚡ Mente brillante, ¡Generar Examen!
+                </button>
+            </div>
+        </div>
+
+        <!-- Step 2: Exam -->
+        <div id="step-2" class="step">
+            <div class="card" id="examContainer">
+                <h3 id="examTitle"
+                    style="margin-bottom: 2rem; border-bottom: 2px solid var(--border); padding-bottom: 1rem;"></h3>
+                <div id="questionsArea"></div>
+
+                <div
+                    style="display: flex; justify-content: space-between; margin-top: 3rem; border-top: 1px solid var(--border); padding-top: 2rem;">
+                    <button class="btn btn-danger" onclick="cancelExam()">Abandonar</button>
+                    <button class="btn btn-primary" onclick="submitExam()">Entregar Examen</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 3: Results -->
+        <div id="step-3" class="step">
+            <div class="card text-center" style="text-align: center;">
+                <h3 style="margin-bottom: 2rem;">Resultados del Simulacro</h3>
+                <div id="scoreCircle" class="score-circle">0/0</div>
+                <h2 id="scoreText" style="margin-bottom: 0.5rem;"></h2>
+                <p id="timeText" style="color: var(--text-muted); margin-bottom: 2rem;"></p>
+
+                <div style="display:flex; justify-content: center; gap: 1rem; margin-bottom: 3rem;">
+                    <button class="btn btn-success" id="saveScoreBtn" onclick="saveExamScore()">Guardar Nota en Mi
+                        Perfil</button>
+                    <button class="btn btn-outline" onclick="location.reload()">Hacer Otro Simulacro</button>
+                </div>
+
+                <div id="correctionsArea" style="text-align: left;"></div>
+            </div>
+        </div>
+    </main>
+
+    <div id="loadingOverlay">
+        <div class="spinner"></div>
+        <h3 style="color:var(--text-main);">La IA está generando tu simulacro...</h3>
+        <p style="color:var(--text-muted); margin-top: 0.5rem;">Esto puede tomar unos segundos.</p>
+    </div>
+
+    <script>
+        let studentData = null;
+        let currentExam = null;
+        let userAnswers = []; // store answers for grading
+
+        let timerInterval;
+        let secondsElapsed = 0;
+
+        async function init() {
+            // Init sidebar
+            try {
+                const meRes = await fetch('/auth/me');
+                if (meRes.ok) {
+                    const me = await meRes.json();
+                    document.getElementById('sidebar-name').textContent = me.name;
+                    document.getElementById('sidebar-code').textContent = me.user_code || 'No asignado';
+                }
+            } catch (e) { }
+            const path = window.location.pathname;
+            document.querySelectorAll('#mainNav a').forEach(a => {
+                a.classList.toggle('active', a.getAttribute('href') === path);
+            });
+
+            // Load student data
+            try {
+                const res = await fetch('/api/student/portal-data');
+                if (res.ok) {
+                    const data = await res.json();
+                    studentData = data.student;
+                    document.getElementById('configCourse').value = studentData.course;
+                }
+            } catch (e) { console.error('Error fetching student'); }
+        }
+
+        async function generateExam() {
+            const topic = document.getElementById('configTopic').value;
+            const course = document.getElementById('configCourse').value;
+            const diff = document.getElementById('configDifficulty').value;
+            const num = document.getElementById('configCount').value;
+
+            showLoading('Generando tu examen...'); //
+
+            try {
+                const res = await fetch('/api/exam-simulator/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ topic, course, difficulty: diff, numQuestions: parseInt(num), type: document.querySelector('input[name="configType"]:checked').value, pdfContext: document.getElementById('configPdfText').value })
+                });
+
+                if (res.ok) {
+                    currentExam = await res.json();
+                    renderExam(currentExam);
+                    switchStep(2);
+                    startTimer();
+                } else {
+                    alert('Error generando simulacro. Intenta de nuevo.');
+                }
+            } catch (err) {
+                alert('No se pudo conectar a la IA. Revisa tu conexión.');
+            } finally {
+                hideLoading(); //
+            }
+        }
+
+        function renderExam(examData) {
+            document.getElementById('examTitle').textContent = examData.title || 'Simulacro de Examen';
+            const area = document.getElementById('questionsArea');
+            area.innerHTML = '';
+            userAnswers = new Array(examData.questions.length).fill(null);
+
+            examData.questions.forEach((q, idx) => {
+                const qDiv = document.createElement('div');
+                qDiv.className = 'question-card';
+
+                let answerHtml = '';
+                if (q.type === 'multiple_choice' && q.options) {
+                    answerHtml = q.options.map((opt, o_idx) => `
+                        <div>
+                            <input type="radio" name="q${idx}" id="q${idx}_o${o_idx}" value="${opt[0]}" class="option-input" style="display:none;" onchange="storeAnswer(${idx}, '${opt[0]}')">
+                            <label for="q${idx}_o${o_idx}" class="option-label">
+                                <span style="font-weight:700; color:var(--secondary)">${opt[0]}</span> ${opt.slice(2)}
+                            </label>
+                        </div>
+                    `).join('');
+                } else {
+                    answerHtml = `<textarea class="textarea-answer" placeholder="Escribe tu desarrollo paso a paso..." onchange="storeAnswer(${idx}, this.value)"></textarea>`;
+                }
+
+                qDiv.innerHTML = `
+                    <div class="question-title">${idx + 1}. ${q.question}</div>
+                    <div class="options-container">${answerHtml}</div>
+                `;
+                area.appendChild(qDiv);
+            });
+        }
+
+        function storeAnswer(qIndex, val) {
+            userAnswers[qIndex] = val;
+        }
+
+        function cancelExam() {
+            if (confirm("¿Estás seguro que quieres abandonar este simulacro? Tus respuestas se perderán.")) {
+                stopTimer();
+                switchStep(1);
+            }
+        }
+
+        function submitExam() {
+            // Count unanswered
+            const unansweredCount = userAnswers.filter(a => a === null || (typeof a === 'string' && a.trim() === '')).length;
+            const total = currentExam.questions.length;
+
+            if (unansweredCount > 0) {
+                const percentUnanswered = (unansweredCount / total) * 100;
+                let msg = `Tienes ${unansweredCount} preguntas sin responder.`;
+                if (percentUnanswered > 50) {
+                    msg += ` ⚠️ ¡Eso es más de la mitad del examen!`;
+                }
+                msg += ` ¿Seguro que quieres finalizar el simulacro?`;
+
+                if (!confirm(msg)) return;
+            }
+
+            stopTimer();
+            gradeExam();
+            switchStep(3);
+        }
+
+        function gradeExam() {
+            let correctCount = 0;
+            const corrections = document.getElementById('correctionsArea');
+            corrections.innerHTML = '<h3>Corrección Detallada</h3><hr style="margin: 1rem 0; border:none; border-top: 1px solid var(--border);">';
+
+            currentExam.questions.forEach((q, idx) => {
+                const uAnsRaw = userAnswers[idx];
+                const uAns = (uAnsRaw !== null && uAnsRaw !== undefined) ? String(uAnsRaw).trim() : '';
+                const displayAns = uAns || 'Sin responder';
+
+                let isCorrect = false;
+
+                if (!uAns) {
+                    isCorrect = false;
+                } else if (q.type === 'multiple_choice') {
+                    // Match the letter A, B, C, D exactly
+                    isCorrect = uAns.toUpperCase() === q.correct_answer.charAt(0).toUpperCase();
+                } else {
+                    // Open question rudimentary check
+                    isCorrect = uAns.length > 5;
+                }
+
+                if (isCorrect) correctCount++;
+
+                const cDiv = document.createElement('div');
+                cDiv.className = `result-item ${isCorrect ? 'correct' : 'wrong'}`;
+
+                cDiv.innerHTML = `
+                    <div style="font-weight:600; font-size: 1.125rem; margin-bottom: 0.5rem;">
+                        ${idx + 1}. ${q.question}
+                    </div>
+                    <div>
+                        <span style="color: ${isCorrect ? 'var(--success)' : 'var(--danger)'}; font-weight:600;">Tu respuesta:</span> ${displayAns}
+                        <span style="margin-left: 1rem;">${isCorrect ? '✅' : '❌'}</span>
+                    </div>
+                    ${!isCorrect ? `<div style="margin-top:0.5rem; font-weight:600;">La respuesta correcta era: ${q.correct_answer}</div>` : ''}
+                    <div class="explanation">
+                        <strong>💡 Explicación del tutor:</strong><br>
+                        ${q.explanation}
+                    </div>
+                `;
+                corrections.appendChild(cDiv);
+            });
+
+            // Calculate Score
+            const total = currentExam.questions.length;
+            const gradePoints = (correctCount / total) * 10;
+            const circle = document.getElementById('scoreCircle');
+
+            circle.textContent = `${gradePoints.toFixed(1)}/10`;
+            // reset classes
+            circle.className = 'score-circle';
+            if (gradePoints >= 8.5) { circle.classList.add('score-good'); triggerConfetti(); }
+            else if (gradePoints >= 5) circle.classList.add('score-avg');
+            else circle.classList.add('score-bad');
+
+            document.getElementById('scoreText').textContent = `Has acertado ${correctCount} de ${total}`;
+            const m = Math.floor(secondsElapsed / 60);
+            const s = secondsElapsed % 60;
+            document.getElementById('timeText').textContent = `Tiempo invertido: ${m} min ${s} seg`;
+        }
+
+        async function saveExamScore() {
+            const btn = document.getElementById('saveScoreBtn');
+            btn.disabled = true;
+            btn.textContent = 'Guardando...';
+
+            const scoreStr = document.getElementById('scoreCircle').textContent.split('/')[0];
+            const maxStr = document.getElementById('scoreCircle').textContent.split('/')[1];
+            const score = parseFloat(scoreStr);
+            const maxScore = parseFloat(maxStr);
+            const percentage = Math.round((score / maxScore) * 100);
+
+            const payload = {
+                topic: document.getElementById('configTopic').value,
+                difficulty: document.getElementById('configDifficulty').value,
+                num_questions: parseInt(document.getElementById('configCount').value),
+                score: score,
+                max_score: maxScore,
+                percentage: percentage,
+                questions_json: currentExam.questions,
+                answers_json: userAnswers
+            };
+
+            try {
+                const res = await fetch('/api/simulator/results', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.ok) {
+                    alert(`¡Resultado (${percentage}%) guardado con éxito! Tu profesor podrá revisarlo.`);
+                    btn.textContent = '✅ Guardado';
+                } else {
+                    const error = await res.json();
+                    alert('Error: ' + (error.error || 'No se pudo guardar'));
+                    btn.disabled = false;
+                    btn.textContent = 'Guardar Resultado';
+                }
+            } catch (e) {
+                btn.disabled = false;
+                btn.textContent = 'Guardar Resultado';
+                alert('No se pudo conectar con el servidor.');
+            }
+        }
+
+        
+        const dropZone = document.getElementById('pdf-drop-zone');
+        if (dropZone) {
+            dropZone.onclick = () => document.getElementById('configPdf').click();
+            dropZone.ondragover = (e) => { e.preventDefault(); dropZone.style.backgroundColor = '#eff6ff'; };
+            dropZone.ondragleave = (e) => { e.preventDefault(); dropZone.style.backgroundColor = 'white'; };
+            dropZone.ondrop = (e) => {
+                e.preventDefault(); dropZone.style.backgroundColor = 'white';
+                if (e.dataTransfer.files.length) handlePdf(e.dataTransfer.files[0]);
+            };
+            document.getElementById('configPdf').onchange = (e) => {
+                if (e.target.files.length) handlePdf(e.target.files[0]);
+            };
+        }
+        async function handlePdf(file) {
+            if (file.type !== 'application/pdf') { alert('Solo PDF.'); return; }
+            document.getElementById('pdf-loading').style.display = 'block';
+            document.getElementById('pdf-success').style.display = 'none';
+            const fd = new FormData(); fd.append('pdf', file);
+            try {
+                const res = await fetch('/api/ai-tutor/extract-pdf', { method: 'POST', body: fd });
+                const data = await res.json();
+                document.getElementById('pdf-loading').style.display = 'none';
+                if (res.ok) {
+                    document.getElementById('configPdfText').value = data.text;
+                    document.getElementById('pdf-name').textContent = file.name;
+                    document.getElementById('pdf-success').style.display = 'block';
+                } else alert(data.error);
+            } catch(e) { document.getElementById('pdf-loading').style.display = 'none'; alert('Error'); }
+        }
+
+        // Helpers
+        function switchStep(num) {
+            document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
+            document.getElementById(`step-${num}`).classList.add('active');
+
+            const timer = document.getElementById('timerDisplay');
+            if (num === 2) timer.style.display = 'block';
+            else timer.style.display = 'none';
+        }
+
+        function startTimer() {
+            secondsElapsed = 0;
+            document.getElementById('timerDisplay').textContent = "00:00";
+            timerInterval = setInterval(() => {
+                secondsElapsed++;
+                const m = String(Math.floor(secondsElapsed / 60)).padStart(2, '0');
+                const s = String(secondsElapsed % 60).padStart(2, '0');
+                document.getElementById('timerDisplay').textContent = `${m}:${s}`;
+            }, 1000);
+        }
+
+        function stopTimer() { clearInterval(timerInterval); }
+
+        function triggerConfetti() {
+            var duration = 3 * 1000;
+            var end = Date.now() + duration;
+            (function frame() {
+                confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#3b82f6', '#10b981'] });
+                confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#3b82f6', '#10b981'] });
+                if (Date.now() < end) requestAnimationFrame(frame);
+            }());
+        }
+
+        init();
+    </script>
+</body>
+
+</html>

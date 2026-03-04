@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuración Profesor - AcademiaPro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1e293b;
+            --secondary: #3b82f6;
+            --background: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --border: #e2e8f0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--background);
+            color: var(--text-main);
+            display: flex;
+            min-height: 100vh;
+        }
+
+        aside {
+            width: 260px;
+            background: var(--primary);
+            color: white;
+            padding: 2rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            z-index: 100;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        aside h1 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin-bottom: 2rem;
+        }
+
+        .user-badge {
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 0.75rem;
+        }
+
+        .role-tag {
+            background: #22c55e;
+            color: white;
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+
+        nav a {
+            color: #94a3b8;
+            text-decoration: none;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: all 0.2s;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            position: relative;
+        }
+
+        nav a:hover,
+        nav a.active {
+            background: var(--secondary);
+            color: white;
+        }
+
+        main {
+            flex: 1;
+            margin-left: 260px;
+            padding: 2.5rem;
+            max-width: 800px;
+        }
+
+        .page-header {
+            margin-bottom: 2.5rem;
+        }
+
+        .page-header h2 {
+            font-size: 1.875rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .page-header p {
+            color: var(--text-muted);
+        }
+
+        .settings-card {
+            background: var(--card-bg);
+            border-radius: 1rem;
+            border: 1px solid var(--border);
+            padding: 2rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            margin-bottom: 1.5rem;
+        }
+
+        .settings-card h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .code-box {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            background: #f1f5f9;
+            border-radius: 0.75rem;
+            padding: 1.25rem 1.5rem;
+            border: 2px dashed var(--border);
+        }
+
+        .code-value {
+            font-size: 1.75rem;
+            font-weight: 800;
+            letter-spacing: 0.1em;
+            color: var(--primary);
+            font-family: 'Courier New', monospace;
+            flex: 1;
+        }
+
+        .btn {
+            padding: 0.6rem 1.25rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+        }
+
+        .btn-primary {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        .btn-ghost {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+        }
+
+        .btn-ghost:hover {
+            background: #f1f5f9;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.85rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .info-value {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .info-value.code {
+            font-family: 'Courier New', monospace;
+            background: #f1f5f9;
+            padding: 0.2rem 0.6rem;
+            border-radius: 0.25rem;
+            font-size: 1rem;
+        }
+
+        #toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            color: white;
+            font-weight: 600;
+            display: none;
+            z-index: 2000;
+            background: var(--success);
+        }
+
+        .desc {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+            line-height: 1.5;
+        }
+    </style>
+    <link rel="stylesheet" href="/glassmorphism.css">
+    <script src="/global.js"></script>
+</head>
+
+<body>
+
+<div class="loading-overlay" id="globalLoading">
+  <svg xmlns="http://www.w3.org/2000/svg" height="200px" width="200px" viewBox="0 0 200 200" class="pencil">
+  	<defs>
+  		<clipPath id="pencil-eraser">
+  			<rect height="30" width="30" ry="5" rx="5"></rect>
+  		</clipPath>
+  	</defs>
+  	<circle transform="rotate(-113,100,100)" stroke-linecap="round" stroke-dashoffset="439.82" stroke-dasharray="439.82 439.82" stroke-width="2" stroke="currentColor" fill="none" r="70" class="pencil__stroke"></circle>
+  	<g transform="translate(100,100)" class="pencil__rotate">
+  		<g fill="none">
+  			<circle transform="rotate(-90)" stroke-dashoffset="402" stroke-dasharray="402.12 402.12" stroke-width="30" stroke="hsl(223,90%,50%)" r="64" class="pencil__body1"></circle>
+  			<circle transform="rotate(-90)" stroke-dashoffset="465" stroke-dasharray="464.96 464.96" stroke-width="10" stroke="hsl(223,90%,60%)" r="74" class="pencil__body2"></circle>
+  			<circle transform="rotate(-90)" stroke-dashoffset="339" stroke-dasharray="339.29 339.29" stroke-width="10" stroke="hsl(223,90%,40%)" r="54" class="pencil__body3"></circle>
+  		</g>
+  		<g transform="rotate(-90) translate(49,0)" class="pencil__eraser">
+  			<g class="pencil__eraser-skew">
+  				<rect height="30" width="30" ry="5" rx="5" fill="hsl(223,90%,70%)"></rect>
+  				<rect clip-path="url(#pencil-eraser)" height="30" width="5" fill="hsl(223,90%,60%)"></rect>
+  				<rect height="20" width="30" fill="hsl(223,10%,90%)"></rect>
+  				<rect height="20" width="15" fill="hsl(223,10%,70%)"></rect>
+  				<rect height="20" width="5" fill="hsl(223,10%,80%)"></rect>
+  				<rect height="2" width="30" y="6" fill="hsla(223,10%,10%,0.2)"></rect>
+  				<rect height="2" width="30" y="13" fill="hsla(223,10%,10%,0.2)"></rect>
+  			</g>
+  		</g>
+  		<g transform="rotate(-90) translate(49,-30)" class="pencil__point">
+  			<polygon points="15 0,30 30,0 30" fill="hsl(33,90%,70%)"></polygon>
+  			<polygon points="15 0,6 30,0 30" fill="hsl(33,90%,50%)"></polygon>
+  			<polygon points="15 0,20 10,10 10" fill="hsl(223,10%,10%)"></polygon>
+  		</g>
+  	</g>
+  </svg>
+  <p id="loadingText">Cargando...</p>
+</div>
+
+    <!-- BG Blobs -->
+    <div class="bg-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <aside>
+        <h1>AcademiaPro</h1>
+        <div class="user-badge">
+            <strong id="sidebarName"
+                style="display:block;color:white;font-size:0.95rem;margin-bottom:0.4rem;">Cargando...</strong>
+            <span class="role-tag">PROFESOR</span>
+            <div style="margin-top:0.5rem;font-size:0.8rem;color:#94a3b8;">
+                Código: <b id="sidebar-code" style="color:white;">---</b>
+            </div>
+        </div>
+        <nav id="mainNav" style="flex:1;">
+            <a href="/teacher/dashboard">👥 Mis Alumnos</a>
+            <a href="/teacher/sessions">📅 Sesiones</a>
+            <a href="/teacher/exams">📝 Exámenes</a>
+            <a href="/teacher/transcripts">📝 Transcripciones</a>
+            <a href="/teacher/calendar">🗓️ Calendario</a>
+            <a href="/ai-tutor">🤖 Asistente IA</a>
+            <a href="/chat">💬 Chat</a>
+            <a href="/teacher/settings">⚙️ Configuración</a>
+        </nav>
+        <div style="margin-top:auto;">
+            <a href="/auth/logout"
+                style="color:#fca5a5;text-decoration:none;padding:0.75rem 1rem;display:block;border-radius:0.5rem;">🚪
+                Cerrar Sesión</a>
+        </div>
+    </aside>
+
+    <main>
+        <div class="page-header">
+            <h2>⚙️ Mi Configuración</h2>
+            <p>Gestiona tu perfil y código personal de usuario.</p>
+        </div>
+
+        <div class="settings-card">
+            <h3>👤 Mi Perfil</h3>
+            <div class="info-row">
+                <span class="info-label">Nombre</span>
+                <span class="info-value" id="profile-name">—</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Email</span>
+                <span class="info-value" id="profile-email">—</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Rol</span>
+                <span class="info-value"><span class="role-tag" style="font-size:0.8rem;">PROFESOR</span></span>
+            </div>
+        </div>
+
+        <div class="settings-card">
+            <h3>🪪 Mi Código Personal</h3>
+            <p class="desc">Tu código único te identifica en AcademiaPro. Compártelo con el administrador de tu academia
+                para que pueda añadirte.</p>
+            <div class="code-box" style="margin-top:1.25rem;">
+                <span class="code-value" id="my-code">---</span>
+                <button class="btn btn-ghost" onclick="copyCode()">📋 Copiar</button>
+                <button class="btn btn-primary" onclick="generateCode()">🔄 Regenerar</button>
+            </div>
+        </div>
+
+        <div class="settings-card">
+            <h3>📊 Mis Estadísticas</h3>
+            <div class="info-row">
+                <span class="info-label">Alumnos asignados</span>
+                <span class="info-value" id="stat-students">—</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Sesiones este mes</span>
+                <span class="info-value" id="stat-sessions">—</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Nota media de alumnos</span>
+                <span class="info-value" id="stat-avg">—</span>
+            </div>
+        </div>
+    </main>
+
+    <div id="toast"></div>
+
+    <script>
+        async function init() {
+            const userRes = await fetch('/auth/me');
+            if (!userRes.ok) return window.location.href = '/login';
+            const user = await userRes.json();
+
+            // Sidebar
+            document.getElementById('sidebarName').textContent = user.name;
+
+            // Auto-highlight active link
+            const path = window.location.pathname;
+            document.querySelectorAll('#mainNav a').forEach(a => {
+                a.classList.toggle('active', a.getAttribute('href') === path);
+            });
+
+            // Profile info
+            document.getElementById('profile-name').textContent = user.name;
+            document.getElementById('profile-email').textContent = user.email || '—';
+
+            // Load user code
+            let code = user.user_code;
+            if (!code) {
+                const genRes = await fetch('/api/user/generate-code', { method: 'PUT' });
+                if (genRes.ok) {
+                    const data = await genRes.json();
+                    code = data.user_code;
+                }
+            }
+            document.getElementById('my-code').textContent = code || 'No asignado';
+            document.getElementById('sidebar-code').textContent = code || '---';
+
+            // Stats
+            const statsRes = await fetch('/api/teacher/dashboard-stats').catch(() => null);
+            if (statsRes && statsRes.ok) {
+                const stats = await statsRes.json();
+                document.getElementById('stat-students').textContent = stats.studentCount || '0';
+                document.getElementById('stat-sessions').textContent = stats.sessionCount || '0';
+                document.getElementById('stat-avg').textContent = stats.avgScore ? `${stats.avgScore} / 10` : '—';
+            }
+        }
+
+        async function generateCode() {
+            if (!confirm('¿Regenerar tu código? El anterior quedará inválido.')) return;
+            const res = await fetch('/api/user/generate-code', { method: 'PUT' });
+            if (res.ok) {
+                const data = await res.json();
+                document.getElementById('my-code').textContent = data.user_code;
+                document.getElementById('sidebar-code').textContent = data.user_code;
+                showToast('✅ Código regenerado correctamente');
+            }
+        }
+
+        function copyCode() {
+            const code = document.getElementById('my-code').textContent;
+            navigator.clipboard.writeText(code).then(() => showToast('📋 Código copiado al portapapeles'));
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.style.display = 'block';
+            setTimeout(() => t.style.display = 'none', 3000);
+        }
+
+        init();
+    </script>
+</body>
+
+</html>

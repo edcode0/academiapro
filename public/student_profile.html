@@ -43,6 +43,10 @@
             padding: 2rem 1.5rem;
             display: flex;
             flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            overflow-x: hidden;
         }
 
         aside h1 {
@@ -391,14 +395,60 @@
             background: var(--danger);
         }
     </style>
+    <link rel="stylesheet" href="/glassmorphism.css">
+    <script src="/global.js"></script>
 </head>
 
 <body>
+
+<div class="loading-overlay" id="globalLoading">
+  <svg xmlns="http://www.w3.org/2000/svg" height="200px" width="200px" viewBox="0 0 200 200" class="pencil">
+  	<defs>
+  		<clipPath id="pencil-eraser">
+  			<rect height="30" width="30" ry="5" rx="5"></rect>
+  		</clipPath>
+  	</defs>
+  	<circle transform="rotate(-113,100,100)" stroke-linecap="round" stroke-dashoffset="439.82" stroke-dasharray="439.82 439.82" stroke-width="2" stroke="currentColor" fill="none" r="70" class="pencil__stroke"></circle>
+  	<g transform="translate(100,100)" class="pencil__rotate">
+  		<g fill="none">
+  			<circle transform="rotate(-90)" stroke-dashoffset="402" stroke-dasharray="402.12 402.12" stroke-width="30" stroke="hsl(223,90%,50%)" r="64" class="pencil__body1"></circle>
+  			<circle transform="rotate(-90)" stroke-dashoffset="465" stroke-dasharray="464.96 464.96" stroke-width="10" stroke="hsl(223,90%,60%)" r="74" class="pencil__body2"></circle>
+  			<circle transform="rotate(-90)" stroke-dashoffset="339" stroke-dasharray="339.29 339.29" stroke-width="10" stroke="hsl(223,90%,40%)" r="54" class="pencil__body3"></circle>
+  		</g>
+  		<g transform="rotate(-90) translate(49,0)" class="pencil__eraser">
+  			<g class="pencil__eraser-skew">
+  				<rect height="30" width="30" ry="5" rx="5" fill="hsl(223,90%,70%)"></rect>
+  				<rect clip-path="url(#pencil-eraser)" height="30" width="5" fill="hsl(223,90%,60%)"></rect>
+  				<rect height="20" width="30" fill="hsl(223,10%,90%)"></rect>
+  				<rect height="20" width="15" fill="hsl(223,10%,70%)"></rect>
+  				<rect height="20" width="5" fill="hsl(223,10%,80%)"></rect>
+  				<rect height="2" width="30" y="6" fill="hsla(223,10%,10%,0.2)"></rect>
+  				<rect height="2" width="30" y="13" fill="hsla(223,10%,10%,0.2)"></rect>
+  			</g>
+  		</g>
+  		<g transform="rotate(-90) translate(49,-30)" class="pencil__point">
+  			<polygon points="15 0,30 30,0 30" fill="hsl(33,90%,70%)"></polygon>
+  			<polygon points="15 0,6 30,0 30" fill="hsl(33,90%,50%)"></polygon>
+  			<polygon points="15 0,20 10,10 10" fill="hsl(223,10%,10%)"></polygon>
+  		</g>
+  	</g>
+  </svg>
+  <p id="loadingText">Cargando...</p>
+</div>
+
+    <!-- BG Blobs -->
+    <div class="bg-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
     <aside>
         <h1>AcademiaPro</h1>
         <nav id="mainNav" style="flex:1;">
             <a href="/">Dashboard</a>
             <a href="/students">Estudiantes</a>
+            <a href="/admin/teachers">👨‍🏫 Profesores</a>
             <a href="/sessions">Sesiones</a>
             <a href="/calendar">Calendario</a>
             <a href="/exams">Exámenes</a>
@@ -441,6 +491,9 @@
             </div>
             <div id="status-badge-container"></div>
             <div class="profile-actions">
+                <button class="btn btn-ghost"
+                    style="color: var(--danger); border: 1px solid var(--danger); margin-right: auto;"
+                    onclick="openDeleteModal()">🗑️ Eliminar alumno</button>
                 <button class="btn btn-ghost" style="border: 1px solid var(--border); margin-right: 1rem;"
                     onclick="openModal('reportModal')">📊 Generar Informe</button>
                 <button class="btn btn-primary" onclick="openModal('sessionModal')">+ Añadir Sesión</button>
@@ -540,9 +593,27 @@
             </div>
         </div>
 
+        <!-- Delete Student Modal -->
+        <div id="deleteStudentModal" class="modal-overlay">
+            <div class="modal">
+                <h3 style="color: var(--danger);">Eliminar Alumno</h3>
+                <p style="margin-bottom: 1.5rem; color: var(--text-muted);">
+                    ¿Seguro que quieres eliminar a <strong id="deleteTargetName">este alumno</strong> de la
+                    academia?<br><br>
+                    Se borrarán todas sus sesiones, exámenes y pagos. Esta acción no se puede deshacer.
+                </p>
+                <div class="modal-actions">
+                    <button class="btn btn-ghost" onclick="closeModal('deleteStudentModal')">Cancelar</button>
+                    <button class="btn btn-primary" style="background: var(--danger);" onclick="confirmDeleteStudent()"
+                        id="btnConfirmDeleteStudent">Sí, eliminar</button>
+                </div>
+            </div>
+        </div>
+
         <div class="tabs">
             <div class="tab active" onclick="switchTab('sessions')">Sesiones</div>
             <div class="tab" onclick="switchTab('exams')">Exámenes</div>
+            <div class="tab" onclick="switchTab('simulacros')">Simulacros</div>
             <div class="tab" onclick="switchTab('payments')">Pagos</div>
         </div>
 
@@ -584,7 +655,76 @@
             </div>
         </div>
 
+        <div id="simulacros" class="tab-content">
+            <div class="card">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Tema</th>
+                            <th>Score IA</th>
+                            <th>Nota Profe</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="simulacros-table"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Simulation View Modal (Read Only for Admin) -->
+        <div id="simModalRead" class="modal-overlay">
+            <div class="modal" style="max-width: 800px; width: 90%; max-height: 90vh; overflow-y: auto;">
+                <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                    <h3 style="font-size: 1.5rem; color: var(--primary);">Detalle del Simulacro</h3>
+                    <button onclick="closeModal('simModalRead')"
+                        style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:var(--text-muted);">✕</button>
+                </div>
+                <div id="sim-read-content"
+                    style="background:#f8fafc; padding:1.5rem; border-radius:1.75rem; margin-bottom:2rem;"></div>
+                <div style="display:flex; justify-content: flex-end;">
+                    <button class="btn btn-ghost" onclick="closeModal('simModalRead')">Cerrar</button>
+                </div>
+            </div>
+        </div>
+
         <div id="payments" class="tab-content">
+            <!-- Payment Configuration -->
+            <div class="card" style="margin-bottom: 2rem;">
+                <h3 style="margin-bottom: 1.5rem; color: var(--text-main); font-size: 1.25rem;">Configuración de Pago
+                    Mensual</h3>
+                <form id="paymentConfigForm"
+                    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; align-items: end;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>Fecha de Inicio</label>
+                        <input type="date" id="p_start_date" required>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>Cuota Mensual (€)</label>
+                        <input type="number" id="p_monthly_fee" step="0.5" min="0" value="0">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>Día de Pago (1-28)</label>
+                        <input type="number" id="p_payment_day" min="1" max="28" value="1">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>Método de Pago</label>
+                        <select id="p_payment_method">
+                            <option value="">-- Seleccionar --</option>
+                            <option value="Transferencia">Transferencia</option>
+                            <option value="Efectivo">Efectivo</option>
+                            <option value="Bizum">Bizum</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>Notas adicionales</label>
+                        <input type="text" id="p_payment_notes" placeholder="Ej: Paga trimestral">
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="height: 48px; margin-bottom: 0;">💾 Guardar
+                        Cambios</button>
+                </form>
+            </div>
+
             <div class="card">
                 <table>
                     <thead>
@@ -659,10 +799,17 @@
                         <td>${p.due_date}</td>
                         <td><span class="badge ${p.status === 'paid' ? 'badge-paid' : 'badge-pending'}">${p.status === 'paid' ? 'Pagado' : 'Pendiente'}</span></td>
                         <td>
-                            ${p.status === 'pending' ? '<button class="btn-reminder">Enviar Recordatorio</button>' : '-'}
+                            ${p.status === 'pending' ? '<button class="btn-reminder" onclick="sendReminder(' + p.id + ')">Enviar Recordatorio</button>' : '-'}
                         </td>
                     </tr>
                 `).join('') || '<tr><td colspan="4" style="text-align:center">No hay pagos registrados</td></tr>';
+
+                // Load payment configuration
+                document.getElementById('p_start_date').value = student.payment_start_date || new Date().toISOString().split('T')[0];
+                document.getElementById('p_monthly_fee').value = student.monthly_fee || 0;
+                document.getElementById('p_payment_day').value = student.payment_day || 1;
+                document.getElementById('p_payment_method').value = student.payment_method || '';
+                document.getElementById('p_payment_notes').value = student.payment_notes || '';
 
             } catch (err) {
                 console.error('Error loading profile:', err);
@@ -776,7 +923,7 @@
 
             select.onchange = async () => {
                 const teacherId = select.value;
-                const res = await fetch(`/api/students/${studentId}`, {
+                const res = await fetch(`/api/admin/students/${studentId}/teacher`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ assigned_teacher_id: teacherId || null })
@@ -784,13 +931,39 @@
                 if (res.ok) {
                     const teacherName = teacherId ? select.options[select.selectedIndex].text : 'Sin asignar';
                     document.getElementById('assigned-teacher-name').textContent = teacherName;
-                    showToast('Profesor asignado correctamente', 'success');
+                    showToast('✅ Profesor actualizado correctamente', 'success');
+                } else {
+                    showToast('Error al actualizar', 'error');
                 }
             };
         }
         initTeacherAssignment();
 
-        // Update assigned-teacher-name in loadProfile
+        function openDeleteModal() {
+            document.getElementById('deleteTargetName').textContent = document.getElementById('student-name').textContent;
+            openModal('deleteStudentModal');
+        }
+
+        async function confirmDeleteStudent() {
+            const btn = document.getElementById('btnConfirmDeleteStudent');
+            btn.disabled = true;
+            btn.textContent = 'Eliminando...';
+            try {
+                const res = await fetch(`/api/admin/students/${studentId}`, { method: 'DELETE' });
+                if (res.ok) {
+                    window.location.href = '/students';
+                } else {
+                    alert('Error al eliminar alumno');
+                }
+            } catch (e) {
+                console.error(e);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Sí, eliminar';
+            }
+        }
+
+        // Handle original teacher loading after fetching
         const originalLoadProfile = loadProfile;
         loadProfile = async () => {
             await originalLoadProfile();
@@ -798,7 +971,7 @@
             const data = await res.json();
             if (data.student.assigned_teacher_id) {
                 document.getElementById('teacher-select').value = data.student.assigned_teacher_id;
-                document.getElementById('assigned-teacher-name').textContent = data.student.teacher_name || 'Profesor';
+                document.getElementById('assigned-teacher-name').textContent = data.student.teacher_name || 'Profesor asignado';
             } else {
                 document.getElementById('teacher-select').value = "";
                 document.getElementById('assigned-teacher-name').textContent = 'Sin asignar';
@@ -874,6 +1047,46 @@
             }
         });
 
+        // Payment Configuration Submission
+        document.getElementById('paymentConfigForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = {
+                payment_start_date: document.getElementById('p_start_date').value,
+                monthly_fee: parseFloat(document.getElementById('p_monthly_fee').value) || 0,
+                payment_day: parseInt(document.getElementById('p_payment_day').value) || 1,
+                payment_method: document.getElementById('p_payment_method').value,
+                payment_notes: document.getElementById('p_payment_notes').value
+            };
+
+            try {
+                const res = await fetch(`/api/students/${studentId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                if (res.ok) {
+                    showToast('✅ Configuración de pago guardada', 'success');
+                } else {
+                    showToast('❌ Error al guardar', 'error');
+                }
+            } catch (err) {
+                console.error('Error saving payment config:', err);
+            }
+        });
+
+        async function sendReminder(paymentId) {
+            try {
+                const res = await fetch(`/api/payments/${paymentId}/remind`, { method: 'POST' });
+                if (res.ok) {
+                    showToast('✅ Recordatorio enviado', 'success');
+                } else {
+                    showToast('❌ Error al enviar el recordatorio', 'error');
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
         function showToast(message, type = 'success') {
             const toast = document.getElementById('toast');
             toast.textContent = message;
@@ -889,6 +1102,14 @@
         // Report Submission
         document.getElementById('reportForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+
+            const cooldownKey = `report_cooldown_${studentId}`;
+            const lastGen = localStorage.getItem(cooldownKey);
+            if (lastGen && Date.now() - parseInt(lastGen) < 3600000) {
+                alert("Por favor, espera 1 hora antes de generar otro informe para este alumno para evitar duplicados.");
+                return;
+            }
+
             const btn = document.getElementById('generate-btn');
             const originalText = btn.textContent;
             btn.textContent = 'Generando con IA...';
@@ -909,6 +1130,16 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
                 });
+
+                if (!res.ok) {
+                    const errData = await res.json();
+                    alert(errData.error || 'Error al generar el informe');
+                    btn.textContent = originalText;
+                    btn.disabled = false;
+                    return;
+                }
+
+                localStorage.setItem(cooldownKey, Date.now().toString());
 
                 const emailStatus = JSON.parse(res.headers.get('X-Email-Status') || '{}');
 
@@ -961,6 +1192,56 @@
                 }
             });
         }
+        async function loadSimulacros() {
+            try {
+                const res = await fetch(`/api/simulator/results/student/${studentId}`);
+                if (res.ok) {
+                    const sims = await res.json();
+                    const list = document.getElementById('simulacros-table');
+                    if (list) {
+                        list.innerHTML = sims.map(s => `
+                            <tr>
+                                <td>${new Date(s.created_at).toLocaleDateString('es-ES')}</td>
+                                <td>${s.topic}</td>
+                                <td><strong>${s.percentage}%</strong></td>
+                                <td>${s.teacher_grade ? `<span style="font-weight:700; color:var(--primary);">${s.teacher_grade}/10</span>` : '<span style="color:var(--text-muted)">Pendiente</span>'}</td>
+                                <td>
+                                    <button class="btn btn-ghost" onclick="viewSimResult(${s.id})" style="padding: 0.5rem 1rem; font-size: 0.8rem; border:1px solid var(--border);">Ver Detalle</button>
+                                </td>
+                            </tr>
+                        `).join('');
+                    }
+                }
+            } catch (err) { console.error('Error loading simulacros:', err); }
+        }
+
+        async function viewSimResult(id) {
+            try {
+                const res = await fetch(`/api/simulator/results/${id}`);
+                if (res.ok) {
+                    const sim = await res.json();
+                    const container = document.getElementById('sim-read-content');
+                    if (container) {
+                        container.innerHTML = `
+                            <div style="margin-bottom: 2rem; padding: 1rem; background: white; border-radius: 0.5rem; border: 1px solid var(--border);">
+                                <p><strong>Nota del Profesor:</strong> ${sim.teacher_grade || 'Pendiente'}/10</p>
+                                <p><strong>Feedback:</strong> ${sim.teacher_feedback || 'Sin observaciones'}</p>
+                            </div>
+                        ` + sim.questions.map((q, i) => `
+                            <div style="margin-bottom:1.5rem; border-bottom:1px solid var(--border); padding-bottom:1rem;">
+                                <p style="font-weight:600; margin-bottom:0.5rem;">${i + 1}. ${q.question}</p>
+                                <p style="font-size:0.9rem; color:var(--text-muted); margin-bottom:0.5rem;"><strong>Respuesta del alumno:</strong> ${sim.answers[i] || '(No respondió)'}</p>
+                                <p style="font-size:0.9rem; color:var(--success);"><strong>Respuesta correcta:</strong> ${q.correct_answer}</p>
+                            </div>
+                        `).join('');
+                        openModal('simModalRead');
+                    }
+                }
+            } catch (err) { console.error('Error viewing sim result:', err); }
+        }
+
+        // Final init
+        loadProfile().then(() => loadSimulacros());
         highlightActiveLink();
     </script>
     <div id="toast"></div>

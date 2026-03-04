@@ -45,6 +45,8 @@
             flex-direction: column;
             position: fixed;
             height: 100vh;
+            overflow-y: auto;
+            overflow-x: hidden;
         }
 
         aside h1 {
@@ -424,14 +426,60 @@
             z-index: 2000;
         }
     </style>
+    <link rel="stylesheet" href="/glassmorphism.css">
+    <script src="/global.js"></script>
 </head>
 
 <body>
+
+<div class="loading-overlay" id="globalLoading">
+  <svg xmlns="http://www.w3.org/2000/svg" height="200px" width="200px" viewBox="0 0 200 200" class="pencil">
+  	<defs>
+  		<clipPath id="pencil-eraser">
+  			<rect height="30" width="30" ry="5" rx="5"></rect>
+  		</clipPath>
+  	</defs>
+  	<circle transform="rotate(-113,100,100)" stroke-linecap="round" stroke-dashoffset="439.82" stroke-dasharray="439.82 439.82" stroke-width="2" stroke="currentColor" fill="none" r="70" class="pencil__stroke"></circle>
+  	<g transform="translate(100,100)" class="pencil__rotate">
+  		<g fill="none">
+  			<circle transform="rotate(-90)" stroke-dashoffset="402" stroke-dasharray="402.12 402.12" stroke-width="30" stroke="hsl(223,90%,50%)" r="64" class="pencil__body1"></circle>
+  			<circle transform="rotate(-90)" stroke-dashoffset="465" stroke-dasharray="464.96 464.96" stroke-width="10" stroke="hsl(223,90%,60%)" r="74" class="pencil__body2"></circle>
+  			<circle transform="rotate(-90)" stroke-dashoffset="339" stroke-dasharray="339.29 339.29" stroke-width="10" stroke="hsl(223,90%,40%)" r="54" class="pencil__body3"></circle>
+  		</g>
+  		<g transform="rotate(-90) translate(49,0)" class="pencil__eraser">
+  			<g class="pencil__eraser-skew">
+  				<rect height="30" width="30" ry="5" rx="5" fill="hsl(223,90%,70%)"></rect>
+  				<rect clip-path="url(#pencil-eraser)" height="30" width="5" fill="hsl(223,90%,60%)"></rect>
+  				<rect height="20" width="30" fill="hsl(223,10%,90%)"></rect>
+  				<rect height="20" width="15" fill="hsl(223,10%,70%)"></rect>
+  				<rect height="20" width="5" fill="hsl(223,10%,80%)"></rect>
+  				<rect height="2" width="30" y="6" fill="hsla(223,10%,10%,0.2)"></rect>
+  				<rect height="2" width="30" y="13" fill="hsla(223,10%,10%,0.2)"></rect>
+  			</g>
+  		</g>
+  		<g transform="rotate(-90) translate(49,-30)" class="pencil__point">
+  			<polygon points="15 0,30 30,0 30" fill="hsl(33,90%,70%)"></polygon>
+  			<polygon points="15 0,6 30,0 30" fill="hsl(33,90%,50%)"></polygon>
+  			<polygon points="15 0,20 10,10 10" fill="hsl(223,10%,10%)"></polygon>
+  		</g>
+  	</g>
+  </svg>
+  <p id="loadingText">Cargando...</p>
+</div>
+
+    <!-- BG Blobs -->
+    <div class="bg-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
     <aside>
         <h1>AcademiaPro</h1>
         <nav id="mainNav" style="flex:1;">
             <a href="/">Dashboard</a>
             <a href="/students">Estudiantes</a>
+            <a href="/admin/teachers">👨‍🏫 Profesores</a>
             <a href="/sessions">Sesiones</a>
             <a href="/calendar">Calendario</a>
             <a href="/exams">Exámenes</a>
@@ -448,8 +496,15 @@
 
     <main>
         <div class="header">
-            <h2>Calendario</h2>
-            <button class="btn btn-primary" onclick="openModal('sessionModal')">+ Nueva Sesión</button>
+            <h2>Calendario General</h2>
+            <div style="display:flex; gap: 1rem; align-items: center;">
+                <select id="teacherFilter" class="form-group"
+                    style="margin:0; padding:0.5rem; border-radius:0.5rem; border:1px solid var(--border);"
+                    onchange="applyFilters()">
+                    <option value="all">Todos los Profesores</option>
+                </select>
+                <button class="btn btn-primary" onclick="openModal('sessionModal')">+ Nueva Sesión</button>
+            </div>
         </div>
 
         <div class="calendar-section">
@@ -525,14 +580,45 @@
     <script>
         let currentDate = new Date();
         let allSessions = [];
+        let filteredSessions = [];
+        let allExams = [];
+        let filteredExams = [];
         let students = [];
+        let teachers = [];
 
         async function init() {
             await loadStudents();
+            await loadTeachers();
             await loadSessions();
-            renderCalendar();
-            renderAgenda();
+            await loadExams();
+            applyFilters();
             highlightActiveLink();
+        }
+
+        async function loadTeachers() {
+            try {
+                const res = await fetch('/api/teachers');
+                if (res.ok) {
+                    teachers = await res.json();
+                    const select = document.getElementById('teacherFilter');
+                    select.innerHTML += teachers.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+                } else {
+                    // Fallback to teachers/rates
+                    const res2 = await fetch('/api/teachers/rates');
+                    if (res2.ok) {
+                        teachers = await res2.json();
+                        const select = document.getElementById('teacherFilter');
+                        select.innerHTML += teachers.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+                    }
+                }
+            } catch (e) { }
+        }
+
+        async function loadExams() {
+            try {
+                const res = await fetch('/api/exams');
+                if (res.ok) allExams = await res.json();
+            } catch (e) { }
         }
 
         async function loadStudents() {
@@ -549,6 +635,15 @@
             const res = await fetch('/api/sessions-list');
             const data = await res.json();
             allSessions = data.sessions;
+
+            // Enrich sessions with teacher info from students
+            allSessions.forEach(s => {
+                const st = students.find(x => x.id === s.student_id);
+                if (st) {
+                    s.assigned_teacher_id = st.assigned_teacher_id;
+                    s.teacher_name = st.teacher_name;
+                }
+            });
         }
 
         function renderCalendar() {
@@ -583,17 +678,24 @@
                 const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
                 const isToday = dateStr === today;
 
-                const sessionsDay = allSessions.filter(s => s.date === dateStr);
+                const sessionsDay = filteredSessions.filter(s => s.date === dateStr);
+                const examsDay = filteredExams.filter(e => e.date === dateStr);
+
                 const dots = sessionsDay.map(s => {
-                    const type = s.student_status === 'at_risk' ? 'dot-risk' : 'dot-active';
-                    return `<div class="dot ${type}"></div>`;
+                    const colors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6'];
+                    // Color by teacher ID
+                    const color = colors[(s.assigned_teacher_id || s.teacher_name?.length || 0) % colors.length];
+                    return `<div class="dot" style="background-color: ${color};" title="Sesión con ${s.student_name}"></div>`;
                 }).join('');
+
+                const diamond = examsDay.length > 0 ? `<div style="color: #ef4444; font-size: 10px; margin-top:2px;" title="Examen programado">♦ ${examsDay.length} Exámen(es)</div>` : '';
 
                 const cell = document.createElement('div');
                 cell.className = `day-cell ${isToday ? 'today' : ''}`;
                 cell.innerHTML = `
                     <span class="day-num">${i}</span>
                     <div class="dots-container">${dots}</div>
+                    ${diamond}
                 `;
                 cell.onclick = () => selectDay(dateStr, cell);
                 grid.appendChild(cell);
@@ -604,6 +706,20 @@
             for (let i = 1; i <= remaining; i++) {
                 grid.innerHTML += `<div class="day-cell other-month"><span class="day-num">${i}</span></div>`;
             }
+        }
+
+        function applyFilters() {
+            const tId = document.getElementById('teacherFilter').value;
+            if (tId === 'all') {
+                filteredSessions = allSessions;
+                filteredExams = allExams;
+            } else {
+                filteredSessions = allSessions.filter(s => s.assigned_teacher_id == tId);
+                // Exams are per student, who are assigned to teachers, we might not have teacher_id on exams, but we can do our best or not filter exams for now
+                filteredExams = allExams; // Default all exams if no direct link
+            }
+            renderCalendar();
+            renderAgenda();
         }
 
         function selectDay(dateStr, el) {

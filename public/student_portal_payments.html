@@ -36,28 +36,51 @@
         /* Sidebar */
         aside {
             width: 260px;
-            background: #ffffff;
-            border-right: 1px solid var(--border);
+            background: #1e293b;
+            color: #94a3b8;
             padding: 2rem 1.5rem;
             display: flex;
             flex-direction: column;
             position: fixed;
             height: 100vh;
+            z-index: 100;
+            overflow-y: auto;
+            overflow-x: hidden;
         }
 
         aside h1 {
-            color: var(--primary);
+            color: white;
             font-size: 1.5rem;
             font-weight: 800;
-            margin-bottom: 2.5rem;
+            margin-bottom: 2rem;
         }
 
-        nav {
-            flex: 1;
+        .user-info {
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 0.75rem;
+        }
+
+        .user-info strong {
+            display: block;
+            color: white;
+            font-size: 0.95rem;
+            margin-bottom: 0.4rem;
+        }
+
+        .badge-student {
+            background: #f59e0b;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
         }
 
         nav a {
-            color: var(--text-muted);
+            color: #94a3b8;
             text-decoration: none;
             padding: 0.75rem 1rem;
             border-radius: 0.5rem;
@@ -65,14 +88,28 @@
             align-items: center;
             gap: 0.75rem;
             transition: all 0.2s;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.25rem;
             font-weight: 500;
         }
 
-        nav a:hover,
+        nav a:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: white;
+        }
+
         nav a.active {
-            background: #eff6ff;
-            color: var(--primary);
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-logout {
+            color: #fca5a5;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 0.75rem 1rem;
+            display: block;
+            border-radius: 0.5rem;
+            transition: background 0.2s;
         }
 
         /* Main Content */
@@ -188,23 +225,79 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="/glassmorphism.css">
+    <script src="/global.js"></script>
 </head>
 
 <body>
+
+<div class="loading-overlay" id="globalLoading">
+  <svg xmlns="http://www.w3.org/2000/svg" height="200px" width="200px" viewBox="0 0 200 200" class="pencil">
+  	<defs>
+  		<clipPath id="pencil-eraser">
+  			<rect height="30" width="30" ry="5" rx="5"></rect>
+  		</clipPath>
+  	</defs>
+  	<circle transform="rotate(-113,100,100)" stroke-linecap="round" stroke-dashoffset="439.82" stroke-dasharray="439.82 439.82" stroke-width="2" stroke="currentColor" fill="none" r="70" class="pencil__stroke"></circle>
+  	<g transform="translate(100,100)" class="pencil__rotate">
+  		<g fill="none">
+  			<circle transform="rotate(-90)" stroke-dashoffset="402" stroke-dasharray="402.12 402.12" stroke-width="30" stroke="hsl(223,90%,50%)" r="64" class="pencil__body1"></circle>
+  			<circle transform="rotate(-90)" stroke-dashoffset="465" stroke-dasharray="464.96 464.96" stroke-width="10" stroke="hsl(223,90%,60%)" r="74" class="pencil__body2"></circle>
+  			<circle transform="rotate(-90)" stroke-dashoffset="339" stroke-dasharray="339.29 339.29" stroke-width="10" stroke="hsl(223,90%,40%)" r="54" class="pencil__body3"></circle>
+  		</g>
+  		<g transform="rotate(-90) translate(49,0)" class="pencil__eraser">
+  			<g class="pencil__eraser-skew">
+  				<rect height="30" width="30" ry="5" rx="5" fill="hsl(223,90%,70%)"></rect>
+  				<rect clip-path="url(#pencil-eraser)" height="30" width="5" fill="hsl(223,90%,60%)"></rect>
+  				<rect height="20" width="30" fill="hsl(223,10%,90%)"></rect>
+  				<rect height="20" width="15" fill="hsl(223,10%,70%)"></rect>
+  				<rect height="20" width="5" fill="hsl(223,10%,80%)"></rect>
+  				<rect height="2" width="30" y="6" fill="hsla(223,10%,10%,0.2)"></rect>
+  				<rect height="2" width="30" y="13" fill="hsla(223,10%,10%,0.2)"></rect>
+  			</g>
+  		</g>
+  		<g transform="rotate(-90) translate(49,-30)" class="pencil__point">
+  			<polygon points="15 0,30 30,0 30" fill="hsl(33,90%,70%)"></polygon>
+  			<polygon points="15 0,6 30,0 30" fill="hsl(33,90%,50%)"></polygon>
+  			<polygon points="15 0,20 10,10 10" fill="hsl(223,10%,10%)"></polygon>
+  		</g>
+  	</g>
+  </svg>
+  <p id="loadingText">Cargando...</p>
+</div>
+
+    <!-- BG Blobs -->
+    <div class="bg-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
     <aside>
         <h1>AcademiaPro</h1>
+        <div class="user-info">
+            <strong id="sidebar-name">Cargando...</strong>
+            <span class="badge-student">ALUMNO</span>
+            <div style="margin-top:0.5rem;font-size:0.8rem;color:#94a3b8;">
+                Código: <b id="sidebar-code" style="color:white;">---</b>
+            </div>
+        </div>
         <nav id="mainNav">
             <a href="/student-portal">🏠 Mi Panel</a>
-            <a href="/student-portal/exams">📝 Mis Notas</a>
             <a href="/student-portal/calendar">📅 Mi Calendario</a>
-            <a href="/student-portal/payments" class="active">💳 Mis Pagos</a>
+            <a href="/student-portal/exams">📝 Mis Notas</a>
+            <a href="/student-portal/payments">💳 Mis Pagos</a>
+            <a href="/exam-simulator">📋 Simulacro</a>
+            <a href="/ai-tutor">🤖 Tutor IA</a>
             <a href="/chat">💬 Chat</a>
         </nav>
-        <div style="margin-top: auto;">
-            <a href="/auth/logout"
-                style="color: var(--danger); text-decoration: none; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
-                🚪 Cerrar Sesión
-            </a>
+        <div style="margin-top:auto;">
+            <button class="Btn" onclick="window.location.href='/auth/logout'">
+                <div class="sign">
+                    <svg viewBox="0 0 512 512"><path d="M377.9 105.9L500.7 228.7c7.2 7.2 11.3 17.1 11.3 27.3s-4.1 20.1-11.3 27.3L377.9 406.1c-6.4 6.4-15 9.9-24 9.9c-18.7 0-33.9-15.2-33.9-33.9l0-62.1-128 0c-17.7 0-32-14.3-32-32l0-64c0-17.7 14.3-32 32-32l128 0 0-62.1c0-18.7 15.2-33.9 33.9-33.9c9 0 17.6 3.6 24 9.9zM160 96L96 96c-17.7 0-32 14.3-32 32l0 256c0 17.7 14.3 32 32 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l-64 0c-53 0-96-43-96-96L0 128C0 75 43 32 96 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32z"></path></svg>
+                </div>
+                <div class="text">Logout</div>
+            </button>
         </div>
     </aside>
 
@@ -291,7 +384,25 @@
             }
         }
 
+        async function initSidebar() {
+            try {
+                const res = await fetch('/auth/me');
+                if (res.ok) {
+                    const user = await res.json();
+                    document.getElementById('sidebar-name').textContent = user.name;
+                    document.getElementById('sidebar-code').textContent = user.user_code || '---';
+                }
+            } catch (e) {
+                console.error('Error initializing sidebar:', e);
+            }
+            const path = window.location.pathname;
+            document.querySelectorAll('#mainNav a').forEach(a => {
+                a.classList.toggle('active', a.getAttribute('href') === path);
+            });
+        }
+
         loadPayments();
+        initSidebar();
     </script>
 </body>
 

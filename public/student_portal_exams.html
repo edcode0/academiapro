@@ -37,28 +37,51 @@
         /* Sidebar */
         aside {
             width: 260px;
-            background: #ffffff;
-            border-right: 1px solid var(--border);
+            background: #1e293b;
+            color: #94a3b8;
             padding: 2rem 1.5rem;
             display: flex;
             flex-direction: column;
             position: fixed;
             height: 100vh;
+            z-index: 100;
+            overflow-y: auto;
+            overflow-x: hidden;
         }
 
         aside h1 {
-            color: var(--primary);
+            color: white;
             font-size: 1.5rem;
             font-weight: 800;
-            margin-bottom: 2.5rem;
+            margin-bottom: 2rem;
         }
 
-        nav {
-            flex: 1;
+        .user-info {
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 0.75rem;
+        }
+
+        .user-info strong {
+            display: block;
+            color: white;
+            font-size: 0.95rem;
+            margin-bottom: 0.4rem;
+        }
+
+        .badge-student {
+            background: #f59e0b;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
         }
 
         nav a {
-            color: var(--text-muted);
+            color: #94a3b8;
             text-decoration: none;
             padding: 0.75rem 1rem;
             border-radius: 0.5rem;
@@ -66,14 +89,28 @@
             align-items: center;
             gap: 0.75rem;
             transition: all 0.2s;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.25rem;
             font-weight: 500;
         }
 
-        nav a:hover,
+        nav a:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: white;
+        }
+
         nav a.active {
-            background: #eff6ff;
-            color: var(--primary);
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-logout {
+            color: #fca5a5;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 0.75rem 1rem;
+            display: block;
+            border-radius: 0.5rem;
+            transition: background 0.2s;
         }
 
         /* Main Content */
@@ -196,29 +233,91 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="/glassmorphism.css">
+    <script src="/global.js"></script>
 </head>
 
 <body>
+
+<div class="loading-overlay" id="globalLoading">
+  <svg xmlns="http://www.w3.org/2000/svg" height="200px" width="200px" viewBox="0 0 200 200" class="pencil">
+  	<defs>
+  		<clipPath id="pencil-eraser">
+  			<rect height="30" width="30" ry="5" rx="5"></rect>
+  		</clipPath>
+  	</defs>
+  	<circle transform="rotate(-113,100,100)" stroke-linecap="round" stroke-dashoffset="439.82" stroke-dasharray="439.82 439.82" stroke-width="2" stroke="currentColor" fill="none" r="70" class="pencil__stroke"></circle>
+  	<g transform="translate(100,100)" class="pencil__rotate">
+  		<g fill="none">
+  			<circle transform="rotate(-90)" stroke-dashoffset="402" stroke-dasharray="402.12 402.12" stroke-width="30" stroke="hsl(223,90%,50%)" r="64" class="pencil__body1"></circle>
+  			<circle transform="rotate(-90)" stroke-dashoffset="465" stroke-dasharray="464.96 464.96" stroke-width="10" stroke="hsl(223,90%,60%)" r="74" class="pencil__body2"></circle>
+  			<circle transform="rotate(-90)" stroke-dashoffset="339" stroke-dasharray="339.29 339.29" stroke-width="10" stroke="hsl(223,90%,40%)" r="54" class="pencil__body3"></circle>
+  		</g>
+  		<g transform="rotate(-90) translate(49,0)" class="pencil__eraser">
+  			<g class="pencil__eraser-skew">
+  				<rect height="30" width="30" ry="5" rx="5" fill="hsl(223,90%,70%)"></rect>
+  				<rect clip-path="url(#pencil-eraser)" height="30" width="5" fill="hsl(223,90%,60%)"></rect>
+  				<rect height="20" width="30" fill="hsl(223,10%,90%)"></rect>
+  				<rect height="20" width="15" fill="hsl(223,10%,70%)"></rect>
+  				<rect height="20" width="5" fill="hsl(223,10%,80%)"></rect>
+  				<rect height="2" width="30" y="6" fill="hsla(223,10%,10%,0.2)"></rect>
+  				<rect height="2" width="30" y="13" fill="hsla(223,10%,10%,0.2)"></rect>
+  			</g>
+  		</g>
+  		<g transform="rotate(-90) translate(49,-30)" class="pencil__point">
+  			<polygon points="15 0,30 30,0 30" fill="hsl(33,90%,70%)"></polygon>
+  			<polygon points="15 0,6 30,0 30" fill="hsl(33,90%,50%)"></polygon>
+  			<polygon points="15 0,20 10,10 10" fill="hsl(223,10%,10%)"></polygon>
+  		</g>
+  	</g>
+  </svg>
+  <p id="loadingText">Cargando...</p>
+</div>
+
+    <!-- BG Blobs -->
+    <div class="bg-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
     <aside>
         <h1>AcademiaPro</h1>
+        <div class="user-info">
+            <strong id="sidebar-name">Cargando...</strong>
+            <span class="badge-student">ALUMNO</span>
+            <div style="margin-top:0.5rem;font-size:0.8rem;color:#94a3b8;">
+                Código: <b id="sidebar-code" style="color:white;">---</b>
+            </div>
+        </div>
         <nav id="mainNav">
             <a href="/student-portal">🏠 Mi Panel</a>
-            <a href="/student-portal/exams" class="active">📝 Mis Notas</a>
             <a href="/student-portal/calendar">📅 Mi Calendario</a>
+            <a href="/student-portal/exams">📝 Mis Notas</a>
             <a href="/student-portal/payments">💳 Mis Pagos</a>
+            <a href="/exam-simulator">📋 Simulacro</a>
+            <a href="/ai-tutor">🤖 Tutor IA</a>
             <a href="/chat">💬 Chat</a>
         </nav>
-        <div style="margin-top: auto;">
-            <a href="/auth/logout" style="color: var(--danger); text-decoration: none; font-weight: 600;">
-                🚪 Cerrar Sesión
-            </a>
+        <div style="margin-top:auto;">
+            <button class="Btn" onclick="window.location.href='/auth/logout'">
+                <div class="sign">
+                    <svg viewBox="0 0 512 512"><path d="M377.9 105.9L500.7 228.7c7.2 7.2 11.3 17.1 11.3 27.3s-4.1 20.1-11.3 27.3L377.9 406.1c-6.4 6.4-15 9.9-24 9.9c-18.7 0-33.9-15.2-33.9-33.9l0-62.1-128 0c-17.7 0-32-14.3-32-32l0-64c0-17.7 14.3-32 32-32l128 0 0-62.1c0-18.7 15.2-33.9 33.9-33.9c9 0 17.6 3.6 24 9.9zM160 96L96 96c-17.7 0-32 14.3-32 32l0 256c0 17.7 14.3 32 32 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l-64 0c-53 0-96-43-96-96L0 128C0 75 43 32 96 32l64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32z"></path></svg>
+                </div>
+                <div class="text">Logout</div>
+            </button>
         </div>
     </aside>
 
     <main>
-        <div class="header">
-            <h2>Mis Notas</h2>
-            <p style="color: var(--text-muted);">Sigue tu progreso académico.</p>
+        <div class="header" style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <h2>Mis Notas</h2>
+                <p style="color: var(--text-muted);">Sigue tu progreso académico.</p>
+            </div>
+            <button class="btn-add" onclick="openExamModal()"
+                style="background: var(--primary); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 0.5rem; font-weight: 600; cursor: pointer;">+
+                Añadir Examen</button>
         </div>
 
         <div class="stats-summary">
@@ -236,10 +335,26 @@
             </div>
         </div>
 
-        <div class="chart-container">
+        <div class="chart-container" id="chart-card">
             <canvas id="evolutionChart"></canvas>
         </div>
 
+        <h3 style="margin-bottom: 1rem; display: none;" id="future-exams-title">Próximos Exámenes</h3>
+        <div class="card" style="margin-bottom: 2rem; display: none;" id="future-exams-card">
+            <table id="future-exams-table">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Asignatura</th>
+                        <th>Días restantes</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="future-exams-body"></tbody>
+            </table>
+        </div>
+
+        <h3 style="margin-bottom: 1rem;">Historial de Notas</h3>
         <div class="card">
             <table>
                 <thead>
@@ -257,29 +372,225 @@
         </div>
     </main>
 
+    <!-- Exam Modal -->
+    <div id="examModal"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+        <div style="background:white; padding:2rem; border-radius:1rem; width:400px; max-width:90%;">
+            <h3 id="modalTitle" style="margin-bottom:1.5rem;">Añadir Examen</h3>
+            <form id="examForm">
+                <input type="hidden" id="edit-exam-id">
+                <div style="margin-bottom:1rem;">
+                    <label style="display:block; font-size:0.875rem; margin-bottom:0.5rem;">Tipo de examen</label>
+                    <select id="exam-type"
+                        style="width:100%; padding:0.75rem; border:1px solid var(--border); border-radius:0.5rem;"
+                        onchange="toggleScoreField()">
+                        <option value="past">Examen pasado</option>
+                        <option value="future">Examen futuro</option>
+                    </select>
+                </div>
+                <div style="margin-bottom:1rem;">
+                    <label style="display:block; font-size:0.875rem; margin-bottom:0.5rem;">Asignatura</label>
+                    <input type="text" id="exam-subject" required
+                        style="width:100%; padding:0.75rem; border:1px solid var(--border); border-radius:0.5rem;">
+                </div>
+                <div style="margin-bottom:1rem;">
+                    <label style="display:block; font-size:0.875rem; margin-bottom:0.5rem;">Fecha</label>
+                    <input type="date" id="exam-date" required
+                        style="width:100%; padding:0.75rem; border:1px solid var(--border); border-radius:0.5rem;">
+                </div>
+                <div id="score-field-container" style="margin-bottom:1rem;">
+                    <label style="display:block; font-size:0.875rem; margin-bottom:0.5rem;">Nota (0-10)</label>
+                    <input type="number" id="exam-score" min="0" max="10" step="0.1"
+                        style="width:100%; padding:0.75rem; border:1px solid var(--border); border-radius:0.5rem;">
+                </div>
+                <div id="future-msg"
+                    style="margin-bottom:1rem; display:none; color:var(--text-muted); font-size:0.875rem;">
+                    Añadirás la nota después
+                </div>
+                <div style="margin-bottom:1.5rem;">
+                    <label style="display:block; font-size:0.875rem; margin-bottom:0.5rem;">Notas (opcional)</label>
+                    <textarea id="exam-notes"
+                        style="width:100%; padding:0.75rem; border:1px solid var(--border); border-radius:0.5rem;"
+                        rows="3"></textarea>
+                </div>
+                <div style="display:flex; gap:1rem; justify-content:flex-end;">
+                    <button type="button" onclick="closeExamModal()"
+                        style="padding:0.75rem 1.5rem; border-radius:0.5rem; border:1px solid var(--border); cursor:pointer;">Cancelar</button>
+                    <button type="submit"
+                        style="padding:0.75rem 1.5rem; border-radius:0.5rem; background:var(--primary); color:white; border:none; cursor:pointer; font-weight:600;">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
+        let myExams = [];
+
         async function loadExams() {
             try {
-                const res = await fetch('/api/student/portal-data');
-                const data = await res.json();
-                const exams = data.exams.reverse(); // Chronological for chart
+                const res = await fetch('/api/exams/student');
+                if (!res.ok) throw new Error('Failed to load exams');
+                myExams = await res.json();
 
-                if (exams.length > 0) {
-                    document.getElementById('avg-score').textContent = data.stats.avgScore;
-                    document.getElementById('total-exams').textContent = exams.length;
-                    document.getElementById('last-score').textContent = exams[exams.length - 1].score;
+                const pastExams = myExams.filter(e => e.score !== null).sort((a, b) => new Date(a.date) - new Date(b.date));
+                const futureExams = myExams.filter(e => e.score === null).sort((a, b) => new Date(a.date) - new Date(b.date));
 
-                    renderChart(exams);
-                    renderTable(data.exams); // Still descending for table
+                if (pastExams.length > 0) {
+                    const sum = pastExams.reduce((acc, e) => acc + e.score, 0);
+                    const avg = (sum / pastExams.length).toFixed(1);
+                    document.getElementById('avg-score').textContent = avg;
+                    document.getElementById('total-exams').textContent = pastExams.length;
+                    document.getElementById('last-score').textContent = pastExams[pastExams.length - 1].score;
+
+                    renderChart(pastExams);
+                    renderTable(pastExams.slice().reverse());
+                    document.getElementById('chart-card').style.display = 'block';
+                } else {
+                    document.getElementById('avg-score').textContent = '0.0';
+                    document.getElementById('total-exams').textContent = '0';
+                    document.getElementById('last-score').textContent = '-';
+                    document.getElementById('chart-card').style.display = 'none';
+                    document.getElementById('exams-table-body').innerHTML = '<tr><td colspan="4" style="text-align:center;">No hay exámenes pasados.</td></tr>';
+                }
+
+                if (futureExams.length > 0) {
+                    document.getElementById('future-exams-title').style.display = 'block';
+                    document.getElementById('future-exams-card').style.display = 'block';
+                    renderFutureTable(futureExams);
+                } else {
+                    document.getElementById('future-exams-title').style.display = 'none';
+                    document.getElementById('future-exams-card').style.display = 'none';
                 }
             } catch (err) {
                 console.error(err);
             }
         }
 
+        function renderFutureTable(exams) {
+            const body = document.getElementById('future-exams-body');
+            body.innerHTML = exams.map(e => {
+                const days = Math.ceil((new Date(e.date) - new Date()) / (1000 * 60 * 60 * 24));
+                return `
+                    <tr>
+                        <td>${new Date(e.date).toLocaleDateString('es-ES')}</td>
+                        <td>${e.subject}</td>
+                        <td style="color: ${days <= 3 ? 'var(--danger)' : 'var(--text-muted)'}; font-weight: 500;">
+                            ${days <= 0 ? '¡Hoy!' : `en ${days} días`}
+                        </td>
+                        <td>
+                            <div style="display:flex; gap:0.5rem;">
+                                <button onclick="openScoreModal(${e.id})" style="padding:4px 8px; border-radius:4px; border:1px solid var(--success); color:var(--success); background:none; cursor:pointer; font-size:0.75rem;">Añadir nota</button>
+                                <button onclick="editExam(${e.id})" style="padding:4px 8px; border-radius:4px; border:1px solid var(--primary); color:var(--primary); background:none; cursor:pointer; font-size:0.75rem;">Editar</button>
+                                <button onclick="deleteExam(${e.id})" style="padding:4px 8px; border-radius:4px; border:1px solid var(--danger); color:var(--danger); background:none; cursor:pointer; font-size:0.75rem;">Borrar</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function openExamModal() {
+            document.getElementById('edit-exam-id').value = '';
+            document.getElementById('exam-type').value = 'past';
+            document.getElementById('exam-subject').value = '';
+            document.getElementById('exam-date').value = new Date().toISOString().split('T')[0];
+            document.getElementById('exam-score').value = '';
+            document.getElementById('exam-notes').value = '';
+            document.getElementById('modalTitle').textContent = 'Añadir Examen';
+            toggleScoreField();
+            document.getElementById('examModal').style.display = 'flex';
+        }
+
+        function closeExamModal() {
+            document.getElementById('examModal').style.display = 'none';
+        }
+
+        function toggleScoreField() {
+            const type = document.getElementById('exam-type').value;
+            const container = document.getElementById('score-field-container');
+            const msg = document.getElementById('future-msg');
+            if (type === 'future') {
+                container.style.display = 'none';
+                msg.style.display = 'block';
+                document.getElementById('exam-score').required = false;
+            } else {
+                container.style.display = 'block';
+                msg.style.display = 'none';
+                document.getElementById('exam-score').required = true;
+            }
+        }
+
+        document.getElementById('examForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('edit-exam-id').value;
+            const type = document.getElementById('exam-type').value;
+            const payload = {
+                subject: document.getElementById('exam-subject').value,
+                date: document.getElementById('exam-date').value,
+                score: type === 'future' ? null : parseFloat(document.getElementById('exam-score').value),
+                notes: document.getElementById('exam-notes').value
+            };
+
+            const url = id ? `/api/exams/${id}` : '/api/exams/student';
+            const method = id ? 'PUT' : 'POST';
+
+            try {
+                const res = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    closeExamModal();
+                    loadExams();
+                } else {
+                    const errData = await res.json();
+                    console.error('[ExamSave] Server error:', errData);
+                    alert('Error: ' + (errData.error || 'No se pudo guardar el examen'));
+                }
+            } catch (err) {
+                console.error('[ExamSave] Request failed:', err);
+                alert('Error de conexión al intentar guardar el examen');
+            }
+        };
+
+        function openScoreModal(id) {
+            const score = prompt('Introduce la calificación (0-10):');
+            if (score === null || score === '') return;
+            const parsed = parseFloat(score);
+            if (isNaN(parsed) || parsed < 0 || parsed > 10) return alert('Por favor introduce un número válido entre 0 y 10.');
+
+            fetch(`/api/exams/${id}/score`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ score: parsed })
+            }).then(loadExams);
+        }
+
+        function editExam(id) {
+            const exam = myExams.find(e => e.id === id);
+            if (!exam) return;
+            document.getElementById('edit-exam-id').value = exam.id;
+            document.getElementById('exam-type').value = exam.score === null ? 'future' : 'past';
+            document.getElementById('exam-subject').value = exam.subject;
+            document.getElementById('exam-date').value = exam.date;
+            document.getElementById('exam-score').value = exam.score || '';
+            document.getElementById('exam-notes').value = exam.notes || '';
+            document.getElementById('modalTitle').textContent = 'Editar Examen';
+            toggleScoreField();
+            document.getElementById('examModal').style.display = 'flex';
+        }
+
+        async function deleteExam(id) {
+            if (!confirm('¿Seguro que quieres borrar este examen?')) return;
+            await fetch(`/api/exams/${id}`, { method: 'DELETE' });
+            loadExams();
+        }
+
         function renderChart(exams) {
             const ctx = document.getElementById('evolutionChart').getContext('2d');
-            new Chart(ctx, {
+            if (window.myChart) window.myChart.destroy();
+            window.myChart = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: exams.map(e => new Date(e.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })),
@@ -326,7 +637,25 @@
             `).join('');
         }
 
+        async function initSidebar() {
+            try {
+                const res = await fetch('/auth/me');
+                if (res.ok) {
+                    const user = await res.json();
+                    document.getElementById('sidebar-name').textContent = user.name;
+                    document.getElementById('sidebar-code').textContent = user.user_code || '---';
+                }
+            } catch (e) {
+                console.error('Error initializing sidebar:', e);
+            }
+            const path = window.location.pathname;
+            document.querySelectorAll('#mainNav a').forEach(a => {
+                a.classList.toggle('active', a.getAttribute('href') === path);
+            });
+        }
+
         loadExams();
+        initSidebar();
     </script>
 </body>
 

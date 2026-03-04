@@ -4,223 +4,796 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AcademiaPro - Login</title>
+    <title>AcademiaPro - Iniciar Sesión</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --primary: #1A56A0;
-            --secondary: #3b82f6;
-            --background: #f8fafc;
-            --text-main: #1e293b;
-            --text-muted: #64748b;
-            --border: #e2e8f0;
-        }
-
         * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
-            font-family: 'Inter', sans-serif;
         }
 
         body {
-            background-color: var(--background);
-            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            background: white;
+            color: #1e293b;
             min-height: 100vh;
-            display: flex;
+            overflow-x: hidden;
         }
 
-        .auth-container {
+        .login-layout {
             display: flex;
+            min-height: 100vh;
             width: 100%;
-            height: 100vh;
         }
 
         /* Left Panel */
-        .auth-left {
-            flex: 1;
-            background: linear-gradient(135deg, #1A56A0 0%, #3b82f6 100%);
+        .login-left {
+            width: 55%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #6B73FF 100%);
+            position: relative;
+            overflow: hidden;
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            padding: 4rem;
+            padding: 4rem 3rem;
             color: white;
         }
 
-        .auth-left h1 {
-            font-size: 3rem;
-            font-weight: 800;
+        /* Background effects */
+        .login-grid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+            z-index: 1;
+        }
+
+        .login-blobs {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.5;
+        }
+
+        .login-left-content {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+        }
+
+        .login-logo {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: white;
+        }
+
+        .login-subtitle {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1.1rem;
+        }
+
+        /* Carousel */
+        .carousel-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            margin: 3rem 0;
+            min-height: 250px;
+        }
+
+        .carousel-slides {
+            position: relative;
+            width: 100%;
+            height: 200px;
+        }
+
+        .carousel-slide {
+            position: absolute;
+            width: 100%;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            pointer-events: none;
+        }
+
+        .carousel-slide.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .slide-icon {
+            font-size: 5rem;
+            line-height: 1;
             margin-bottom: 1.5rem;
         }
 
-        .auth-left p {
-            font-size: 1.25rem;
-            opacity: 0.9;
-            margin-bottom: 3rem;
+        .slide-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            color: white;
         }
 
-        .features {
-            list-style: none;
+        .slide-desc {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.5;
+            max-width: 85%;
         }
 
-        .features li {
-            font-size: 1.125rem;
-            margin-bottom: 1rem;
+        .carousel-dots {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .dot.active {
+            background: white;
+        }
+
+        /* Social Proof */
+        .social-proof {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .stars {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 0.25rem;
+        }
+
+        .proof-bottom {
             display: flex;
             align-items: center;
-            gap: 0.75rem;
+            gap: 1rem;
+        }
+
+        .avatars {
+            display: flex;
+        }
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #667eea;
+            border: 2px solid #764ba2;
+            margin-right: -10px;
+        }
+
+        .avatar:nth-child(2) {
+            background: #dbeafe;
+            color: #1e40af;
+            border-color: #667eea;
+        }
+
+        .avatar:nth-child(3) {
+            background: #dcfce7;
+            color: #166534;
+            border-color: #6b73ff;
+            margin-right: 0;
+        }
+
+        .proof-text {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.9);
         }
 
         /* Right Panel */
-        .auth-right {
-            width: 500px;
+        .login-right {
+            width: 45%;
             background: white;
+            padding: 3rem;
             display: flex;
             flex-direction: column;
             justify-content: center;
-            align-items: center;
-            padding: 2.5rem;
-            min-height: 100vh;
+            overflow-y: auto;
+            position: relative;
         }
 
-        .auth-form-container {
+        .right-logo {
+            position: absolute;
+            top: 2rem;
+            left: 3rem;
+            color: #6366f1;
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
+
+        .form-wrapper {
+            max-width: 420px;
+            margin: 0 auto;
             width: 100%;
-            max-width: 360px;
         }
 
-        .auth-form-container h2 {
-            font-size: 1.75rem;
+        .form-title {
+            color: #1e293b;
+            font-size: 1.8rem;
+            font-weight: 700;
             margin-bottom: 0.5rem;
-            color: var(--text-main);
         }
 
-        .auth-form-container p {
-            color: var(--text-muted);
+        .form-subtitle {
+            color: #64748b;
             margin-bottom: 2rem;
         }
 
-        input {
+        /* Role Cards */
+        .role-selector {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 0;
+            transition: margin-bottom 0.4s ease;
+        }
+
+        .role-btn {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: left;
+            position: relative;
+        }
+
+        .role-btn:hover {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+            transform: translateX(4px);
+        }
+
+        .role-btn.selected {
+            border-color: #6366f1;
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .role-icon-circle {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .role-admin .role-icon-circle {
+            background: #ede9fe;
+        }
+
+        .role-teacher .role-icon-circle {
+            background: #dcfce7;
+        }
+
+        .role-student .role-icon-circle {
+            background: #dbeafe;
+        }
+
+        .role-info {
+            flex: 1;
+        }
+
+        .role-name {
+            display: block;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 0.25rem;
+        }
+
+        .role-desc {
+            display: block;
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+
+        .role-arrow {
+            color: #94a3b8;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+
+        .role-btn:hover .role-arrow {
+            transform: translateX(5px);
+            color: #6366f1;
+        }
+
+        /* Form */
+        .slide-down-form {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out, opacity 0.4s ease, margin-top 0.4s ease;
+            opacity: 0;
+        }
+
+        .slide-down-form.show {
+            max-height: 600px;
+            opacity: 1;
+            margin-top: 1.5rem;
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+
+        .input-group input {
             width: 100%;
-            padding: 0.75rem 1rem;
-            margin-bottom: 1rem;
-            border: 1px solid var(--border);
-            border-radius: 0.5rem;
+            padding: 1.25rem 1rem 0.5rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
             font-size: 1rem;
+            background: transparent;
+            color: #1e293b;
             outline: none;
             transition: border-color 0.2s;
+            position: relative;
+            z-index: 2;
         }
 
-        input:focus {
-            border-color: var(--secondary);
+        .input-group input:focus {
+            border-color: #6366f1;
         }
 
-        button.btn-primary {
+        .input-group label {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            transition: all 0.2s ease;
+            z-index: 1;
+            font-size: 1rem;
+            pointer-events: none;
+        }
+
+        .input-group input:focus+label,
+        .input-group input:not(:placeholder-shown)+label {
+            top: 0.6rem;
+            font-size: 0.7rem;
+            color: #6366f1;
+        }
+
+        .input-group input:not(:focus):not(:placeholder-shown)+label {
+            color: #94a3b8;
+        }
+
+        .btn-gradient {
             width: 100%;
-            padding: 0.75rem;
-            background: var(--secondary);
+            padding: 0.875rem;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
             color: white;
             border: none;
-            border-radius: 0.5rem;
+            border-radius: 10px;
             font-weight: 600;
             font-size: 1rem;
             cursor: pointer;
-            transition: opacity 0.2s;
-            margin-bottom: 1rem;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+            margin-bottom: 1.5rem;
+            transition: transform 0.2s, box-shadow 0.2s;
         }
 
-        button.btn-primary:hover {
-            opacity: 0.9;
+        .btn-gradient:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.6);
         }
 
         .google-btn {
             width: 100%;
+            padding: 0.875rem;
             background: white;
-            color: var(--text-main);
-            border: 1px solid var(--border);
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            color: #1e293b;
+            font-weight: 600;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 0.75rem;
+            cursor: pointer;
             text-decoration: none;
-            padding: 0.75rem;
-            border-radius: 0.5rem;
-            font-weight: 600;
-            margin-bottom: 1.5rem;
             transition: background 0.2s;
+            margin-bottom: 1.5rem;
         }
 
         .google-btn:hover {
             background: #f8fafc;
         }
 
-        .links {
+        .auth-links {
             text-align: center;
+            font-size: 0.9rem;
         }
 
-        .links a {
-            display: block;
-            color: var(--secondary);
+        .auth-links a {
+            color: #6366f1;
             text-decoration: none;
-            font-size: 0.875rem;
             font-weight: 500;
-            margin-bottom: 0.75rem;
         }
 
-        @media (max-width: 1024px) {
-            .auth-left {
+        .auth-links a:hover {
+            text-decoration: underline;
+        }
+
+        /* Keyframes for blobs */
+        @keyframes drift1 {
+            0% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            100% {
+                transform: translate(50px, 30px) scale(1.1);
+            }
+        }
+
+        @keyframes drift2 {
+            0% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            100% {
+                transform: translate(-40px, 50px) scale(0.9);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .login-left {
                 display: none;
             }
 
-            .auth-right {
+            .login-right {
                 width: 100%;
+                padding: 2rem;
+            }
+
+            .right-logo {
+                position: static;
+                text-align: center;
+                margin-bottom: 2rem;
+                display: block;
             }
         }
     </style>
+    <script src="/global.js"></script>
 </head>
 
 <body>
-    <div class="auth-container">
-        <div class="auth-left">
-            <h1>AcademiaPro</h1>
-            <p>Gestiona tu academia con inteligencia</p>
-            <ul class="features">
-                <li>✓ Seguimiento de alumnos</li>
-                <li>✓ Informes automáticos con IA</li>
-                <li>✓ Comunicación con familias</li>
-            </ul>
-        </div>
-        <div class="auth-right">
-            <div class="auth-form-container">
-                <h2>Inicia Sesión</h2>
-                <p>Bienvenido de nuevo a AcademiaPro</p>
 
-                <form method="POST" action="/auth/login">
-                    <input type="email" name="email" placeholder="Email" required>
-                    <input type="password" name="password" placeholder="Contraseña" required>
-                    <button type="submit" class="btn-primary">Iniciar Sesión</button>
-                </form>
 
-                <a href="/auth/google" class="google-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 48 48">
-                        <path fill="#EA4335"
-                            d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
-                        <path fill="#4285F4"
-                            d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
-                        <path fill="#FBBC05"
-                            d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
-                        <path fill="#34A853"
-                            d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
-                    </svg>
-                    Iniciar sesión con Google
-                </a>
 
-                <div class="links">
-                    <a href="/register">¿No tienes cuenta? Regístrate</a>
-                    <a href="/join">Unirte a una academia con código</a>
+
+    <div class="login-layout">
+        <!-- Left Panel -->
+        <div class="login-left">
+            <div class="login-grid"></div>
+            <div class="login-blobs">
+                <!-- 3 large blurred circles -->
+                <div class="blob"
+                    style="width: 500px; height: 500px; background: rgba(255,255,255,0.1); top: -150px; left: -150px; animation: drift1 15s infinite alternate;">
+                </div>
+                <div class="blob"
+                    style="width: 400px; height: 400px; background: rgba(59,130,246,0.2); top: 40%; right: -100px; animation: drift2 20s infinite alternate;">
+                </div>
+                <div class="blob"
+                    style="width: 350px; height: 350px; background: rgba(168,85,247,0.15); bottom: -100px; left: 10%; animation: drift1 18s infinite alternate-reverse;">
+                </div>
+            </div>
+
+            <div class="login-left-content">
+                <div>
+                    <div class="login-logo">AcademiaPro</div>
+                    <div class="login-subtitle">La plataforma inteligente para academias</div>
+                </div>
+
+                <div class="carousel-container">
+                    <div class="carousel-slides">
+                        <div class="carousel-slide active" id="slide-0">
+                            <div class="slide-icon">📊</div>
+                            <div class="slide-title">Seguimiento completo</div>
+                            <div class="slide-desc">Controla el progreso de cada alumno en tiempo real con métricas
+                                detalladas</div>
+                        </div>
+                        <div class="carousel-slide" id="slide-1">
+                            <div class="slide-icon">🤖</div>
+                            <div class="slide-title">Tutor IA integrado</div>
+                            <div class="slide-desc">Inteligencia artificial adaptada a cualquier materia y
+                                al nivel del alumno</div>
+                        </div>
+                        <div class="carousel-slide" id="slide-2">
+                            <div class="slide-icon">📄</div>
+                            <div class="slide-title">Informes automáticos</div>
+                            <div class="slide-desc">Genera informes mensuales profesionales con un clic y envíalos a las
+                                familias</div>
+                        </div>
+                        <div class="carousel-slide" id="slide-3">
+                            <div class="slide-icon">💬</div>
+                            <div class="slide-title">Comunicación fluida</div>
+                            <div class="slide-desc">Chat en tiempo real entre profesores, alumnos y administración</div>
+                        </div>
+                        <div class="carousel-slide" id="slide-4">
+                            <div class="slide-icon">📅</div>
+                            <div class="slide-title">Calendario inteligente</div>
+                            <div class="slide-desc">Gestiona horarios, sesiones y exámenes en un solo lugar</div>
+                        </div>
+                    </div>
+                    <div class="carousel-dots">
+                        <div class="dot active" onclick="goToSlide(0)"></div>
+                        <div class="dot" onclick="goToSlide(1)"></div>
+                        <div class="dot" onclick="goToSlide(2)"></div>
+                        <div class="dot" onclick="goToSlide(3)"></div>
+                        <div class="dot" onclick="goToSlide(4)"></div>
+                    </div>
+                </div>
+
+                <div class="social-proof">
+                    <div class="stars">⭐⭐⭐⭐⭐ Usado por más de 50 academias</div>
+                    <div class="proof-bottom">
+                        <div class="avatars">
+                            <div class="avatar">JM</div>
+                            <div class="avatar">AL</div>
+                            <div class="avatar">RC</div>
+                        </div>
+                        <div class="proof-text">y muchos más...</div>
+                    </div>
                 </div>
             </div>
         </div>
+
+        <!-- Right Panel -->
+        <div class="login-right">
+            <div class="right-logo">AcademiaPro</div>
+
+            <div class="form-wrapper">
+                <h1 class="form-title">¿Cómo deseas acceder?</h1>
+                <p class="form-subtitle">Selecciona tu perfil para continuar</p>
+
+                <div class="role-selector" id="role-selector">
+                    <div class="role-btn role-admin" onclick="selectRole('admin', this)">
+                        <div class="role-icon-circle">🏫</div>
+                        <div class="role-info">
+                            <span class="role-name">Soy Administrador</span>
+                            <span class="role-desc">Crear o acceder a mi academia</span>
+                        </div>
+                        <div class="role-arrow">→</div>
+                    </div>
+
+                    <div class="role-btn role-teacher" onclick="selectRole('teacher', this)">
+                        <div class="role-icon-circle">👨‍🏫</div>
+                        <div class="role-info">
+                            <span class="role-name">Soy Profesor</span>
+                            <span class="role-desc">Acceder con código de profesor</span>
+                        </div>
+                        <div class="role-arrow">→</div>
+                    </div>
+
+                    <div class="role-btn role-student" onclick="selectRole('student', this)">
+                        <div class="role-icon-circle">👨‍🎓</div>
+                        <div class="role-info">
+                            <span class="role-name">Soy Alumno</span>
+                            <span class="role-desc">Acceder con código de alumno</span>
+                        </div>
+                        <div class="role-arrow">→</div>
+                    </div>
+                </div>
+
+                <div class="slide-down-form" id="login-form-container">
+                    <form method="POST" action="/auth/login" id="login-form">
+
+                        <div class="input-group" id="academy-code-group" style="display: none;">
+                            <input type="text" name="academy_code" id="academy_code" placeholder=" ">
+                            <label for="academy_code">Código de academia (Opcional)</label>
+                        </div>
+
+                        <div class="input-group">
+                            <input type="email" name="email" id="email" required placeholder=" ">
+                            <label for="email">Correo electrónico</label>
+                        </div>
+
+                        <div class="input-group">
+                            <input type="password" name="password" id="password" required placeholder=" ">
+                            <label for="password">Contraseña</label>
+                        </div>
+
+                        <button type="submit" class="btn-gradient">Iniciar Sesión</button>
+
+                        <a href="/auth/google" class="google-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 48 48">
+                                <path fill="#EA4335"
+                                    d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+                                <path fill="#4285F4"
+                                    d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+                                <path fill="#FBBC05"
+                                    d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+                                <path fill="#34A853"
+                                    d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+                            </svg>
+                            Continuar con Google
+                        </a>
+                    </form>
+
+                    <div class="auth-links" id="admin-links" style="display: none;">
+                        ¿No tienes cuenta? <a href="/register">Crea tu academia</a>
+                    </div>
+                    <div class="auth-links" id="other-links" style="display: none;">
+                        ¿No tienes cuenta? <a href="/join">Únete con un código</a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
     </div>
+
+    <script>
+        // Carousel logic
+        let currentSlide = 0;
+        const totalSlides = 5;
+        let slideInterval;
+
+        function showSlide(index) {
+            document.querySelectorAll('.carousel-slide').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.dot').forEach(d => d.classList.remove('active'));
+
+            document.getElementById('slide-' + index).classList.add('active');
+            document.querySelectorAll('.dot')[index].classList.add('active');
+            currentSlide = index;
+        }
+
+        function nextSlide() {
+            let next = (currentSlide + 1) % totalSlides;
+            showSlide(next);
+        }
+
+        function goToSlide(index) {
+            showSlide(index);
+            resetInterval();
+        }
+
+        function resetInterval() {
+            clearInterval(slideInterval);
+            slideInterval = setInterval(nextSlide, 3000);
+        }
+
+        // Start auto-slide
+        slideInterval = setInterval(nextSlide, 3000);
+
+        // Role selection logic
+        function selectRole(role, element) {
+            // Reset previously selected
+            document.querySelectorAll('.role-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+
+            // Hide unselected gracefully
+            const parent = document.getElementById('role-selector');
+            // Let's hide the non-selected to focus user on the form
+            document.querySelectorAll('.role-btn').forEach(btn => {
+                if (btn !== element) {
+                    btn.style.display = 'none';
+                }
+            });
+            element.classList.add('selected');
+
+            // Add change role button if it doesn't exist
+            let changeBtn = document.getElementById('change-role-btn');
+            if (!changeBtn) {
+                changeBtn = document.createElement('div');
+                changeBtn.id = 'change-role-btn';
+                changeBtn.innerHTML = '← Cambiar perfil';
+                changeBtn.style.color = '#64748b';
+                changeBtn.style.fontSize = '0.85rem';
+                changeBtn.style.cursor = 'pointer';
+                changeBtn.style.marginBottom = '1rem';
+                changeBtn.style.fontWeight = '500';
+
+                changeBtn.onclick = function () {
+                    // Show all roles
+                    document.querySelectorAll('.role-btn').forEach(btn => {
+                        btn.style.display = 'flex';
+                        btn.classList.remove('selected');
+                    });
+                    // Hide form
+                    document.getElementById('login-form-container').classList.remove('show');
+                    // Hide self
+                    changeBtn.style.display = 'none';
+                };
+                parent.parentNode.insertBefore(changeBtn, parent);
+            }
+            changeBtn.style.display = 'block';
+
+            // Update form state based on role
+            const codeGroup = document.getElementById('academy-code-group');
+            const adminLinks = document.getElementById('admin-links');
+            const otherLinks = document.getElementById('other-links');
+
+            if (role === 'admin') {
+                codeGroup.style.display = 'none';
+                adminLinks.style.display = 'block';
+                otherLinks.style.display = 'none';
+            } else {
+                codeGroup.style.display = 'block';
+                adminLinks.style.display = 'none';
+                otherLinks.style.display = 'block';
+            }
+
+            // Slide down form
+            const formContainer = document.getElementById('login-form-container');
+            formContainer.classList.add('show');
+
+            
+        document.getElementById('login-form').addEventListener('submit', function(e) {
+            const roleSelected = document.querySelector('.role-btn.selected');
+            if (roleSelected && !roleSelected.classList.contains('role-admin')) {
+                const codeGroup = document.getElementById('academy-code-group');
+                const codeInput = document.getElementById('academy_code');
+                if (codeGroup && codeGroup.style.display !== 'none') {
+                    if (!codeInput.value.trim()) {
+                        e.preventDefault();
+                        if(!document.getElementById('code-err-msg')) {
+                            const err = document.createElement('div');
+                            err.id = 'code-err-msg';
+                            err.style.color = '#ef4444';
+                            err.style.fontSize = '0.8rem';
+                            err.style.marginTop = '0.2rem';
+                            err.textContent = 'El código de academia es obligatorio';
+                            codeGroup.appendChild(err);
+                        }
+                    } else {
+                        const err = document.getElementById('code-err-msg');
+                        if (err) err.remove();
+                    }
+                }
+            }
+        });
+
+            // Focus email input
+            setTimeout(() => document.getElementById('email').focus(), 400);
+        }
+    </script>
+
 </body>
 
 </html>

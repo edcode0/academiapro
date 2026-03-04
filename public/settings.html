@@ -44,6 +44,8 @@
             flex-direction: column;
             position: fixed;
             height: 100vh;
+            overflow-y: auto;
+            overflow-x: hidden;
         }
 
         aside h1 {
@@ -243,14 +245,60 @@
             z-index: 2000;
         }
     </style>
+    <link rel="stylesheet" href="/glassmorphism.css">
+    <script src="/global.js"></script>
 </head>
 
 <body>
+
+<div class="loading-overlay" id="globalLoading">
+  <svg xmlns="http://www.w3.org/2000/svg" height="200px" width="200px" viewBox="0 0 200 200" class="pencil">
+  	<defs>
+  		<clipPath id="pencil-eraser">
+  			<rect height="30" width="30" ry="5" rx="5"></rect>
+  		</clipPath>
+  	</defs>
+  	<circle transform="rotate(-113,100,100)" stroke-linecap="round" stroke-dashoffset="439.82" stroke-dasharray="439.82 439.82" stroke-width="2" stroke="currentColor" fill="none" r="70" class="pencil__stroke"></circle>
+  	<g transform="translate(100,100)" class="pencil__rotate">
+  		<g fill="none">
+  			<circle transform="rotate(-90)" stroke-dashoffset="402" stroke-dasharray="402.12 402.12" stroke-width="30" stroke="hsl(223,90%,50%)" r="64" class="pencil__body1"></circle>
+  			<circle transform="rotate(-90)" stroke-dashoffset="465" stroke-dasharray="464.96 464.96" stroke-width="10" stroke="hsl(223,90%,60%)" r="74" class="pencil__body2"></circle>
+  			<circle transform="rotate(-90)" stroke-dashoffset="339" stroke-dasharray="339.29 339.29" stroke-width="10" stroke="hsl(223,90%,40%)" r="54" class="pencil__body3"></circle>
+  		</g>
+  		<g transform="rotate(-90) translate(49,0)" class="pencil__eraser">
+  			<g class="pencil__eraser-skew">
+  				<rect height="30" width="30" ry="5" rx="5" fill="hsl(223,90%,70%)"></rect>
+  				<rect clip-path="url(#pencil-eraser)" height="30" width="5" fill="hsl(223,90%,60%)"></rect>
+  				<rect height="20" width="30" fill="hsl(223,10%,90%)"></rect>
+  				<rect height="20" width="15" fill="hsl(223,10%,70%)"></rect>
+  				<rect height="20" width="5" fill="hsl(223,10%,80%)"></rect>
+  				<rect height="2" width="30" y="6" fill="hsla(223,10%,10%,0.2)"></rect>
+  				<rect height="2" width="30" y="13" fill="hsla(223,10%,10%,0.2)"></rect>
+  			</g>
+  		</g>
+  		<g transform="rotate(-90) translate(49,-30)" class="pencil__point">
+  			<polygon points="15 0,30 30,0 30" fill="hsl(33,90%,70%)"></polygon>
+  			<polygon points="15 0,6 30,0 30" fill="hsl(33,90%,50%)"></polygon>
+  			<polygon points="15 0,20 10,10 10" fill="hsl(223,10%,10%)"></polygon>
+  		</g>
+  	</g>
+  </svg>
+  <p id="loadingText">Cargando...</p>
+</div>
+
+    <!-- BG Blobs -->
+    <div class="bg-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
     <aside>
         <h1>AcademiaPro</h1>
         <nav id="mainNav" style="flex:1;">
             <a href="/">Dashboard</a>
             <a href="/students">Estudiantes</a>
+            <a href="/admin/teachers">👨‍🏫 Profesores</a>
             <a href="/sessions">Sesiones</a>
             <a href="/calendar">Calendario</a>
             <a href="/exams">Exámenes</a>
@@ -272,7 +320,19 @@
 
         <!-- Section 0: Códigos de Acceso -->
         <div class="settings-section">
-            <h3>🔑 Códigos de Acceso</h3>
+            <h3>🔑 Mis Códigos</h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Mi código personal (Para ser añadido a otras academias)</label>
+                    <div style="display:flex; gap:0.5rem;">
+                        <input type="text" id="my_user_code" readonly
+                            style="background:#f1f5f9; font-family:monospace; font-weight:bold; color:var(--primary);">
+                        <button type="button" class="btn btn-primary" style="margin-top:0;"
+                            onclick="copyCode('my_user_code')">Copiar</button>
+                    </div>
+                </div>
+            </div>
+            <h3 style="margin-top: 2rem;">🔑 Códigos de Invitación de la Academia</h3>
             <div class="form-grid">
                 <div class="form-group">
                     <label>Código para Profesores</label>
@@ -323,6 +383,29 @@
             </form>
         </div>
 
+        <!-- Section: Añadir usuarios (New Feature 2) -->
+        <div class="settings-section">
+            <h3>👤 Añadir usuarios</h3>
+            <form id="form-add-user">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Código de usuario (#XXXXX)</label>
+                        <input type="text" id="add_user_code" required placeholder="#12345">
+                    </div>
+                    <div class="form-group">
+                        <label>Rol</label>
+                        <select id="add_user_role"
+                            style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 0.5rem; outline: none; background: white; font-size: 1rem;">
+                            <option value="teacher">Profesor</option>
+                            <option value="student">Alumno</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary" id="btn-add-user">Añadir a mi academia</button>
+            </form>
+            <div id="add-user-msg" style="margin-top: 1rem; font-weight: 500;"></div>
+        </div>
+
         <!-- Section 2 -->
         <div class="settings-section">
             <h3>📄 Personalización de Informes</h3>
@@ -343,6 +426,14 @@
                 </div>
                 <button type="submit" class="btn btn-primary">Guardar Diseño Informe</button>
             </form>
+        </div>
+
+        <!-- Section: Configuración de Profesores (New) -->
+        <div class="settings-section">
+            <h3>👨‍🏫 Configuración de Profesores</h3>
+            <div id="teachers-config-list" style="display: flex; flex-direction: column; gap: 1rem;">
+                <p>Cargando profesores...</p>
+            </div>
         </div>
 
         <!-- Section 3 -->
@@ -411,6 +502,24 @@
                 if (tEl) tEl.value = codes.teacher_code || '';
                 if (sEl) sEl.value = codes.student_code || '';
             }
+
+            const myCodeRes = await fetch('/api/user/my-code');
+            if (myCodeRes.ok) {
+                const data = await myCodeRes.json();
+                let myCode = data.user_code;
+                if (!myCode) {
+                    const genRes = await fetch('/api/user/generate-code', { method: 'PUT' });
+                    if (genRes.ok) {
+                        const genData = await genRes.json();
+                        myCode = genData.user_code;
+                    }
+                }
+                const myCodeEl = document.getElementById('my_user_code');
+                if (myCodeEl) myCodeEl.value = myCode || 'No asignado';
+            }
+
+            // Load teachers config
+            loadTeachersConfig();
         }
 
         async function regenerateCodes() {
@@ -429,6 +538,53 @@
             el.select();
             document.execCommand('copy');
             showToast('Código copiado al portapapeles');
+        }
+
+        async function loadTeachersConfig() {
+            try {
+                const res = await fetch('/api/teachers/rates');
+                if (res.ok) {
+                    const teachers = await res.json();
+                    const container = document.getElementById('teachers-config-list');
+                    if (teachers.length === 0) {
+                        container.innerHTML = '<p style="color:var(--text-muted)">No hay profesores en la academia.</p>';
+                        return;
+                    }
+                    container.innerHTML = teachers.map(t => `
+                        <div class="form-grid" style="align-items: end; background: #f8fafc; padding: 1rem; border-radius: 0.5rem; border: 1px solid var(--border);">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-weight: 600; color: var(--primary);">${t.name}</label>
+                                <input type="number" id="t_rate_${t.id}" value="${t.hourly_rate || 0}" step="0.5" min="0" placeholder="€/hora" style="margin-top: 0.5rem;">
+                            </div>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button class="btn btn-primary" style="margin-top: 0;" onclick="saveTeacherRate(${t.id})">Guardar</button>
+                                <button class="btn btn-ghost" style="margin-top: 0; border: 1px solid var(--border);" onclick="window.location.href='/payments?tab=teachers'">Resumen Mes</button>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function saveTeacherRate(id) {
+            const rate = parseFloat(document.getElementById(`t_rate_${id}`).value) || 0;
+            try {
+                const res = await fetch(`/api/teachers/${id}/rate`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ hourly_rate: rate })
+                });
+                if (res.ok) {
+                    showToast('✅ Tarifa guardada correctamente', 'success');
+                } else {
+                    showToast('❌ Error al guardar tarifa', 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('❌ Error de conexión', 'error');
+            }
         }
 
         async function saveSettings(keys) {
@@ -454,6 +610,37 @@
         document.getElementById('form-academy').onsubmit = (e) => {
             e.preventDefault();
             saveSettings(['academy_name', 'contact_email', 'contact_phone', 'contact_address']);
+        };
+
+        document.getElementById('form-add-user').onsubmit = async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btn-add-user');
+            const code = document.getElementById('add_user_code').value;
+            const role = document.getElementById('add_user_role').value;
+            const msgEl = document.getElementById('add-user-msg');
+
+            btn.disabled = true;
+            try {
+                const res = await fetch('/api/admin/add-user-by-code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code, role })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    msgEl.style.color = 'var(--success)';
+                    const rolName = role === 'teacher' ? 'Profesor' : 'Alumno';
+                    msgEl.textContent = `✅ ${data.name} añadido como ${rolName}`;
+                    document.getElementById('add_user_code').value = '';
+                } else {
+                    msgEl.style.color = 'var(--danger)';
+                    msgEl.textContent = `❌ ${data.error || 'Código no encontrado'}`;
+                }
+            } catch (err) {
+                msgEl.style.color = 'var(--danger)';
+                msgEl.textContent = `❌ Error al conectar`;
+            }
+            btn.disabled = false;
         };
 
         document.getElementById('form-reports').onsubmit = (e) => {

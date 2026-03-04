@@ -26,44 +26,179 @@ if (isPostgres) {
 const db = {
   // Universal query method
   query: (text, params = [], callback) => {
-    if (typeof params === 'function') {
-      callback = params;
-      params = [];
-    }
-
-    if (isPostgres) {
-      // PostgreSQL native query
-      if (callback) {
-        pool.query(text, params, (err, res) => {
-          if (res) {
-            res.lastID = res.rows && res.rows[0] ? res.rows[0].id : null;
-          }
-          callback(err, res);
-        });
-      } else {
-        return pool.query(text, params).then(res => {
-          if (res.rows && res.rows[0]) res.lastID = res.rows[0].id;
-          return res;
-        });
+    try {
+      if (typeof params === 'function') {
+        callback = params;
+        params = [];
       }
-    } else {
-      // SQLite wrapper
-      return new Promise((resolve, reject) => {
-        const isSelect = text.trim().toUpperCase().startsWith('SELECT');
-        if (isSelect) {
-          sqliteDb.all(text, params, (err, rows) => {
-            const result = { rows: rows || [], rowCount: rows ? rows.length : 0 };
-            if (callback) callback(err, result);
-            if (err) reject(err); else resolve(result);
+
+      if (isPostgres) {
+        // PostgreSQL native query
+        if (callback) {
+          pool.query(text, params, (err, res) => {
+            if (res) {
+              res.lastID = res.rows && res.rows[0] ? res.rows[0].id : null;
+            }
+            callback(err, res);
           });
         } else {
-          sqliteDb.run(text, params, function (err) {
-            const result = { rows: [], rowCount: this.changes, lastID: this.lastID, insertId: this.lastID };
-            if (callback) callback(err, result);
-            if (err) reject(err); else resolve(result);
+          return pool.query(text, params).then(res => {
+            if (res.rows && res.rows[0]) res.lastID = res.rows[0].id;
+            return res;
+          }).catch(err => {
+            console.error('DB query error:', err.message);
+            throw err;
           });
         }
-      });
+      } else {
+        // SQLite wrapper — convert PostgreSQL $N placeholders to ? and expand params
+        const convertQuery = (text, params) => {
+          // Replace $1, $2, ... with ? and build a positional params array
+          const usedIndices = [];
+          const convertedText = text.replace(/\$(\d+)/g, (match, idx) => {
+            usedIndices.push(parseInt(idx, 10) - 1); // 0-based index
+            return '?';
+          });
+          const convertedParams = usedIndices.map(i => params[i]);
+          return { sql: convertedText, args: convertedParams };
+        };
+
+        return new Promise((resolve, reject) => {
+          try {
+            const isSelect = text.trim().toUpperCase().startsWith('SELECT') ||
+              text.trim().toUpperCase().startsWith('WITH');
+            const { sql, args } = convertQuery(text, params);
+            if (isSelect) {
+              sqliteDb.all(sql, args, (err, rows) => {
+                const result = { rows: rows || [], rowCount: rows ? rows.length : 0 };
+                if (callback) callback(err, result);
+                if (err) reject(err); else resolve(result);
+              });
+            } else {
+              sqliteDb.run(sql, args, function (err) {
+                const result = { rows: [], rowCount: this.changes, lastID: this.lastID, insertId: this.lastID };
+                if (callback) callback(err, result);
+                if (err) reject(err); else resolve(result);
+              });
+            }
+          } catch (syncErr) {
+            console.error('DB sync error:', syncErr.message);
+            if (callback) callback(syncErr);
+            reject(syncErr);
+          }
+        });
+      }
+    } catch (outerErr) {
+      console.error('DB OUTER ERROR:', outerErr.message);
+      if (callback) callback(outerErr);
+      else return Promise.reject(outerErr);
+    }
+  },
+  all: (text, params = [], callback) => {
+    try {
+      if (typeof params === 'function') {
+        callback = params;
+        params = [];
+      }
+      if (isPostgres) {
+        if (callback) {
+          pool.query(text, params, (err, res) => callback(err, res ? res.rows : []));
+        } else {
+          return pool.query(text, params).then(res => res.rows).catch(err => {
+            console.error('DB query error:', err.message);
+            throw err;
+          });
+        }
+      } else {
+        const usedIndices = [];
+        const sql = text.replace(/\$(\d+)/g, (m, i) => { usedIndices.push(parseInt(i, 10) - 1); return '?'; });
+        const args = usedIndices.map(i => params[i]);
+        if (callback) {
+          sqliteDb.all(sql, args, callback);
+        } else {
+          return new Promise((resolve, reject) => {
+            sqliteDb.all(sql, args, (err, rows) => {
+              if (err) reject(err); else resolve(rows || []);
+            });
+          });
+        }
+      }
+    } catch (err) {
+      console.error('DB OUTER ERROR:', err.message);
+      if (callback) callback(err);
+      else return Promise.reject(err);
+    }
+  },
+  get: (text, params = [], callback) => {
+    try {
+      if (typeof params === 'function') {
+        callback = params;
+        params = [];
+      }
+      if (isPostgres) {
+        if (callback) {
+          pool.query(text, params, (err, res) => callback(err, res && res.rows ? res.rows[0] : null));
+        } else {
+          return pool.query(text, params).then(res => res.rows[0]).catch(err => {
+            console.error('DB query error:', err.message);
+            throw err;
+          });
+        }
+      } else {
+        const usedIndices = [];
+        const sql = text.replace(/\$(\d+)/g, (m, i) => { usedIndices.push(parseInt(i, 10) - 1); return '?'; });
+        const args = usedIndices.map(i => params[i]);
+        if (callback) {
+          sqliteDb.get(sql, args, callback);
+        } else {
+          return new Promise((resolve, reject) => {
+            sqliteDb.get(sql, args, (err, row) => {
+              if (err) reject(err); else resolve(row);
+            });
+          });
+        }
+      }
+    } catch (err) {
+      console.error('DB OUTER ERROR:', err.message);
+      if (callback) callback(err);
+      else return Promise.reject(err);
+    }
+  },
+  run: function (text, params = [], callback) {
+    try {
+      if (typeof params === 'function') {
+        callback = params;
+        params = [];
+      }
+      if (isPostgres) {
+        if (callback) {
+          pool.query(text, params, callback);
+        } else {
+          return pool.query(text, params).catch(err => {
+            console.error('DB query error:', err.message);
+            throw err;
+          });
+        }
+      } else {
+        const usedIndices = [];
+        const sql = text.replace(/\$(\d+)/g, (m, i) => { usedIndices.push(parseInt(i, 10) - 1); return '?'; });
+        const args = usedIndices.map(i => params[i]);
+        if (callback) {
+          sqliteDb.run(sql, args, function (err) {
+            if (callback) callback.call(this, err);
+          });
+        } else {
+          return new Promise((resolve, reject) => {
+            sqliteDb.run(sql, args, function (err) {
+              if (err) reject(err); else resolve(this);
+            });
+          });
+        }
+      }
+    } catch (err) {
+      console.error('DB OUTER ERROR:', err.message);
+      if (callback) callback(err);
+      else return Promise.reject(err);
     }
   }
 };
@@ -80,6 +215,7 @@ async function initDb() {
             google_id TEXT,
             role TEXT,
             academy_id INTEGER,
+            user_code TEXT UNIQUE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`,
     `CREATE TABLE IF NOT EXISTS academies (
@@ -161,6 +297,27 @@ async function initDb() {
     `CREATE TABLE IF NOT EXISTS settings (
             key TEXT PRIMARY KEY,
             value TEXT
+        )`,
+    `CREATE TABLE IF NOT EXISTS teacher_payments (
+            id ${idType},
+            teacher_id INTEGER,
+            month INTEGER,
+            year INTEGER,
+            hours REAL,
+            hourly_rate REAL,
+            total_amount REAL,
+            status TEXT DEFAULT 'pending',
+            paid_at TEXT
+        )`,
+    `CREATE TABLE IF NOT EXISTS available_slots (
+            id ${idType},
+            teacher_id INTEGER,
+            academy_id INTEGER,
+            start_datetime TEXT,
+            end_datetime TEXT,
+            is_booked BOOLEAN DEFAULT FALSE,
+            student_id INTEGER,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`
   ];
 
@@ -172,11 +329,177 @@ async function initDb() {
     }
   }
 
-  if (!isPostgres) {
-    // Safe column additions for SQLite only
-    await db.query("ALTER TABLE students ADD COLUMN academy_id INTEGER").catch(() => { });
-    await db.query("ALTER TABLE students ADD COLUMN assigned_teacher_id INTEGER").catch(() => { });
-    await db.query("ALTER TABLE students ADD COLUMN user_id INTEGER").catch(() => { });
+  // Safe column additions via try/catch wrapper
+  const runMigration = async (sql) => {
+    try {
+      await db.run(sql);
+    } catch (err) {
+      // Ignore errors for existing columns or other safe migration errors
+    }
+  };
+
+  const migrations = [
+    "ALTER TABLE students ADD COLUMN academy_id INTEGER",
+    "ALTER TABLE students ADD COLUMN assigned_teacher_id INTEGER",
+    "ALTER TABLE students ADD COLUMN user_id INTEGER",
+    "ALTER TABLE sessions ADD COLUMN slot_id INTEGER",
+    "ALTER TABLE users ADD COLUMN user_code TEXT",
+    "ALTER TABLE students ADD COLUMN monthly_fee REAL DEFAULT 0",
+    "ALTER TABLE students ADD COLUMN payment_day INTEGER DEFAULT 1",
+    "ALTER TABLE students ADD COLUMN payment_method TEXT DEFAULT 'Transferencia'",
+    "ALTER TABLE students ADD COLUMN payment_notes TEXT",
+    "ALTER TABLE students ADD COLUMN payment_start_date TEXT",
+    "ALTER TABLE users ADD COLUMN hourly_rate REAL DEFAULT 0",
+
+    `CREATE TABLE IF NOT EXISTS rooms (
+      id ${idType},
+      academy_id INTEGER,
+      type TEXT,
+      name TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`,
+
+    `CREATE TABLE IF NOT EXISTS room_members (
+      id ${idType},
+      room_id INTEGER,
+      user_id INTEGER
+    )`,
+
+    "ALTER TABLE messages ADD COLUMN room_id INTEGER",
+    "ALTER TABLE messages ADD COLUMN file_url TEXT",
+    "ALTER TABLE messages ADD COLUMN file_name TEXT",
+    "ALTER TABLE messages ADD COLUMN file_type TEXT",
+    "ALTER TABLE messages ADD COLUMN read INTEGER DEFAULT 0",
+
+    `CREATE TABLE IF NOT EXISTS available_slots (
+      id ${idType},
+      teacher_id INTEGER,
+      academy_id INTEGER,
+      start_datetime TEXT,
+      end_datetime TEXT,
+      is_booked INTEGER DEFAULT 0,
+      student_id INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`,
+
+    `CREATE TABLE IF NOT EXISTS teacher_payments (
+      id ${idType},
+      teacher_id INTEGER,
+      academy_id INTEGER,
+      month INTEGER,
+      year INTEGER,
+      hours REAL,
+      hourly_rate REAL,
+      total REAL,
+      status TEXT DEFAULT 'pending',
+      paid_date TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`,
+
+    `CREATE TABLE IF NOT EXISTS settings (
+      id ${idType},
+      academy_id INTEGER UNIQUE,
+      academy_name TEXT,
+      contact_email TEXT,
+      phone TEXT,
+      address TEXT,
+      report_name TEXT,
+      report_footer TEXT,
+      director_name TEXT,
+      notify_risk INTEGER DEFAULT 0,
+      notify_payment INTEGER DEFAULT 0,
+      notify_monthly INTEGER DEFAULT 0
+    )`,
+
+    // New columns for calendar slots
+    "ALTER TABLE available_slots ADD COLUMN notes TEXT",
+
+    // Teacher payments tracking table
+    `CREATE TABLE IF NOT EXISTS teacher_payments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      teacher_id INTEGER NOT NULL,
+      academy_id INTEGER,
+      month INTEGER NOT NULL,
+      year INTEGER NOT NULL,
+      hours REAL DEFAULT 0,
+      hourly_rate REAL DEFAULT 0,
+      total REAL DEFAULT 0,
+      status TEXT DEFAULT 'pending',
+      paid_date TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`,
+
+    // --- NEW TABLES FOR RECENT REQUESTS ---
+
+    // 1. AI Conversations
+    `CREATE TABLE IF NOT EXISTS ai_conversations (
+      id ${idType},
+      user_id INTEGER NOT NULL,
+      title TEXT,
+      is_pinned BOOLEAN DEFAULT FALSE,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`,
+
+    // 2. AI Messages
+    `CREATE TABLE IF NOT EXISTS ai_messages (
+      id ${idType},
+      conversation_id INTEGER NOT NULL,
+      role TEXT NOT NULL, -- 'user' or 'assistant'
+      content TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`,
+
+    // 3. Simulator Results
+    `CREATE TABLE IF NOT EXISTS simulator_results (
+      id ${idType},
+      student_id INTEGER NOT NULL,
+      topic TEXT,
+      difficulty TEXT,
+      num_questions INTEGER,
+      score REAL,
+      max_score REAL,
+      percentage REAL,
+      questions_json TEXT, -- JSON string
+      answers_json TEXT, -- JSON string
+      teacher_grade REAL, -- 0-10
+      teacher_feedback TEXT,
+      graded_at DATETIME,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`,
+
+    // 4. Update Exams table
+    "ALTER TABLE exams ADD COLUMN notes TEXT",
+
+    // 5. Sent Reports
+    `CREATE TABLE IF NOT EXISTS sent_reports (
+      id ${idType},
+      academy_id INTEGER NOT NULL,
+      student_id INTEGER NOT NULL,
+      month INTEGER NOT NULL,
+      year INTEGER NOT NULL,
+      sent_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`,
+
+    // 6. Transcripts
+    `CREATE TABLE IF NOT EXISTS transcripts (
+      id ${idType},
+      academy_id INTEGER,
+      teacher_id INTEGER,
+      student_id INTEGER,
+      raw_text TEXT,
+      processed_json TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`
+  ];
+
+  for (const sql of migrations) {
+    await runMigration(sql);
+  }
+
+  // If Postgres, ensure unique on user_code if possible (SQLite doesn't support adding UNIQUE constraints easily via ALTER)
+  if (isPostgres) {
+    await db.query("ALTER TABLE users ADD CONSTRAINT users_user_code_key UNIQUE (user_code)").catch(() => { });
   }
 
   // Default settings
@@ -204,8 +527,87 @@ async function initDb() {
       }
     }
   } catch (e) { console.error('Settings Init Error', e); }
+
+  // Clean up duplicate group rooms and orphan members
+  try {
+    // Remove duplicate group rooms, keep lowest id per academy
+    await db.query(`
+      DELETE FROM rooms 
+      WHERE type = 'group' 
+      AND id NOT IN (
+        SELECT MIN(id) FROM rooms 
+        WHERE type = 'group' 
+        GROUP BY academy_id
+      )
+    `);
+
+    // Clean orphan members
+    await db.query(`
+      DELETE FROM room_members 
+      WHERE room_id NOT IN (SELECT id FROM rooms)
+    `);
+    console.log("Cleanup: Duplicate rooms and orphan members removed.");
+
+    // Delete all rooms that have NO members
+    await db.query(`DELETE FROM rooms WHERE id NOT IN (SELECT DISTINCT room_id FROM room_members)`);
+
+    // Delete duplicate members in room 5 (keep only one of each user)
+    await db.query(`DELETE FROM room_members WHERE id NOT IN (SELECT MIN(id) FROM room_members GROUP BY room_id, user_id)`);
+
+    // Delete rooms 6-32 if still empty after cleanup
+    await db.query(`DELETE FROM rooms WHERE id NOT IN (SELECT DISTINCT room_id FROM room_members)`);
+
+    // Check if room already exists between user 2 and user 3
+    const existing = await db.query(`
+      SELECT r.id FROM rooms r
+      JOIN room_members rm1 ON rm1.room_id = r.id AND rm1.user_id = 2
+      JOIN room_members rm2 ON rm2.room_id = r.id AND rm2.user_id = 3
+      WHERE r.type = 'direct' AND r.academy_id = 1
+    `);
+    const rows = existing.rows || existing;
+
+    if (!rows || rows.length === 0) {
+      const newRoom = await db.query(
+        "INSERT INTO rooms (academy_id, type, name, created_at) VALUES (1, 'direct', 'Eduard - edu', CURRENT_TIMESTAMP)"
+      );
+      const roomId = newRoom.lastID || newRoom.insertId;
+      await db.query("INSERT INTO room_members (room_id, user_id) VALUES ($1, 2)", [roomId]);
+      await db.query("INSERT INTO room_members (room_id, user_id) VALUES ($1, 3)", [roomId]);
+      console.log('✅ Created direct room between teacher (2) and student (3), room id:', roomId);
+    } else {
+      console.log('✅ Direct room already exists:', rows[0].id);
+    }
+
+    // Find and delete duplicate direct rooms (same two members)
+    const allDirectRooms = await db.query(
+      "SELECT id FROM rooms WHERE type = 'direct' ORDER BY id ASC"
+    );
+    const directRows = allDirectRooms.rows || allDirectRooms;
+
+    const seen = new Set();
+    for (const room of directRows) {
+      const members = await db.query(
+        "SELECT user_id FROM room_members WHERE room_id = $1 ORDER BY user_id ASC",
+        [room.id]
+      );
+      const mRows = members.rows || members;
+      if (mRows.length === 0) continue;
+
+      const key = mRows.map(m => m.user_id).join('-');
+      if (seen.has(key)) {
+        // Duplicate - delete it
+        await db.query("DELETE FROM rooms WHERE id = $1", [room.id]);
+        await db.query("DELETE FROM room_members WHERE room_id = $1", [room.id]);
+      } else {
+        seen.add(key);
+      }
+    }
+
+  } catch (e) {
+    console.error("Cleanup Error", e);
+  }
 }
 
-initDb();
+db.initDb = initDb;
 
 module.exports = db;
