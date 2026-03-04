@@ -292,8 +292,8 @@
         }
 
         .msg.received .bubble {
-            background: white;
-            border: 1px solid var(--border);
+            background: #f1f5f9;
+            border: none;
             border-bottom-left-radius: 0.25rem;
         }
 
@@ -359,7 +359,6 @@
         }
     </style>
     <link rel="stylesheet" href="/glassmorphism.css">
-    <script src="/global.js"></script>
 </head>
 
 <body>
@@ -481,36 +480,40 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        const socket = io();
+        function getAuthToken() {
+            // Try all possible storage locations
+            let token = localStorage.getItem('token') ||
+                localStorage.getItem('authToken') ||
+                localStorage.getItem('jwt') ||
+                sessionStorage.getItem('token') ||
+                sessionStorage.getItem('authToken');
+
+            // Try cookie as fallback
+            if (!token) {
+                const match = document.cookie.match(/(?:^|;\s*)token=([^;]+)/);
+                if (match) token = match[1];
+            }
+
+            console.log('Token found:', token ? 'YES' : 'NO');
+            return token;
+        }
+
+        const socket = io({
+            auth: {
+                token: getAuthToken()
+            },
+            transports: ['websocket', 'polling']
+        });
+
         let currentUser = null;
         let activeRoom = null;
         let allRooms = [];
-
-        // Helper function - try cookie first, then localStorage
-        function getAuthToken() {
-            const cookies = document.cookie.split(';');
-            for (let c of cookies) {
-                const [key, val] = c.trim().split('=');
-                if (key === 'token') return val;
-            }
-            return localStorage.getItem('token') ||
-                localStorage.getItem('jwt') ||
-                sessionStorage.getItem('token') || '';
-        }
 
         socket.on('connect', () => {
             console.log('✅ Socket connected, id:', socket.id);
 
             // Try all possible token locations
             let token = getAuthToken();
-
-            if (token) {
-                console.log('Token found via getAuthToken()');
-            } else {
-                console.log('Token not found via getAuthToken(), trying other locations');
-                token = localStorage.getItem('authToken') || '';
-                if (token) console.log('Token found in localStorage as authToken');
-            }
 
             console.log('Token value:', token ? token.substring(0, 20) + '...' : 'NOT FOUND');
 
@@ -619,6 +622,16 @@
 
         function renderRooms(rooms) {
             const container = document.getElementById('rooms-scroll');
+
+            // Fix sorting: pin group chat to the top, then sort by latest activity
+            rooms.sort((a, b) => {
+                if (a.type === 'group' && b.type !== 'group') return -1;
+                if (a.type !== 'group' && b.type === 'group') return 1;
+                const dateA = new Date(a.last_message_date || a.created_at || 0).getTime();
+                const dateB = new Date(b.last_message_date || b.created_at || 0).getTime();
+                return dateB - dateA;
+            });
+
             container.innerHTML = rooms.map(room => {
                 const initials = room.name.split(' ').map(n => n[0]).join('').substring(0, 2);
                 return `
@@ -689,7 +702,7 @@
             ${fileHTML}
         </div>
         <div class="msg-info">
-            ${!isMine && activeRoom && activeRoom.type === 'group' ? `<span>${msg.sender_name}</span>` : ''}
+            ${!isMine ? `<span>${msg.sender_name || (activeRoom && activeRoom.name) || ''}</span>` : ''}
             <span class="time">${new Date(msg.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
         </div>
     </div>`;

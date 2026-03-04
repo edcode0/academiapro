@@ -322,59 +322,91 @@ app.post('/auth/login', (req, res) => {
     });
 });
 
-app.post('/auth/join', (req, res) => {
-    const { code, name, email, password } = req.body;
-    db.query('SELECT * FROM academies WHERE teacher_code = $1 OR student_code = $2', [code, code], (err, result) => {
-        const acad = result?.rows[0];
-        if (err || !acad) return res.status(404).json({ error: 'Invalid code' });
+app.post('/auth/join', async (req, res) => {
+    try {
+        const { code, name, email, password } = req.body;
+        const result = await db.query('SELECT * FROM academies WHERE teacher_code = $1 OR student_code = $2', [code, code]);
+        const acad = result?.rows ? result.rows[0] : (result || [])[0];
+        if (!acad) return res.status(404).json({ error: 'Código de academia inválido' });
+
         const role = code === acad.teacher_code ? 'teacher' : 'student';
-        const hash = bcrypt.hashSync(password, 8);
-        const userCode = generateUserCode();
-        db.query('INSERT INTO users (name, email, password_hash, role, academy_id, user_code) VALUES ($1, $2, $3, $4, $5, $6)',
-            [name, email, hash, role, acad.id, userCode], (err, resInsert) => {
-                if (err) return res.status(500).json({ error: err.message });
-                const userId = resInsert.lastID;
 
-                if (role === 'student') {
-                    // Try to match with existing student record
-                    db.query('SELECT id FROM students WHERE name = $1 AND academy_id = $2 AND user_id IS NULL', [name, acad.id], (err, resMatch) => {
-                        const existing = resMatch?.rows[0];
-                        if (existing) {
-                            db.query('UPDATE students SET user_id = $1 WHERE id = $2', [userId, existing.id]);
-                        } else {
-                            db.query('INSERT INTO students (name, parent_email, academy_id, user_id, join_date) VALUES ($1, $2, $3, $4, $5)',
-                                [name, email, acad.id, userId, new Date().toISOString().split('T')[0]]);
-                        }
-                    });
+        // Check if user already exists
+        const userRes = await db.query('SELECT * FROM users WHERE email = $1', [email]);
+        const existingUser = userRes?.rows ? userRes.rows[0] : (userRes || [])[0];
 
-                    // Create direct chat with Admin
-                    db.query('INSERT INTO rooms (academy_id, type) VALUES ($1, "direct")', [acad.id], (err, resRoom) => {
-                        if (!err) {
-                            const roomId = resRoom.lastID;
-                            db.query('INSERT INTO room_members (room_id, user_id) VALUES ($1, $2)', [roomId, userId]);
-                            db.query('INSERT INTO room_members (room_id, user_id) VALUES ($1, $2)', [roomId, acad.owner_id]);
-                        }
-                    });
-                } else if (role === 'teacher') {
-                    // Create direct chat with Admin
-                    db.query('INSERT INTO rooms (academy_id, type) VALUES ($1, "direct")', [acad.id], (err, resRoom) => {
-                        if (!err) {
-                            const roomId = resRoom.lastID;
-                            db.query('INSERT INTO room_members (room_id, user_id) VALUES ($1, $2)', [roomId, userId]);
-                            db.query('INSERT INTO room_members (room_id, user_id) VALUES ($1, $2)', [roomId, acad.owner_id]);
-                        }
-                    });
-                    // Join General Profesores
-                    db.query('SELECT id FROM rooms WHERE academy_id = $1 AND type = "group" AND name = "General Profesores"', [acad.id], (err, resGroup) => {
-                        const room = resGroup?.rows[0];
-                        if (room) {
-                            db.query('INSERT INTO room_members (room_id, user_id) VALUES ($1, $2)', [room.id, userId]);
-                        }
-                    });
+        let userId;
+
+        if (existingUser) {
+            if (existingUser.academy_id === acad.id && existingUser.role === role) {
+                return res.status(400).json({ error: 'Este email ya está registrado en esta academia' });
+            }
+            // Update to new academy
+            await db.query('UPDATE users SET academy_id = $1, role = $2 WHERE id = $3', [acad.id, role, existingUser.id]);
+            userId = existingUser.id;
+        } else {
+            const hash = bcrypt.hashSync(password, 8);
+            const userCode = generateUserCode();
+            try {
+                const insertSql = !!process.env.DATABASE_URL
+                    ? 'INSERT INTO users (name, email, password_hash, role, academy_id, user_code) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id'
+                    : 'INSERT INTO users (name, email, password_hash, role, academy_id, user_code) VALUES ($1, $2, $3, $4, $5, $6)';
+
+                const resInsert = await db.query(insertSql, [name, email, hash, role, acad.id, userCode]);
+                userId = !!process.env.DATABASE_URL && resInsert.rows ? resInsert.rows[0].id : resInsert.lastID;
+            } catch (err) {
+                if (err.message.includes('UNIQUE constraint failed: users.email') || err.message.includes('duplicate key value')) {
+                    return res.status(400).json({ error: 'Este email ya está registrado. Por favor inicia sesión.' });
                 }
-                res.json({ success: true });
-            });
-    });
+                throw err;
+            }
+        }
+
+        if (role === 'student') {
+            // Try to match with existing student record
+            const resMatch = await db.query('SELECT id FROM students WHERE name = $1 AND academy_id = $2 AND user_id IS NULL', [name, acad.id]);
+            const existing = resMatch?.rows ? resMatch.rows[0] : (resMatch || [])[0];
+            if (existing) {
+                await db.query('UPDATE students SET user_id = $1 WHERE id = $2', [userId, existing.id]);
+            } else {
+                await db.query('INSERT INTO students (name, parent_email, academy_id, user_id, join_date) VALUES ($1, $2, $3, $4, $5)',
+                    [name, email, acad.id, userId, new Date().toISOString().split('T')[0]]);
+            }
+
+            // Create direct chat with Admin
+            const insertRoom = !!process.env.DATABASE_URL
+                ? 'INSERT INTO rooms (academy_id, type) VALUES ($1, \x27direct\x27) RETURNING id'
+                : 'INSERT INTO rooms (academy_id, type) VALUES ($1, "direct")';
+            try {
+                const resRoom = await db.query(insertRoom, [acad.id]);
+                const roomId = !!process.env.DATABASE_URL && resRoom.rows ? resRoom.rows[0].id : resRoom.lastID;
+                await db.query('INSERT INTO room_members (room_id, user_id) VALUES ($1, $2)', [roomId, userId]);
+                await db.query('INSERT INTO room_members (room_id, user_id) VALUES ($1, $2)', [roomId, acad.owner_id]);
+            } catch (e) { }
+        } else if (role === 'teacher') {
+            // Create direct chat with Admin
+            const insertRoom = !!process.env.DATABASE_URL
+                ? 'INSERT INTO rooms (academy_id, type) VALUES ($1, \x27direct\x27) RETURNING id'
+                : 'INSERT INTO rooms (academy_id, type) VALUES ($1, "direct")';
+            try {
+                const resRoom = await db.query(insertRoom, [acad.id]);
+                const roomId = !!process.env.DATABASE_URL && resRoom.rows ? resRoom.rows[0].id : resRoom.lastID;
+                await db.query('INSERT INTO room_members (room_id, user_id) VALUES ($1, $2)', [roomId, userId]);
+                await db.query('INSERT INTO room_members (room_id, user_id) VALUES ($1, $2)', [roomId, acad.owner_id]);
+            } catch (e) { }
+            // Join General Profesores
+            const resGroup = await db.query('SELECT id FROM rooms WHERE academy_id = $1 AND type = "group" AND name = "👥 Profesores & Admin"', [acad.id]);
+            const room = resGroup?.rows ? resGroup.rows[0] : (resGroup || [])[0];
+            if (room) {
+                try {
+                    await db.query('INSERT INTO room_members (room_id, user_id) VALUES ($1, $2)', [room.id, userId]);
+                } catch (e) { }
+            }
+        }
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
 app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
@@ -1838,9 +1870,9 @@ app.get('/api/reports/student/:id', authenticateJWT, (req, res) => {
 
 async function ensureAcademyRooms(academyId) {
     const isPostgres = !!process.env.DATABASE_URL;
-    // Ensure "General Profesores" group room exists
+    // Ensure "👥 Profesores & Admin" group room exists
     const groupExists = await db.query(
-        "SELECT id FROM rooms WHERE academy_id = $1 AND type = 'group' AND name = 'General Profesores'",
+        "SELECT id FROM rooms WHERE academy_id = $1 AND type = 'group' AND name = '👥 Profesores & Admin'",
         [academyId]
     );
     const groupRows = groupExists.rows || groupExists;
@@ -1848,11 +1880,19 @@ async function ensureAcademyRooms(academyId) {
 
     if (!groupRows || groupRows.length === 0) {
         const insertGroupSql = isPostgres
-            ? "INSERT INTO rooms (academy_id, type, name, created_at) VALUES ($1, 'group', 'General Profesores', NOW()) RETURNING id"
-            : "INSERT INTO rooms (academy_id, type, name, created_at) VALUES ($1, 'group', 'General Profesores', datetime('now'))";
+            ? "INSERT INTO rooms (academy_id, type, name, created_at) VALUES ($1, 'group', '👥 Profesores & Admin', NOW()) RETURNING id"
+            : "INSERT INTO rooms (academy_id, type, name, created_at) VALUES ($1, 'group', '👥 Profesores & Admin', datetime('now'))";
 
         const newGroup = await db.query(insertGroupSql, [academyId]);
         groupId = isPostgres && newGroup.rows ? newGroup.rows[0].id : newGroup.lastID;
+
+        // Let's also delete the old "General Profesores" if it exists so there aren't duplicates
+        const oldGroup = await db.query("SELECT id FROM rooms WHERE academy_id = $1 AND type = 'group' AND name = 'General Profesores'", [academyId]);
+        const oldRows = oldGroup.rows || oldGroup;
+        for (const row of oldRows) {
+            await db.query("DELETE FROM room_members WHERE room_id = $1", [row.id]);
+            await db.query("DELETE FROM rooms WHERE id = $1", [row.id]);
+        }
     } else {
         groupId = groupRows[0].id;
     }
@@ -1895,6 +1935,19 @@ async function ensureAcademyRooms(academyId) {
         }
         if (adminUser) {
             await createDirectRoomIfNotExists(studentUserId, adminUser.id, academyId);
+        }
+    }
+
+    // Create direct rooms for Admin <-> Teachers
+    if (adminUser) {
+        const teachers = await db.query(
+            "SELECT id FROM users WHERE academy_id = $1 AND role = 'teacher'",
+            [academyId]
+        );
+        for (const teacher of (teachers.rows || [])) {
+            if (teacher.id !== adminUser.id) {
+                await createDirectRoomIfNotExists(teacher.id, adminUser.id, academyId);
+            }
         }
     }
 }
