@@ -498,7 +498,6 @@
             }
         }
     </style>
-    <script src="/global.js"></script>
 </head>
 
 <body>
@@ -763,35 +762,59 @@
             const formContainer = document.getElementById('login-form-container');
             formContainer.classList.add('show');
 
-            
-        document.getElementById('login-form').addEventListener('submit', function(e) {
-            const roleSelected = document.querySelector('.role-btn.selected');
-            if (roleSelected && !roleSelected.classList.contains('role-admin')) {
-                const codeGroup = document.getElementById('academy-code-group');
-                const codeInput = document.getElementById('academy_code');
-                if (codeGroup && codeGroup.style.display !== 'none') {
-                    if (!codeInput.value.trim()) {
-                        e.preventDefault();
-                        if(!document.getElementById('code-err-msg')) {
-                            const err = document.createElement('div');
-                            err.id = 'code-err-msg';
-                            err.style.color = '#ef4444';
-                            err.style.fontSize = '0.8rem';
-                            err.style.marginTop = '0.2rem';
-                            err.textContent = 'El código de academia es obligatorio';
-                            codeGroup.appendChild(err);
-                        }
-                    } else {
-                        const err = document.getElementById('code-err-msg');
-                        if (err) err.remove();
-                    }
-                }
-            }
-        });
-
             // Focus email input
             setTimeout(() => document.getElementById('email').focus(), 400);
         }
+
+        document.getElementById('login-form').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const roleSelected = document.querySelector('.role-btn.selected');
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const academyCode = document.getElementById('academy_code').value;
+
+            // Validate code for non-admin roles
+            if (roleSelected && !roleSelected.classList.contains('role-admin')) {
+                if (!academyCode.trim()) {
+                    if (!document.getElementById('code-err-msg')) {
+                        const err = document.createElement('div');
+                        err.id = 'code-err-msg';
+                        err.style.color = '#ef4444';
+                        err.style.fontSize = '0.8rem';
+                        err.style.marginTop = '0.2rem';
+                        err.textContent = 'El código de academia es obligatorio';
+                        document.getElementById('academy-code-group').appendChild(err);
+                    }
+                    return;
+                }
+            }
+
+            // Determine role
+            const role = roleSelected?.classList.contains('role-admin') ? 'admin' :
+                roleSelected?.classList.contains('role-teacher') ? 'teacher' : 'student';
+
+            // Send login request
+            fetch('/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password, role, academy_code: academyCode })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.token) {
+                        localStorage.setItem('token', data.token);
+                        localStorage.setItem('user', JSON.stringify(data.user));
+                        // Redirect based on role
+                        if (data.user.role === 'admin') window.location.href = '/';
+                        else if (data.user.role === 'teacher') window.location.href = '/teacher';
+                        else window.location.href = '/student';
+                    } else {
+                        alert(data.error || 'Error al iniciar sesión');
+                    }
+                })
+                .catch(() => alert('Error de conexión'));
+        });
     </script>
 
 </body>
