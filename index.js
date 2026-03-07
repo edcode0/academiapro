@@ -382,11 +382,12 @@ app.post('/auth/login', (req, res) => {
 app.post(['/auth/join', '/api/auth/join'], async (req, res) => {
     try {
         const { code, name, email, password } = req.body;
-        const result = await db.query('SELECT * FROM academies WHERE teacher_code = $1 OR student_code = $2', [code, code]);
+        const safeCode = (code || '').trim().toUpperCase();
+        const result = await db.query('SELECT * FROM academies WHERE UPPER(teacher_code) = $1 OR UPPER(student_code) = $2', [safeCode, safeCode]);
         const acad = result?.rows ? result.rows[0] : (result || [])[0];
         if (!acad) return res.status(404).json({ error: 'Código de academia inválido' });
 
-        const role = code === acad.teacher_code ? 'teacher' : 'student';
+        const role = safeCode === (acad.teacher_code || '').toUpperCase() ? 'teacher' : 'student';
 
         // Check if user already exists
         const userRes = await db.query('SELECT * FROM users WHERE email = $1', [email]);
