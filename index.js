@@ -379,109 +379,10 @@ app.post('/auth/login', (req, res) => {
     });
 });
 
-app.post('/auth/join', async (req, res) => {
-    try {
-        const { code, name, email, password } = req.body;
-        const safeCode = (code || '').trim().toUpperCase();
-        const result = await db.query('SELECT * FROM academies WHERE UPPER(teacher_code) = $1 OR UPPER(student_code) = $2', [safeCode, safeCode]);
-        const acad = result?.rows ? result.rows[0] : (result || [])[0];
-        if (!acad) return res.status(404).json({ error: 'Código de academia inválido' });
-
-        const role = safeCode === (acad.teacher_code || '').toUpperCase() ? 'teacher' : 'student';
-
-        // Check if user already exists
-        const userRes = await db.query('SELECT * FROM users WHERE email = $1', [email]);
-        const existingUser = userRes?.rows ? userRes.rows[0] : (userRes || [])[0];
-
-        let userId;
-
-        if (existingUser) {
-            const hash = existingUser.password_hash || existingUser.password;
-            if (!hash || typeof hash !== 'string') {
-                console.error('Invalid password hash for user:', existingUser.email);
-                return res.status(500).json({ error: 'Error interno del servidor' });
-            }
-            if (!bcrypt.compareSync(password, hash)) {
-                return res.status(401).json({ error: 'Email o contraseña incorrectos' });
-            }
-
-            if (existingUser.academy_id === acad.id) {
-                return res.status(400).json({ error: 'Este email ya está registrado en esta academia' });
-            }
-            // Update to new academy
-            await db.query('UPDATE users SET academy_id = $1, role = $2 WHERE id = $3', [acad.id, role, existingUser.id]);
-            userId = existingUser.id;
-        } else {
-            const hash = bcrypt.hashSync(password, 8);
-            const userCode = generateUserCode();
-            try {
-                const insertSql = !!process.env.DATABASE_URL
-                    ? 'INSERT INTO users (name, email, password_hash, role, academy_id, user_code) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id'
-                    : 'INSERT INTO users (name, email, password_hash, role, academy_id, user_code) VALUES ($1, $2, $3, $4, $5, $6)';
-
-                const resInsert = await db.query(insertSql, [name, email, hash, role, acad.id, userCode]);
-                userId = !!process.env.DATABASE_URL && resInsert.rows ? resInsert.rows[0].id : resInsert.lastID;
-            } catch (err) {
-                if (err.message.includes('UNIQUE constraint failed') || err.message.includes('duplicate key value')) {
-                    return res.status(400).json({ error: 'Este email ya está registrado. Por favor inicia sesión.' });
-                }
-                throw err;
-            }
-        }
-
-        if (role === 'student') {
-            // Try to match with existing student record
-            const resMatch = await db.query('SELECT id FROM students WHERE name = $1 AND academy_id = $2 AND user_id IS NULL', [name, acad.id]);
-            const existing = resMatch?.rows ? resMatch.rows[0] : (resMatch || [])[0];
-            if (existing) {
-                await db.query('UPDATE students SET user_id = $1 WHERE id = $2', [userId, existing.id]);
-            } else {
-                await db.query('INSERT INTO students (name, parent_email, academy_id, user_id, join_date) VALUES ($1, $2, $3, $4, $5)',
-                    [name, email, acad.id, userId, new Date().toISOString().split('T')[0]]);
-            }
-
-            // Create direct chat with Admin
-            const insertRoom = !!process.env.DATABASE_URL
-                ? 'INSERT INTO rooms (academy_id, type) VALUES ($1, \x27direct\x27) RETURNING id'
-                : 'INSERT INTO rooms (academy_id, type) VALUES ($1, "direct")';
-            try {
-                const resRoom = await db.query(insertRoom, [acad.id]);
-                const roomId = !!process.env.DATABASE_URL && resRoom.rows ? resRoom.rows[0].id : resRoom.lastID;
-                await db.query('INSERT INTO room_members (room_id, user_id) VALUES ($1, $2)', [roomId, userId]);
-                await db.query('INSERT INTO room_members (room_id, user_id) VALUES ($1, $2)', [roomId, acad.owner_id]);
-            } catch (e) { }
-        } else if (role === 'teacher') {
-            // Create direct chat with Admin
-            const insertRoom = !!process.env.DATABASE_URL
-                ? 'INSERT INTO rooms (academy_id, type) VALUES ($1, \x27direct\x27) RETURNING id'
-                : 'INSERT INTO rooms (academy_id, type) VALUES ($1, "direct")';
-            try {
-                const resRoom = await db.query(insertRoom, [acad.id]);
-                const roomId = !!process.env.DATABASE_URL && resRoom.rows ? resRoom.rows[0].id : resRoom.lastID;
-                await db.query('INSERT INTO room_members (room_id, user_id) VALUES ($1, $2)', [roomId, userId]);
-                await db.query('INSERT INTO room_members (room_id, user_id) VALUES ($1, $2)', [roomId, acad.owner_id]);
-            } catch (e) { }
-            // Join General Profesores
-            const resGroup = await db.query('SELECT id FROM rooms WHERE academy_id = $1 AND type = "group" AND name = "👥 Profesores & Admin"', [acad.id]);
-            const room = resGroup?.rows ? resGroup.rows[0] : (resGroup || [])[0];
-            if (room) {
-                try {
-                    await db.query('INSERT INTO room_members (room_id, user_id) VALUES ($1, $2)', [room.id, userId]);
-                } catch (e) { }
-            }
-        }
-        res.json({ success: true });
-    } catch (e) {
-        res.status(500).json({ error: e.message });
-    }
-});
-
 app.post('/api/auth/join', async (req, res) => {
     try {
-        const academy_code = req.body.academy_code || req.body.code;
-        const { name, email, password, role } = req.body;
+        const { academy_code, name, email, password, role } = req.body;
 
-        // Validate required fields
         if (!academy_code || !name || !email || !password || !role) {
             return res.status(400).json({ error: 'Todos los campos son obligatorios' });
         }
@@ -489,24 +390,23 @@ app.post('/api/auth/join', async (req, res) => {
         const bcrypt = require('bcryptjs');
         const jwt = require('jsonwebtoken');
 
-        // Find academy - try both possible table/column names
-        let academy = null;
-        try {
-            const result = await db.query(
-                'SELECT * FROM academies WHERE UPPER(teacher_code) = UPPER($1) OR UPPER(student_code) = UPPER($1)',
-                [academy_code.trim()]
-            );
-            academy = result.rows?.[0] || result[0];
-        } catch (e) {
-            console.error('Academy query error:', e.message);
-            return res.status(500).json({ error: 'Error buscando academia: ' + e.message });
-        }
+        // Find academy using teacher_code or student_code
+        const codeColumn = role === 'teacher' ? 'teacher_code' : 'student_code';
+        const academyResult = await db.query(
+            `SELECT * FROM academies WHERE UPPER(${codeColumn}) = UPPER($1)`,
+            [academy_code.trim()]
+        );
+        const academy = academyResult.rows?.[0] || academyResult[0];
 
         if (!academy) {
-            return res.status(404).json({ error: 'Código de academia no válido' });
+            return res.status(404).json({
+                error: role === 'teacher'
+                    ? 'Código de profesor no válido'
+                    : 'Código de alumno no válido'
+            });
         }
 
-        // Check existing user
+        // Check if email already exists
         const existingResult = await db.query(
             'SELECT id FROM users WHERE email = $1', [email]
         );
@@ -517,39 +417,36 @@ app.post('/api/auth/join', async (req, res) => {
             });
         }
 
-        // Hash password
+        // Create user
         const hashedPassword = await bcrypt.hash(password, 10);
-
-        // Insert user
         await db.query(
             'INSERT INTO users (name, email, password_hash, role, academy_id) VALUES ($1, $2, $3, $4, $5)',
             [name, email, hashedPassword, role, academy.id]
         );
 
-        // Get inserted user
         const newUserResult = await db.query(
             'SELECT * FROM users WHERE email = $1', [email]
         );
         const user = newUserResult.rows?.[0] || newUserResult[0];
 
-        // Generate JWT
         const token = jwt.sign(
             { id: user.id, email: user.email, role: user.role, academy_id: user.academy_id },
             process.env.JWT_SECRET || 'secret',
             { expiresIn: '7d' }
         );
 
-        console.log('User joined successfully:', user.email, 'role:', user.role);
-        res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
+        console.log('User joined:', user.email, 'as', user.role, 'in academy', academy.id);
+        res.json({
+            token,
+            user: { id: user.id, name: user.name, email: user.email, role: user.role }
+        });
 
     } catch (err) {
-        console.error('Join error:', err);
-        if (err.message?.includes('UNIQUE') || err.message?.includes('unique')) {
-            return res.status(400).json({ error: 'Este email ya está registrado.' });
-        }
-        res.status(500).json({ error: 'Error interno del servidor' });
+        console.error('Join error:', err.message);
+        res.status(500).json({ error: 'Error interno: ' + err.message });
     }
 });
+
 
 app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
@@ -1527,18 +1424,7 @@ app.post('/api/admin/add-user-by-code', authenticateJWT, requireAdmin, async (re
         res.status(500).json({ error: err.message });
     }
 });
-app.post('/api/students', authenticateJWT, requireAdmin, (req, res) => {
-    const keys = Object.keys(req.body);
-    const values = Object.values(req.body);
-    keys.push('academy_id');
-    values.push(req.user.academy_id);
-    const placeholders = keys.map((_, i) => `$${i + 1}`).join(',');
-    const sql = `INSERT INTO students (${keys.join(',')}) VALUES (${placeholders})`;
-    db.query(sql, values, (err, result) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.status(201).json({ id: result.lastID, ...req.body });
-    });
-});
+
 app.put('/api/students/:id', authenticateJWT, requireAdmin, (req, res) => {
     const keys = Object.keys(req.body);
     const values = Object.values(req.body);
@@ -1598,17 +1484,7 @@ app.get('/api/sessions-list', authenticateJWT, (req, res) => {
         res.json({ sessions: rows, stats });
     });
 });
-app.post('/api/sessions', authenticateJWT, (req, res) => {
-    const keys = Object.keys(req.body);
-    const values = Object.values(req.body);
-    const placeholders = keys.map((_, i) => `$${i + 1}`).join(',');
-    const sql = `INSERT INTO sessions (${keys.join(',')}) VALUES (${placeholders})`;
-    db.query(sql, values, (err, result) => {
-        if (err) return res.status(500).json({ error: err.message });
-        if (req.body.student_id) checkStudentRisk(req.body.student_id);
-        res.status(201).json({ id: result.lastID, ...req.body });
-    });
-});
+
 
 app.get('/api/payments', authenticateJWT, (req, res) => {
     db.query('SELECT p.* FROM payments p JOIN students st ON p.student_id = st.id WHERE st.academy_id = $1', [req.user.academy_id], (err, result) => {
@@ -1628,30 +1504,7 @@ app.get('/api/teacher/students', authenticateJWT, requireTeacher, (req, res) => 
         });
 });
 
-app.post('/api/payments/:id/remind', authenticateJWT, requireAdmin, (req, res) => {
-    db.query(`SELECT p.*, st.parent_email, st.name as student_name, a.name as academy_name
-              FROM payments p
-              JOIN students st ON p.student_id = st.id
-              JOIN academies a ON st.academy_id = a.id
-              WHERE p.id = $1 AND a.id = $2`, [req.params.id, req.user.academy_id], (err, pRes) => {
-        if (err || !pRes || !pRes.rows[0]) return res.status(404).json({ error: 'Not found' });
-        const p = pRes.rows[0];
 
-        if (p.parent_email && process.env.RESEND_API_KEY) {
-            fetch('https://api.resend.com/emails', {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    from: 'AcademiaPro <onboarding@resend.dev>',
-                    to: p.parent_email,
-                    subject: `Aviso: Pago pendiente de ${p.student_name}`,
-                    html: `<p>Hola, le informamos que el pago correspondiente a ${p.amount}€ en la academia ${p.academy_name} se encuentra pendiente o vencido desde ${p.due_date}. Por favor, póngase al corriente.</p>`
-                })
-            }).catch(e => console.error(e));
-        }
-        res.json({ success: true });
-    });
-});
 
 app.get('/api/teacher/dashboard-stats', authenticateJWT, requireTeacher, (req, res) => {
     const teacherId = req.user.id;
@@ -1699,22 +1552,7 @@ app.get('/api/exams', authenticateJWT, (req, res) => {
     });
 });
 
-app.post('/api/exams/simulacro', authenticateJWT, requireStudent, (req, res) => {
-    db.query('SELECT id FROM students WHERE user_id = $1', [req.user.id], (err, r) => {
-        if (err || !r.rows[0]) return res.status(404).json({ error: 'Estudiante no encontrado' });
-        const studentId = r.rows[0].id;
-        const { subject, score } = req.body;
-        const dateStr = new Date().toISOString().split('T')[0];
-        const notes = 'Simulacro';
 
-        db.query('INSERT INTO exams (student_id, date, subject, score, teacher_notes) VALUES ($1, $2, $3, $4, $5)',
-            [studentId, dateStr, subject, score, notes], (insertErr, result) => {
-                if (insertErr) return res.status(500).json({ error: insertErr.message });
-                res.json({ success: true, id: result.lastID });
-                checkStudentRisk(studentId);
-            });
-    });
-});
 
 
 app.get('/api/exams-list', authenticateJWT, (req, res) => {

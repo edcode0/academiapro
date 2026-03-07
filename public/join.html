@@ -665,6 +665,16 @@
             element.classList.add('selected');
             selectedRoleValue = role;
 
+            // Update label depending on role
+            const codeLabel = document.querySelector('label[for="academy_code"]');
+            if (codeLabel) {
+                if (role === 'teacher') {
+                    codeLabel.innerHTML = 'Código de profesor';
+                } else if (role === 'student') {
+                    codeLabel.innerHTML = 'Código de alumno';
+                }
+            }
+
             // Clear role error if any
             document.getElementById('role-error').style.display = 'none';
         }
