@@ -308,9 +308,28 @@ app.post('/auth/login', (req, res) => {
     const { email, password, academy_code } = req.body;
     db.query('SELECT * FROM users WHERE email = $1', [email], (err, result) => {
         const user = result?.rows[0];
-        if (err || !user && !password) return res.redirect('/login');
-        if (!user || !bcrypt.compareSync(password, user.password_hash)) {
-            return res.redirect('/login');
+        const isJson = req.is('json') || req.headers.accept?.includes('json');
+
+        const respondError = (status, msg) => {
+            if (isJson) return res.status(status).json({ error: msg });
+            return res.redirect('/login?error=' + encodeURIComponent(msg));
+        };
+
+        if (err || !password) return respondError(401, 'Email o contraseña incorrectos');
+
+        if (!user) {
+            return respondError(401, 'Email o contraseña incorrectos');
+        }
+
+        const hash = user.password_hash || user.password;
+        if (!hash || typeof hash !== 'string') {
+            console.error('Invalid password hash for user:', user.email);
+            return respondError(500, 'Error interno del servidor');
+        }
+
+        const valid = bcrypt.compareSync(password, hash);
+        if (!valid) {
+            return respondError(401, 'Email o contraseña incorrectos');
         }
 
         let targetRole = user.role;
@@ -320,6 +339,9 @@ app.post('/auth/login', (req, res) => {
             const token = jwt.sign({ id: u.id, role: r, academy_id: aId, name: u.name, user_code: u.user_code }, JWT_SECRET, { expiresIn: '1d' });
             res.cookie('token', token, { httpOnly: false }); // CHANGED THIS TO ALLOW FRONTEND SOCKET AUTHENTICATION
             console.log('Token stored:', token.substring(0, 20));
+            if (isJson) {
+                return res.json({ token, user: { id: u.id, role: r, name: u.name, user_code: u.user_code } });
+            }
             if (r === 'admin') res.redirect('/');
             else if (r === 'teacher') res.redirect('/teacher/dashboard');
             else res.redirect('/student-portal');
@@ -373,6 +395,15 @@ app.post('/auth/join', async (req, res) => {
         let userId;
 
         if (existingUser) {
+            const hash = existingUser.password_hash || existingUser.password;
+            if (!hash || typeof hash !== 'string') {
+                console.error('Invalid password hash for user:', existingUser.email);
+                return res.status(500).json({ error: 'Error interno del servidor' });
+            }
+            if (!bcrypt.compareSync(password, hash)) {
+                return res.status(401).json({ error: 'Email o contraseña incorrectos' });
+            }
+
             if (existingUser.academy_id === acad.id) {
                 return res.status(400).json({ error: 'Este email ya está registrado en esta academia' });
             }
