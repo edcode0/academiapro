@@ -379,7 +379,7 @@ app.post('/auth/login', (req, res) => {
     });
 });
 
-app.post('/auth/join', async (req, res) => {
+app.post(['/auth/join', '/api/auth/join'], async (req, res) => {
     try {
         const { code, name, email, password } = req.body;
         const result = await db.query('SELECT * FROM academies WHERE teacher_code = $1 OR student_code = $2', [code, code]);
