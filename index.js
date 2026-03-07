@@ -396,6 +396,11 @@ app.post('/api/auth/join', async (req, res) => {
             `SELECT * FROM academies WHERE UPPER(${codeColumn}) = UPPER($1)`,
             [academy_code.trim()]
         );
+
+        console.log('Looking for teacher_code:', academy_code);
+        console.log('Query result:', JSON.stringify(academyResult));
+        console.log('Rows:', academyResult.rows || academyResult);
+
         const academy = academyResult.rows?.[0] || academyResult[0];
 
         if (!academy) {
