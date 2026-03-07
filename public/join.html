@@ -610,7 +610,7 @@
                         <div id="password-error" class="input-error">Este campo es obligatorio</div>
                     </div>
 
-                    <button type="submit" class="btn-gradient" id="submitBtn">Unirse a la academia</button>
+                    <button type="submit" class="btn-gradient" id="join-btn">Unirse a la academia</button>
                 </form>
 
                 <div class="auth-links">
@@ -654,7 +654,7 @@
         slideInterval = setInterval(nextSlide, 3000);
 
         // Role selection logic
-        let selectedRoleValue = null;
+        let selectedRole = '';
 
         function selectRole(role, element) {
             // Reset previously selected
@@ -663,7 +663,7 @@
             });
 
             element.classList.add('selected');
-            selectedRoleValue = role;
+            selectedRole = role;
 
             // Update label depending on role
             const codeLabel = document.querySelector('label[for="academy_code"]');
@@ -686,115 +686,81 @@
             document.getElementById('general-error').innerHTML = '';
         }
 
-        function showError(id, message, isGeneral = false) {
-            if (isGeneral) {
-                const el = document.getElementById('general-error');
-                el.innerHTML = message;
-                el.style.display = 'block';
-            } else {
-                const el = document.getElementById(id + '-error');
-                if (el) {
-                    el.innerHTML = message;
-                    el.style.display = 'block';
-                }
-                const input = document.getElementById(id);
-                if (input) {
-                    input.classList.add('error-border');
-                }
+        document.getElementById('join-btn').addEventListener('click', async function (e) {
+            e.preventDefault();
+            const academy_code = document.getElementById('academy_code')?.value?.trim();
+            const name = document.getElementById('name')?.value?.trim();
+            const email = document.getElementById('email')?.value?.trim();
+            const password = document.getElementById('password')?.value?.trim();
+            const role = selectedRole;
+
+            console.log('Join attempt:', { academy_code, name, email, role, hasPassword: !!password });
+
+            // Clear previous errors
+            document.querySelectorAll('.field-error').forEach(el => el.remove());
+            const previousMainError = document.getElementById('join-error');
+            if (previousMainError) previousMainError.remove();
+
+            // Validate
+            if (!role) {
+                showJoinError('Selecciona si eres Profesor o Alumno');
+                return;
             }
+            if (!academy_code) { showFieldError('academy_code', 'Campo obligatorio'); return; }
+            if (!name) { showFieldError('name', 'Campo obligatorio'); return; }
+            if (!email) { showFieldError('email', 'Campo obligatorio'); return; }
+            if (!password) { showFieldError('password', 'Campo obligatorio'); return; }
+
+            // Show loading
+            const originalText = this.textContent;
+            this.textContent = 'Uniéndose...';
+            this.disabled = true;
+
+            try {
+                const response = await fetch('/api/auth/join', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ academy_code, name, email, password, role })
+                });
+                const data = await response.json();
+                console.log('Join response:', data);
+
+                if (data.token) {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    window.location.href = data.user.role === 'teacher' ? '/teacher/dashboard' : '/student-portal';
+                } else {
+                    showJoinError(data.error || 'Error al unirse');
+                    this.textContent = originalText;
+                    this.disabled = false;
+                }
+            } catch (err) {
+                showJoinError('Error de conexión');
+                this.textContent = originalText;
+                this.disabled = false;
+            }
+        });
+
+        function showJoinError(msg) {
+            let el = document.getElementById('join-error');
+            if (!el) {
+                el = document.createElement('div');
+                el.id = 'join-error';
+                el.style.cssText = 'background:#fee2e2;color:#dc2626;padding:0.75rem 1rem;border-radius:8px;margin-bottom:1rem;font-size:0.9rem;';
+                document.getElementById('join-btn').before(el);
+            }
+            el.textContent = msg;
         }
 
-        document.getElementById('joinForm').addEventListener('submit', function (e) {
-            e.preventDefault();
-            clearErrors();
-
-            const academyCode = document.getElementById('academy_code').value.trim();
-            const name = document.getElementById('name').value.trim();
-            const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value;
-
-            let hasError = false;
-
-            if (!selectedRoleValue) {
-                document.getElementById('role-error').style.display = 'block';
-                hasError = true;
-            }
-
-            if (!academyCode) {
-                showError('code', 'El código de academia es obligatorio');
-                hasError = true;
-            }
-
-            if (!name) {
-                showError('name', 'El nombre es obligatorio');
-                hasError = true;
-            }
-
-            if (!email) {
-                showError('email', 'El email es obligatorio');
-                hasError = true;
-            }
-
-            if (!password) {
-                showError('password', 'La contraseña es obligatoria');
-                hasError = true;
-            }
-
-            if (hasError) return;
-
-            const btn = document.getElementById('submitBtn');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = 'Uniéndose...';
-            btn.disabled = true;
-
-            fetch('/api/auth/join', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    code: academyCode,
-                    name: name,
-                    email: email,
-                    password: password,
-                    role: selectedRoleValue
-                })
-            })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.success || data.token) {
-                        // Si el backend modificado envía success y redirect (como antes) manejamos ambos casos
-                        // Asumamos que si /api/auth/join (o /auth/join según fue reescrito) loguea, hará redirect también
-                        if (data.token) {
-                            localStorage.setItem('token', data.token);
-                            localStorage.setItem('user', JSON.stringify(data.user));
-                        }
-                        if (data.redirect) {
-                            window.location.href = data.redirect;
-                        } else if (data.user) {
-                            if (data.user.role === 'teacher') window.location.href = '/teacher';
-                            else window.location.href = '/student';
-                        } else {
-                            window.location.href = '/login';
-                        }
-                    } else {
-                        const errorMsg = data.error || 'Error al unirse';
-
-                        if (errorMsg.includes('Código') || errorMsg.includes('inválido')) {
-                            showError('code', 'Código de academia no válido');
-                        } else if (errorMsg.includes('Este email ya está registrado')) {
-                            showError('email', 'Este email ya está registrado. <a href="/login" style="color:#ef4444;text-decoration:underline;">¿Quieres iniciar sesión?</a>');
-                        } else {
-                            showError('general', errorMsg, true);
-                        }
-                    }
-                })
-                .catch(() => {
-                    showError('general', 'Error de conexión. Intente de nuevo más tarde.', true);
-                })
-                .finally(() => {
-                    btn.innerHTML = originalText;
-                    btn.disabled = false;
-                });
-        });
+        function showFieldError(fieldId, msg) {
+            const field = document.getElementById(fieldId);
+            if (!field) return;
+            const err = document.createElement('div');
+            err.className = 'field-error';
+            err.style.cssText = 'color:#dc2626;font-size:0.8rem;margin-top:0.25rem;';
+            err.textContent = msg;
+            field.parentNode.appendChild(err);
+        }
     </script>
 </body>
 
