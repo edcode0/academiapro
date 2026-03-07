@@ -379,7 +379,7 @@ app.post('/auth/login', (req, res) => {
     });
 });
 
-app.post(['/auth/join', '/api/auth/join'], async (req, res) => {
+app.post('/auth/join', async (req, res) => {
     try {
         const { code, name, email, password } = req.body;
         const safeCode = (code || '').trim().toUpperCase();
@@ -473,6 +473,81 @@ app.post(['/auth/join', '/api/auth/join'], async (req, res) => {
         res.json({ success: true });
     } catch (e) {
         res.status(500).json({ error: e.message });
+    }
+});
+
+app.post('/api/auth/join', async (req, res) => {
+    try {
+        const academy_code = req.body.academy_code || req.body.code;
+        const { name, email, password, role } = req.body;
+
+        // Validate required fields
+        if (!academy_code || !name || !email || !password || !role) {
+            return res.status(400).json({ error: 'Todos los campos son obligatorios' });
+        }
+
+        const bcrypt = require('bcryptjs');
+        const jwt = require('jsonwebtoken');
+
+        // Find academy - try both possible table/column names
+        let academy = null;
+        try {
+            const result = await db.query(
+                'SELECT * FROM academies WHERE UPPER(teacher_code) = UPPER($1) OR UPPER(student_code) = UPPER($1)',
+                [academy_code.trim()]
+            );
+            academy = result.rows?.[0] || result[0];
+        } catch (e) {
+            console.error('Academy query error:', e.message);
+            return res.status(500).json({ error: 'Error buscando academia: ' + e.message });
+        }
+
+        if (!academy) {
+            return res.status(404).json({ error: 'Código de academia no válido' });
+        }
+
+        // Check existing user
+        const existingResult = await db.query(
+            'SELECT id FROM users WHERE email = $1', [email]
+        );
+        const existing = existingResult.rows?.[0] || existingResult[0];
+        if (existing) {
+            return res.status(400).json({
+                error: 'Este email ya está registrado. Por favor inicia sesión.'
+            });
+        }
+
+        // Hash password
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Insert user
+        await db.query(
+            'INSERT INTO users (name, email, password_hash, role, academy_id) VALUES ($1, $2, $3, $4, $5)',
+            [name, email, hashedPassword, role, academy.id]
+        );
+
+        // Get inserted user
+        const newUserResult = await db.query(
+            'SELECT * FROM users WHERE email = $1', [email]
+        );
+        const user = newUserResult.rows?.[0] || newUserResult[0];
+
+        // Generate JWT
+        const token = jwt.sign(
+            { id: user.id, email: user.email, role: user.role, academy_id: user.academy_id },
+            process.env.JWT_SECRET || 'secret',
+            { expiresIn: '7d' }
+        );
+
+        console.log('User joined successfully:', user.email, 'role:', user.role);
+        res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
+
+    } catch (err) {
+        console.error('Join error:', err);
+        if (err.message?.includes('UNIQUE') || err.message?.includes('unique')) {
+            return res.status(400).json({ error: 'Este email ya está registrado.' });
+        }
+        res.status(500).json({ error: 'Error interno del servidor' });
     }
 });
 
