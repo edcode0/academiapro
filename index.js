@@ -14,6 +14,18 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const db = require('./db');
+
+// Call database initialization on startup
+async function initializeDatabase() {
+    console.log('Initializing database...');
+    try {
+        await db.initDb();
+        console.log('Database initialized successfully using db.js schema');
+    } catch (err) {
+        console.error('Database initialization error:', err.message);
+    }
+}
+initializeDatabase();
 const PDFDocument = require('pdfkit');
 const Groq = require("groq-sdk");
 const { Resend } = require('resend');
