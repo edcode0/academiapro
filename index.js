@@ -210,9 +210,14 @@ const requireTeacher = requireRole('teacher');
 const requireStudent = requireRole('student');
 
 // Auth Routes
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public/index.html')));
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public/login.html')));
 app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'public/register.html')));
 app.get('/join', (req, res) => res.sendFile(path.join(__dirname, 'public/join.html')));
+app.get('/teacher', (req, res) => res.sendFile(path.join(__dirname, 'public/teacher_dashboard.html')));
+app.get('/teacher/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public/teacher_dashboard.html')));
+app.get('/student', (req, res) => res.sendFile(path.join(__dirname, 'public/student_portal.html')));
+app.get('/student-portal', (req, res) => res.sendFile(path.join(__dirname, 'public/student_portal.html')));
 
 app.get('/api/auth/check-code/:code', (req, res) => {
     db.query('SELECT name FROM academies WHERE teacher_code = $1 OR student_code = $2', [req.params.code, req.params.code], (err, result) => {
