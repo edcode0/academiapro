@@ -142,36 +142,7 @@ passport.use(new GoogleStrategy({
     callbackURL: process.env.NODE_ENV === 'production'
         ? 'https://web-production-d02f4.up.railway.app/auth/google/callback'
         : 'http://localhost:3000/auth/google/callback'
-},
-    (accessToken, refreshToken, profile, cb) => {
-        db.query('SELECT * FROM users WHERE google_id = $1 OR email = $2', [profile.id, profile.emails[0].value], (err, result) => {
-            if (err) return cb(err);
-            const user = result?.rows[0];
-            if (user) {
-                // Update google id if not set
-                if (!user.google_id) db.query('UPDATE users SET google_id = $1 WHERE id = $2', [profile.id, user.id]);
-                return cb(null, user);
-            } else {
-                // New user via Google -> becomes an admin with a new academy by default
-                const academyName = `${profile.displayName}'s Academy`;
-                const tCode = generateCode();
-                const sCode = generateCode();
-                db.query('INSERT INTO academies (name, teacher_code, student_code) VALUES ($1, $2, $3)', [academyName, tCode, sCode], (err, res) => {
-                    if (err) return cb(err);
-                    const acadId = res.lastID;
-                    const userCode = generateUserCode();
-                    db.query('INSERT INTO users (name, email, google_id, role, academy_id, user_code) VALUES ($1, $2, $3, $4, $5, $6)',
-                        [profile.displayName, profile.emails[0].value, profile.id, 'admin', acadId, userCode], (err, res2) => {
-                            if (err) return cb(err);
-                            const user = { id: res2.lastID, name: profile.displayName, role: 'admin', academy_id: acadId };
-                            db.query('UPDATE academies SET owner_id = $1 WHERE id = $2', [user.id, acadId]);
-                            return cb(null, user);
-                        });
-                });
-            }
-        });
-    }
-));
+}, (accessToken, refreshToken, profile, cb) => cb(null, profile)));
 
 passport.serializeUser((user, done) => done(null, user));
 passport.deserializeUser((user, done) => done(null, user));
@@ -489,16 +460,83 @@ app.post('/api/auth/join', async (req, res) => {
 });
 
 
-app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+app.get('/auth/google', (req, res, next) => {
+    if (req.query.academy_code) res.cookie('pending_code', req.query.academy_code, { maxAge: 1000 * 60 * 15 });
+    passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
+});
 
-app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/login' }), (req, res) => {
-    const user = req.user;
-    const token = jwt.sign({ id: user.id, role: user.role, academy_id: user.academy_id, name: user.name }, JWT_SECRET, { expiresIn: '1d' });
-    res.cookie('token', token, { httpOnly: false }); // CHANGED THIS TO ALLOW FRONTEND SOCKET AUTHENTICATION
-    console.log('Token stored:', token.substring(0, 20));
-    if (user.role === 'admin') res.redirect('/');
-    else if (user.role === 'teacher') res.redirect('/teacher/dashboard');
-    else res.redirect('/student-portal');
+app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/login' }), async (req, res) => {
+    const profile = req.user;
+    const email = profile.emails[0].value;
+    const name = profile.displayName;
+
+    try {
+        const existingResult = await db.query('SELECT * FROM users WHERE email = $1', [email]);
+        let user = existingResult?.rows ? existingResult.rows[0] : (existingResult || [])[0];
+
+        if (!user) {
+            // New User
+            const pendingCode = req.cookies.pending_code;
+            res.clearCookie('pending_code');
+
+            let role = 'admin';
+            let academyId = null;
+
+            if (pendingCode) {
+                const actResult = await db.query('SELECT * FROM academies WHERE teacher_code = $1 OR student_code = $2', [pendingCode, pendingCode]);
+                const acad = actResult?.rows ? actResult.rows[0] : (actResult || [])[0];
+                if (acad) {
+                    role = pendingCode === acad.teacher_code ? 'teacher' : 'student';
+                    academyId = acad.id;
+                }
+            }
+
+            if (!academyId) {
+                const academyName = `${name}'s Academy`;
+                const tCode = generateCode();
+                const sCode = generateCode();
+                const resAcad = await db.query(!!process.env.DATABASE_URL
+                    ? 'INSERT INTO academies (name, teacher_code, student_code) VALUES ($1, $2, $3) RETURNING id'
+                    : 'INSERT INTO academies (name, teacher_code, student_code) VALUES ($1, $2, $3)', [academyName, tCode, sCode]);
+                academyId = !!process.env.DATABASE_URL && resAcad.rows ? resAcad.rows[0].id : resAcad.lastID;
+            }
+
+            const userCode = generateUserCode();
+            const resUser = await db.query(!!process.env.DATABASE_URL
+                ? 'INSERT INTO users (name, email, google_id, role, academy_id, user_code) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id'
+                : 'INSERT INTO users (name, email, google_id, role, academy_id, user_code) VALUES ($1, $2, $3, $4, $5, $6)',
+                [name, email, profile.id, role, academyId, userCode]);
+            const userId = !!process.env.DATABASE_URL && resUser.rows ? resUser.rows[0].id : resUser.lastID;
+
+            if (role === 'admin') {
+                await db.query('UPDATE academies SET owner_id = $1 WHERE id = $2', [userId, academyId]);
+            }
+
+            const uRes = await db.query('SELECT * FROM users WHERE id = $1', [userId]);
+            user = uRes?.rows ? uRes.rows[0] : (uRes || [])[0];
+        } else {
+            // User exists - update google_id if missing
+            if (!user.google_id) {
+                await db.query('UPDATE users SET google_id = $1 WHERE id = $2', [profile.id, user.id]);
+            }
+        }
+
+        const token = jwt.sign({ id: user.id, email: user.email, role: user.role, academy_id: user.academy_id, name: user.name, user_code: user.user_code }, JWT_SECRET, { expiresIn: '7d' });
+        res.cookie('token', token, { httpOnly: false });
+
+        console.log('Google Auth success:', email, 'role:', user.role);
+
+        // Explicit requested redirect implementation or fallback standard redirect
+        if (req.cookies.wants_auth_success === '1' || req.query.auth_success) {
+            return res.redirect(`/auth-success?token=${token}&role=${user.role}`);
+        } else if (user.role === 'admin') res.redirect('/');
+        else if (user.role === 'teacher') res.redirect('/teacher/dashboard');
+        else res.redirect('/student-portal');
+
+    } catch (err) {
+        console.error('Google callback error:', err);
+        res.redirect('/login?error=auth_failed');
+    }
 });
 
 app.get('/auth/logout', (req, res) => {
@@ -2052,8 +2090,45 @@ app.get('/api/chat/rooms', authenticateJWT, (req, res) => {
             console.error('Route error:', err.message);
             return res.status(500).json({ error: 'Internal server error', details: err.message });
         }
-        res.json(result.rows || result);
+
+        // BUG 1 FIX: Deduplication of conversations / duplicate group chats
+        const rows = result.rows || result;
+        const mapped = [];
+        const seenNames = new Set();
+
+        for (const r of rows) {
+            if (r.type === 'group') {
+                if (seenNames.has(r.name)) continue;
+                seenNames.add(r.name);
+            }
+            if (!mapped.find(x => x.id === r.id)) mapped.push(r);
+        }
+
+        res.json(mapped);
     });
+});
+// IMPLEMENTATION OF FALLBACK AND BUG 2 DIRECT SENDER MESSAGES AS REQUESTED
+app.get('/api/chat/messages/:userId', authenticateJWT, async (req, res) => {
+    try {
+        const sql = `
+            SELECT m.*, u.name as sender_name 
+            FROM messages m
+            LEFT JOIN users u ON u.id = m.sender_id
+            WHERE (m.sender_id = $1 AND m.receiver_id = $2)
+               OR (m.sender_id = $2 AND m.receiver_id = $1)
+            ORDER BY m.created_at ASC
+            LIMIT 100
+        `;
+        const msgs = await db.query(sql, [req.user.id, req.params.userId]);
+        res.json(msgs.rows || []);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Admin backwards compatibility alias
+app.get('/api/chat/conversations', authenticateJWT, (req, res) => {
+    res.redirect('/api/chat/rooms');
 });
 
 app.get('/api/chat/rooms/:roomId/messages', authenticateJWT, async (req, res) => {
