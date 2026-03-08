@@ -607,12 +607,28 @@ app.get('/admin/teacher/:id', authenticateJWT, (req, res) => res.sendFile(path.j
 
 // --- ADMIN TEACHERS API ---
 
+// --- TEACHER PROFILE API ---
+app.get('/api/teacher/profile', authenticateJWT, async (req, res) => {
+    try {
+        const result = await db.query(
+            'SELECT u.id, u.name, u.email, u.role, u.academy_id, a.teacher_code as code FROM users u LEFT JOIN academies a ON u.academy_id = a.id WHERE u.id = $1',
+            [req.user.id]
+        );
+        const user = result.rows?.[0] || result[0];
+        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+        res.json(user);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // GET all teachers in academy with stats
 app.get('/api/admin/teachers', authenticateJWT, (req, res) => {
     const now = new Date();
     const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
     const monthEnd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-31`;
 
+    console.log('[teachers] academy_id=', req.user.academy_id);
     console.log(`[/api/admin/teachers] academy_id=${req.user.academy_id}, user=${req.user.name}, role=${req.user.role}, month=${monthStart} to ${monthEnd}`);
 
     const sql = `
