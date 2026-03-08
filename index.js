@@ -57,6 +57,25 @@ app.get('/health', async (req, res) => {
 
     res.json({ status: 'ok', uptime: process.uptime() });
 });
+
+app.get('/api/debug/academies', async (req, res) => {
+    try {
+        const result = await db.query('SELECT * FROM academies');
+        res.json(result.rows || result);
+    } catch (err) {
+        res.json({ error: err.message });
+    }
+});
+
+app.get('/api/debug/users', async (req, res) => {
+    try {
+        const result = await db.query('SELECT id, name, email, role, academy_id FROM users');
+        res.json(result.rows || result);
+    } catch (err) {
+        res.json({ error: err.message });
+    }
+});
+
 const server = http.createServer(app);
 const io = new Server(server, {
     maxHttpBufferSize: 1e7 // 10MB
