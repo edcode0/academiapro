@@ -1849,50 +1849,89 @@ app.post('/api/admin/send-monthly-report', authenticateJWT, requireAdmin, async 
     }
 });
 
-app.get('/api/student/portal-data', authenticateJWT, requireStudent, (req, res) => {
-    db.query(`
-        SELECT s.*, s.name as student_full_name, u.email as user_email
-        FROM students s 
-        JOIN users u ON s.user_id = u.id 
-        WHERE s.user_id = $1 AND s.academy_id = $2
-                `, [req.user.id, req.user.academy_id], (err, result) => {
-        const student = result?.rows[0];
-        if (err || !student) return res.status(404).json({ error: 'Perfil de estudiante no vinculado' });
+app.get('/api/student/portal-data', authenticateJWT, async (req, res) => {
+    try {
+        // Find student record
+        const studentResult = await db.query(
+            'SELECT * FROM students WHERE user_id = $1 OR email = $2',
+            [req.user.id, req.user.email]
+        );
+        const student = studentResult.rows?.[0] || studentResult[0];
 
-        // IMPORTANT: Prioritize the name from the students table (full name set by teacher)
-        student.name = student.student_full_name;
-
-        // Ensure defaults for null fields
-        student.course = student.course || 'Pendiente de asignar';
-        student.subject = student.subject || 'Sin asignatura';
-
-        const data = { student };
-        const now = new Date();
-        const todayStr = now.toISOString().split('T')[0];
-
-        db.query('SELECT s.*, u.name as teacher_name FROM sessions s JOIN students st ON s.student_id = st.id LEFT JOIN users u ON st.assigned_teacher_id = u.id WHERE s.student_id = $1 ORDER BY s.date DESC', [student.id], (err, resSessions) => {
-            data.sessions = resSessions?.rows || [];
-            db.query('SELECT * FROM exams WHERE student_id = $1 ORDER BY date DESC', [student.id], (err, resExams) => {
-                data.exams = resExams?.rows || [];
-                db.query('SELECT * FROM payments WHERE student_id = $1 ORDER BY due_date DESC', [student.id], (err, resPayments) => {
-                    data.payments = resPayments?.rows || [];
-
-                    // Add stats for dashboard
-                    const currentMonth = todayStr.slice(0, 7);
-                    const thisMonthSessions = data.sessions.filter(s => s.date.startsWith(currentMonth));
-
-                    data.stats = {
-                        nextSession: data.sessions.find(s => s.date >= todayStr) || null,
-                        avgScore: data.exams.length > 0 ? (data.exams.reduce((acc, e) => acc + e.score, 0) / data.exams.length).toFixed(1) : 0,
-                        pendingPayments: data.payments.filter(p => p.status === 'pending').reduce((acc, p) => acc + p.amount, 0),
-                        homeworkRate: thisMonthSessions.length > 0 ? Math.round((thisMonthSessions.filter(s => s.homework_done).length / thisMonthSessions.length) * 100) : 0
-                    };
-
-                    res.json(data);
-                });
+        if (!student) {
+            return res.json({
+                student: {
+                    id: null,
+                    name: req.user.name,
+                    email: req.user.email,
+                    course: 'Sin asignar',
+                    subject: 'Sin asignar',
+                    status: 'active'
+                },
+                sessions: [],
+                exams: [],
+                payments: [],
+                nextSession: null,
+                averageScore: 0,
+                pendingPayments: 0,
+                homeworkRate: 0
             });
+        }
+
+        // Get sessions
+        const sessionsResult = await db.query(
+            'SELECT s.*, u.name as teacher_name FROM sessions s JOIN students st ON s.student_id = st.id LEFT JOIN users u ON st.assigned_teacher_id = u.id WHERE s.student_id = $1 ORDER BY s.date DESC LIMIT 5',
+            [student.id]
+        );
+
+        // Get exams
+        const examsResult = await db.query(
+            'SELECT * FROM exams WHERE student_id = $1 ORDER BY date DESC LIMIT 5',
+            [student.id]
+        );
+
+        // Get payments
+        const paymentsResult = await db.query(
+            'SELECT * FROM payments WHERE student_id = $1 ORDER BY due_date DESC LIMIT 5',
+            [student.id]
+        );
+
+        const sessions = sessionsResult.rows || [];
+        const exams = examsResult.rows || [];
+        const payments = paymentsResult.rows || [];
+
+        const averageScore = exams.length > 0
+            ? exams.reduce((sum, e) => sum + (e.score || 0), 0) / exams.length
+            : 0;
+
+        const pendingPayments = payments
+            .filter(p => p.status === 'pending')
+            .reduce((sum, p) => sum + (p.amount || 0), 0);
+
+        const now = new Date();
+        const currentMonth = now.toISOString().split('T')[0].slice(0, 7);
+        const thisMonthSessions = sessions.filter(s => s.date.startsWith(currentMonth));
+
+        const homeworkRate = thisMonthSessions.length > 0
+            ? (thisMonthSessions.filter(s => s.homework_done).length / thisMonthSessions.length) * 100
+            : 0;
+
+        res.json({
+            student,
+            sessions,
+            exams,
+            payments,
+            stats: {
+                nextSession: sessions.find(s => s.date >= now.toISOString().split('T')[0]) || null,
+                avgScore: Math.round(averageScore * 10) / 10,
+                pendingPayments,
+                homeworkRate: Math.round(homeworkRate)
+            }
         });
-    });
+    } catch (err) {
+        console.error('Student portal error:', err.message);
+        res.status(500).json({ error: err.message });
+    }
 });
 app.get('/api/student/reports', authenticateJWT, requireStudent, (req, res) => {
     db.query('SELECT * FROM reports WHERE student_id = (SELECT id FROM students WHERE user_id = $1) ORDER BY year DESC, month DESC', [req.user.id], (err, result) => {

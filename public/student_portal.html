@@ -506,8 +506,19 @@
 
     <script>
         async function loadProfile() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/login';
+                return;
+            }
+
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            document.getElementById('sidebar-name').textContent = user.name || 'Alumno';
+
             try {
-                const res = await fetch('/api/student/portal-data');
+                const res = await fetch('/api/student/portal-data', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
                 if (!res.ok) {
                     if (res.status === 404) {
                         console.warn('Tu cuenta no está vinculada a un registro de estudiante. Contacta con el administrador.');
@@ -516,8 +527,11 @@
                 }
                 const data = await res.json();
                 const student = data.student;
-                const stats = data.stats;
+                const stats = data.stats || data;
 
+                if (student.name) {
+                    document.getElementById('sidebar-name').textContent = student.name;
+                }
                 document.getElementById('sidebar-name').textContent = student.name;
                 document.getElementById('student-welcome').textContent = `¡Hola, ${student.name}! 👋`;
                 document.getElementById('student-info').textContent = `${student.course} • ${student.subject}`;
