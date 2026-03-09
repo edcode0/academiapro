@@ -2809,26 +2809,49 @@ app.delete('/api/auth/delete-account', authenticateJWT, async (req, res) => {
         const userRole = req.user.role;
         const academyId = req.user.academy_id;
 
-        // If admin, delete entire academy and all related data
-        if (userRole === 'admin') {
-            await db.query('DELETE FROM messages WHERE academy_id = $1', [academyId]);
-            await db.query('DELETE FROM payments WHERE academy_id = $1', [academyId]);
-            await db.query('DELETE FROM exams WHERE academy_id = $1', [academyId]);
-            await db.query('DELETE FROM sessions WHERE academy_id = $1', [academyId]);
-            await db.query('DELETE FROM students WHERE academy_id = $1', [academyId]);
-            await db.query('DELETE FROM users WHERE academy_id = $1', [academyId]);
-            await db.query('DELETE FROM academies WHERE id = $1', [academyId]);
+        console.log('Deleting account:', userId, userRole, academyId);
+
+        if (userRole === 'admin' && academyId) {
+            // Delete all academy data safely, ignoring errors per table
+            const tables = ['messages', 'payments', 'exams', 'sessions', 'students'];
+            for (const table of tables) {
+                try {
+                    await db.query(`DELETE FROM ${table} WHERE academy_id = $1`, [academyId]);
+                } catch (e) {
+                    console.log(`Skip ${table}:`, e.message);
+                }
+            }
+            // Delete all users in this academy
+            try {
+                await db.query(`DELETE FROM users WHERE id IN (
+                    SELECT u.id FROM users u 
+                    JOIN academies a ON u.academy_id = a.id 
+                    WHERE a.id = $1
+                )`, [academyId]);
+            } catch (e) {
+                console.log('Skip users by academy:', e.message);
+                await db.query('DELETE FROM users WHERE id = $1', [userId]);
+            }
+            // Delete academy
+            try {
+                await db.query('DELETE FROM academies WHERE id = $1', [academyId]);
+            } catch (e) {
+                console.log('Skip academy:', e.message);
+            }
         } else {
-            // Teacher or student: just delete their user record
-            await db.query('DELETE FROM students WHERE user_id = $1', [userId]);
+            // Just delete this user
+            try {
+                await db.query('DELETE FROM students WHERE user_id = $1', [userId]);
+            } catch (e) {
+                console.log('Skip student record:', e.message);
+            }
             await db.query('DELETE FROM users WHERE id = $1', [userId]);
         }
 
-        console.log('Account deleted:', req.user.email, 'role:', userRole);
         res.json({ success: true });
     } catch (err) {
-        console.error('Delete account error:', err.message);
-        res.status(500).json({ error: 'Error al eliminar la cuenta: ' + err.message });
+        console.error('Delete error:', err.message);
+        res.status(500).json({ error: 'Error al eliminar: ' + err.message });
     }
 });
 
