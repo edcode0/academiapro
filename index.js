@@ -311,79 +311,58 @@ app.post('/auth/register', async (req, res) => {
     }
 });
 
-app.post('/auth/login', (req, res) => {
-    const { email, password, academy_code } = req.body;
-    db.query('SELECT * FROM users WHERE email = $1', [email], (err, result) => {
-        const user = result?.rows[0];
-        const isJson = req.is('json') || req.headers.accept?.includes('json');
+app.post('/auth/login', async (req, res) => {
+    try {
+        const { email, password, role, academy_code } = req.body;
 
-        const respondError = (status, msg) => {
-            if (isJson) return res.status(status).json({ error: msg });
-            return res.redirect('/login?error=' + encodeURIComponent(msg));
-        };
-
-        if (err || !password) return respondError(401, 'Email o contraseña incorrectos');
+        // Find user
+        const result = await db.query(
+            'SELECT * FROM users WHERE email = $1', [email]
+        );
+        const user = result.rows?.[0] || result[0];
 
         if (!user) {
-            return respondError(401, 'Email o contraseña incorrectos');
+            return res.status(401).json({ error: 'Email o contraseña incorrectos' });
         }
 
+        // Check role matches (if role is explicitly provided in the request)
+        if (role && user.role !== role) {
+            return res.status(401).json({
+                error: `Esta cuenta no es de tipo ${role === 'teacher' ? 'profesor' : role === 'student' ? 'alumno' : 'administrador'}`
+            });
+        }
+
+        // Validate password
         const hash = user.password_hash || user.password;
         if (!hash || typeof hash !== 'string') {
-            console.error('Invalid password hash for user:', user.email);
-            return respondError(500, 'Error interno del servidor');
+            return res.status(500).json({ error: 'Error de configuración de cuenta (no password hash)' });
         }
 
+        const bcrypt = require('bcryptjs');
         const valid = bcrypt.compareSync(password, hash);
         if (!valid) {
-            return respondError(401, 'Email o contraseña incorrectos');
+            return res.status(401).json({ error: 'Email o contraseña incorrectos' });
         }
 
-        let targetRole = user.role;
-        let targetAcademyId = user.academy_id;
+        // Generate token
+        const jwt = require('jsonwebtoken');
+        const token = jwt.sign(
+            { id: user.id, email: user.email, role: user.role, academy_id: user.academy_id, name: user.name, user_code: user.user_code },
+            process.env.JWT_SECRET || 'super_secret_jwt',
+            { expiresIn: '7d' }
+        );
+        res.cookie('token', token, { httpOnly: false }); // Ensure frontend socket authenticates correctly 
 
-        const issueTokenAndRedirect = (r, aId, u) => {
-            const token = jwt.sign({ id: u.id, role: r, academy_id: aId, name: u.name, user_code: u.user_code }, JWT_SECRET, { expiresIn: '1d' });
-            res.cookie('token', token, { httpOnly: false }); // CHANGED THIS TO ALLOW FRONTEND SOCKET AUTHENTICATION
-            console.log('Token stored:', token.substring(0, 20));
-            if (isJson) {
-                return res.json({ token, user: { id: u.id, role: r, name: u.name, user_code: u.user_code } });
-            }
-            if (r === 'admin') res.redirect('/');
-            else if (r === 'teacher') res.redirect('/teacher/dashboard');
-            else res.redirect('/student-portal');
-        };
+        console.log('Login successful:', user.email, 'role:', user.role);
+        res.json({
+            token,
+            user: { id: user.id, name: user.name, email: user.email, role: user.role, user_code: user.user_code }
+        });
 
-        if (!user.academy_id && academy_code) {
-            db.query('SELECT * FROM academies WHERE teacher_code = $1 OR student_code = $2', [academy_code, academy_code], (err, aRes) => {
-                const acad = aRes?.rows[0];
-                if (acad) {
-                    targetRole = academy_code === acad.teacher_code ? 'teacher' : 'student';
-                    targetAcademyId = acad.id;
-                    db.query('UPDATE users SET role = $1, academy_id = $2 WHERE id = $3', [targetRole, targetAcademyId, user.id]);
-
-                    db.query('INSERT INTO rooms (academy_id, type) VALUES ($1, "direct")', [acad.id], (err, resRoom) => {
-                        if (!err) {
-                            const roomId = resRoom.lastID;
-                            db.query('INSERT INTO room_members (room_id, user_id) VALUES ($1, $2)', [roomId, user.id]);
-                            db.query('INSERT INTO room_members (room_id, user_id) VALUES ($1, $2)', [roomId, acad.owner_id]);
-                        }
-                    });
-                    if (targetRole === 'teacher') {
-                        db.query('SELECT id FROM rooms WHERE academy_id = $1 AND type = "group" AND name = "General Profesores"', [acad.id], (err, resGroup) => {
-                            const room = resGroup?.rows[0];
-                            if (room) {
-                                db.query('INSERT INTO room_members (room_id, user_id) VALUES ($1, $2)', [room.id, user.id]);
-                            }
-                        });
-                    }
-                }
-                issueTokenAndRedirect(targetRole, targetAcademyId, user);
-            });
-        } else {
-            issueTokenAndRedirect(targetRole, targetAcademyId, user);
-        }
-    });
+    } catch (err) {
+        console.error('Login error:', err.message);
+        res.status(500).json({ error: 'Error interno: ' + err.message });
+    }
 });
 
 app.post('/api/auth/join', async (req, res) => {
