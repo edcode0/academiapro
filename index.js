@@ -1,5 +1,9 @@
 require('dotenv').config();
 
+console.log('=== DB CHECK ===');
+console.log('DATABASE_URL set:', !!process.env.DATABASE_URL);
+console.log('DATABASE_URL value:', process.env.DATABASE_URL?.substring(0, 30) + '...');
+
 process.on('uncaughtException', (err) => {
     console.error('UNCAUGHT EXCEPTION:', err.message, err.stack);
     // Don't crash, just log
