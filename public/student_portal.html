@@ -519,12 +519,6 @@
                 const res = await fetch('/api/student/portal-data', {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
-                if (!res.ok) {
-                    if (res.status === 404) {
-                        console.warn('Tu cuenta no está vinculada a un registro de estudiante. Contacta con el administrador.');
-                    }
-                    return;
-                }
                 const data = await res.json();
                 const student = data.student;
                 const stats = data.stats || data;

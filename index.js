@@ -1851,82 +1851,36 @@ app.post('/api/admin/send-monthly-report', authenticateJWT, requireAdmin, async 
 
 app.get('/api/student/portal-data', authenticateJWT, async (req, res) => {
     try {
-        // Find student record
         const studentResult = await db.query(
             'SELECT * FROM students WHERE user_id = $1 OR email = $2',
             [req.user.id, req.user.email]
         );
-        const student = studentResult.rows?.[0] || studentResult[0];
+        const student = studentResult.rows?.[0] || studentResult[0] || null;
 
-        if (!student) {
-            return res.json({
-                student: {
-                    id: null,
-                    name: req.user.name,
-                    email: req.user.email,
-                    course: 'Sin asignar',
-                    subject: 'Sin asignar',
-                    status: 'active'
-                },
-                sessions: [],
-                exams: [],
-                payments: [],
-                nextSession: null,
-                averageScore: 0,
-                pendingPayments: 0,
-                homeworkRate: 0
-            });
-        }
+        const defaultResponse = {
+            student: { id: null, name: req.user.name, email: req.user.email, course: 'Sin asignar', subject: 'Sin asignar', status: 'active' },
+            sessions: [], exams: [], payments: [],
+            averageScore: 0, pendingPayments: 0, homeworkRate: 0
+        };
 
-        // Get sessions
-        const sessionsResult = await db.query(
-            'SELECT s.*, u.name as teacher_name FROM sessions s JOIN students st ON s.student_id = st.id LEFT JOIN users u ON st.assigned_teacher_id = u.id WHERE s.student_id = $1 ORDER BY s.date DESC LIMIT 5',
-            [student.id]
-        );
+        if (!student) return res.json(defaultResponse);
 
-        // Get exams
-        const examsResult = await db.query(
-            'SELECT * FROM exams WHERE student_id = $1 ORDER BY date DESC LIMIT 5',
-            [student.id]
-        );
+        const [sessionsR, examsR, paymentsR] = await Promise.all([
+            db.query('SELECT * FROM sessions WHERE student_id = $1 ORDER BY date DESC LIMIT 5', [student.id]),
+            db.query('SELECT * FROM exams WHERE student_id = $1 ORDER BY date DESC LIMIT 5', [student.id]),
+            db.query('SELECT * FROM payments WHERE student_id = $1 ORDER BY due_date DESC LIMIT 5', [student.id])
+        ]);
 
-        // Get payments
-        const paymentsResult = await db.query(
-            'SELECT * FROM payments WHERE student_id = $1 ORDER BY due_date DESC LIMIT 5',
-            [student.id]
-        );
-
-        const sessions = sessionsResult.rows || [];
-        const exams = examsResult.rows || [];
-        const payments = paymentsResult.rows || [];
-
-        const averageScore = exams.length > 0
-            ? exams.reduce((sum, e) => sum + (e.score || 0), 0) / exams.length
-            : 0;
-
-        const pendingPayments = payments
-            .filter(p => p.status === 'pending')
-            .reduce((sum, p) => sum + (p.amount || 0), 0);
-
-        const now = new Date();
-        const currentMonth = now.toISOString().split('T')[0].slice(0, 7);
-        const thisMonthSessions = sessions.filter(s => s.date.startsWith(currentMonth));
-
-        const homeworkRate = thisMonthSessions.length > 0
-            ? (thisMonthSessions.filter(s => s.homework_done).length / thisMonthSessions.length) * 100
-            : 0;
+        const sessions = sessionsR.rows || [];
+        const exams = examsR.rows || [];
+        const payments = paymentsR.rows || [];
 
         res.json({
             student,
-            sessions,
-            exams,
-            payments,
-            stats: {
-                nextSession: sessions.find(s => s.date >= now.toISOString().split('T')[0]) || null,
-                avgScore: Math.round(averageScore * 10) / 10,
-                pendingPayments,
-                homeworkRate: Math.round(homeworkRate)
-            }
+            sessions, exams, payments,
+            averageScore: exams.length ? Math.round(exams.reduce((s, e) => s + (e.score || 0), 0) / exams.length * 10) / 10 : 0,
+            pendingPayments: payments.filter(p => p.status === 'pending').reduce((s, p) => s + (p.amount || 0), 0),
+            homeworkRate: sessions.length ? Math.round(sessions.filter(s => s.homework_done).length / sessions.length * 100) : 0
         });
     } catch (err) {
         console.error('Student portal error:', err.message);
