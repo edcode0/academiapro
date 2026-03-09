@@ -191,12 +191,13 @@ app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'public/reg
 app.get('/join', (req, res) => res.sendFile(path.join(__dirname, 'public/join.html')));
 app.get('/teacher', (req, res) => res.sendFile(path.join(__dirname, 'public', 'teacher_dashboard.html')));
 app.get('/teacher/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'teacher_dashboard.html')));
-app.get('/teacher/sessions', (req, res) => res.sendFile(path.join(__dirname, 'public', 'teacher_dashboard.html')));
-app.get('/teacher/exams', (req, res) => res.sendFile(path.join(__dirname, 'public', 'teacher_dashboard.html')));
+app.get('/teacher/sessions', (req, res) => res.sendFile(path.join(__dirname, 'public', 'teacher_sessions.html')));
+app.get('/teacher/exams', (req, res) => res.sendFile(path.join(__dirname, 'public', 'teacher_exams.html')));
 app.get('/teacher/students', (req, res) => res.sendFile(path.join(__dirname, 'public', 'teacher_dashboard.html')));
-app.get('/teacher/calendar', (req, res) => res.sendFile(path.join(__dirname, 'public', 'teacher_dashboard.html')));
-app.get('/teacher/chat', (req, res) => res.sendFile(path.join(__dirname, 'public', 'teacher_dashboard.html')));
-app.get('/teacher/settings', (req, res) => res.sendFile(path.join(__dirname, 'public', 'teacher_dashboard.html')));
+app.get('/teacher/calendar', (req, res) => res.sendFile(path.join(__dirname, 'public', 'teacher_calendar.html')));
+app.get('/teacher/chat', (req, res) => res.sendFile(path.join(__dirname, 'public', 'chat.html')));
+app.get('/teacher/settings', (req, res) => res.sendFile(path.join(__dirname, 'public', 'teacher_settings.html')));
+app.get('/teacher/transcripts', (req, res) => res.sendFile(path.join(__dirname, 'public', 'transcripts.html')));
 app.get('/student', (req, res) => res.sendFile(path.join(__dirname, 'public', 'student_portal.html')));
 app.get('/student-portal', (req, res) => res.sendFile(path.join(__dirname, 'public', 'student_portal.html')));
 
@@ -590,8 +591,6 @@ app.get('/', authenticateJWT, (req, res) => {
         res.redirect(req.user.role === 'teacher' ? '/teacher/dashboard' : '/student-portal');
     }
 });
-app.get('/teacher/dashboard', authenticateJWT, requireTeacher, (req, res) => res.sendFile(path.join(__dirname, 'public/teacher_dashboard.html')));
-app.get('/student-portal', authenticateJWT, requireStudent, (req, res) => res.sendFile(path.join(__dirname, 'public/student_portal.html')));
 app.get('/student-portal/exams', authenticateJWT, requireStudent, (req, res) => res.sendFile(path.join(__dirname, 'public/student_portal_exams.html')));
 app.get('/student-portal/calendar', authenticateJWT, requireStudent, (req, res) => res.sendFile(path.join(__dirname, 'public/student_portal_calendar.html')));
 app.get('/student-portal/payments', authenticateJWT, requireStudent, (req, res) => res.sendFile(path.join(__dirname, 'public/student_portal_payments.html')));
@@ -621,12 +620,6 @@ app.get('/teacher/student/:id', authenticateJWT, requireTeacher, (req, res) => {
         else res.redirect('/teacher/dashboard');
     });
 });
-
-// Teacher Scoped Pages
-app.get('/teacher/sessions', authenticateJWT, requireTeacher, (req, res) => res.sendFile(path.join(__dirname, 'public/teacher_sessions.html')));
-app.get('/teacher/exams', authenticateJWT, requireTeacher, (req, res) => res.sendFile(path.join(__dirname, 'public/teacher_exams.html')));
-app.get('/teacher/calendar', authenticateJWT, requireTeacher, (req, res) => res.sendFile(path.join(__dirname, 'public/teacher_calendar.html')));
-app.get('/teacher/settings', authenticateJWT, requireTeacher, (req, res) => res.sendFile(path.join(__dirname, 'public/teacher_settings.html')));
 
 // Admin Teacher Pages
 app.get('/admin/teachers', authenticateJWT, (req, res) => res.sendFile(path.join(__dirname, 'public/admin_teachers.html')));
@@ -1070,8 +1063,6 @@ app.post('/api/exam-simulator/generate', authenticateJWT, requireStudent, async 
 
 // TRANSCRIPTS API
 app.get('/admin/transcripts', authenticateJWT, requireAdmin, (req, res) => res.sendFile(path.join(__dirname, 'public/transcripts.html')));
-app.get('/teacher/transcripts', authenticateJWT, requireTeacher, (req, res) => res.sendFile(path.join(__dirname, 'public/transcripts.html')));
-
 app.get('/api/transcripts/students', authenticateJWT, (req, res) => {
     let q = 'SELECT s.id, s.name FROM students s WHERE s.academy_id = $1';
     let params = [req.user.academy_id];
