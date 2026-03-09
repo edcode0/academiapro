@@ -489,6 +489,19 @@
                 <p style="color: #64748b; font-size: 0.875rem;">No hay informes disponibles todavía.</p>
             </div>
         </div>
+
+        <div class="danger-zone"
+            style="margin-top: 2rem; border: 1px solid #fee2e2; border-radius: 12px; padding: 1.5rem; background: #fff5f5;">
+            <h3 style="color: #dc2626; margin-bottom: 0.5rem;">⚠️ Zona de peligro</h3>
+            <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 1rem;">
+                Esta acción es irreversible. Se eliminarán todos tus datos.
+            </p>
+            <button id="delete-account-btn"
+                style="background: #dc2626; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                🗑️ Eliminar mi cuenta
+            </button>
+        </div>
+
     </main>
 
     <script>
@@ -602,6 +615,29 @@
                 console.error(err);
             }
         }
+
+        document.getElementById('delete-account-btn').addEventListener('click', async function () {
+            const confirmed = confirm('¿Estás seguro? Esta acción eliminará tu cuenta permanentemente y no se puede deshacer.');
+            if (!confirmed) return;
+
+            const token = localStorage.getItem('token');
+            try {
+                const response = await fetch('/api/auth/delete-account', {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    alert('Cuenta eliminada correctamente.');
+                    localStorage.clear();
+                    window.location.href = '/login';
+                } else {
+                    alert(data.error || 'Error al eliminar la cuenta');
+                }
+            } catch (err) {
+                alert('Error de conexión');
+            }
+        });
 
         loadProfile();
     </script>

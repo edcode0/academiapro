@@ -2803,6 +2803,34 @@ async function createDirectRoomIfNotExists(u1, u2, academyId) {
         await db.query(insertMemberSql, [nrId, u2]);
     }
 }
+app.delete('/api/auth/delete-account', authenticateJWT, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const userRole = req.user.role;
+        const academyId = req.user.academy_id;
+
+        // If admin, delete entire academy and all related data
+        if (userRole === 'admin') {
+            await db.query('DELETE FROM messages WHERE academy_id = $1', [academyId]);
+            await db.query('DELETE FROM payments WHERE academy_id = $1', [academyId]);
+            await db.query('DELETE FROM exams WHERE academy_id = $1', [academyId]);
+            await db.query('DELETE FROM sessions WHERE academy_id = $1', [academyId]);
+            await db.query('DELETE FROM students WHERE academy_id = $1', [academyId]);
+            await db.query('DELETE FROM users WHERE academy_id = $1', [academyId]);
+            await db.query('DELETE FROM academies WHERE id = $1', [academyId]);
+        } else {
+            // Teacher or student: just delete their user record
+            await db.query('DELETE FROM students WHERE user_id = $1', [userId]);
+            await db.query('DELETE FROM users WHERE id = $1', [userId]);
+        }
+
+        console.log('Account deleted:', req.user.email, 'role:', userRole);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Delete account error:', err.message);
+        res.status(500).json({ error: 'Error al eliminar la cuenta: ' + err.message });
+    }
+});
 
 db.initDb().then(async () => {
     server.listen(PORT, () => {
