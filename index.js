@@ -2803,6 +2803,11 @@ async function createDirectRoomIfNotExists(u1, u2, academyId) {
 db.initDb().then(async () => {
     server.listen(PORT, () => {
         console.log('Server running on port ' + PORT);
+
+        console.log('DATABASE_URL:', process.env.DATABASE_URL ? 'SET' : 'NOT SET');
+        console.log('NODE_ENV:', process.env.NODE_ENV);
+        console.log('DB TYPE:', process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('your_postgres') ? 'PostgreSQL' : 'SQLite');
+
         // ensureAllChatRooms(); // Disabled to fix duplicates
         initCrons();
     });
