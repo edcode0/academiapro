@@ -729,6 +729,25 @@
         let currentPdfBase64 = null;
         let currentPdfFileName = null;
 
+        async function loadChatHistory() {
+            const token = localStorage.getItem('token');
+            try {
+                const res = await fetch('/api/ai-tutor/history', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const data = await res.json();
+                if (data.messages && data.messages.length > 0) {
+                    messagesContext = [];
+                    data.messages.forEach(msg => {
+                        messagesContext.push({ role: msg.role, content: msg.content, timestamp: msg.created_at || new Date().toISOString() });
+                    });
+                    renderMessages();
+                }
+            } catch (e) {
+                console.log('History load error:', e);
+            }
+        }
+
         async function init() {
             try {
                 const res = await fetch('/auth/me');
@@ -737,6 +756,7 @@
                     setupUserUI(userData);
                     await loadConversations();
                     startNewConversation();
+                    await loadChatHistory();
                 }
             } catch (err) { console.error(err); }
 
