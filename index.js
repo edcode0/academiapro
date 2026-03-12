@@ -1852,8 +1852,8 @@ app.post('/api/admin/send-monthly-report', authenticateJWT, requireAdmin, async 
 app.get('/api/student/portal-data', authenticateJWT, async (req, res) => {
     try {
         const studentResult = await db.query(
-            'SELECT * FROM students WHERE user_id = $1 OR email = $2',
-            [req.user.id, req.user.email]
+            'SELECT * FROM students WHERE user_id = $1',
+            [req.user.id]
         );
         const student = studentResult.rows?.[0] || studentResult[0] || null;
 
@@ -1865,11 +1865,11 @@ app.get('/api/student/portal-data', authenticateJWT, async (req, res) => {
 
         if (!student) return res.json(defaultResponse);
 
-        const [sessionsR, examsR, paymentsR] = await Promise.all([
-            db.query('SELECT * FROM sessions WHERE student_id = $1 ORDER BY date DESC LIMIT 5', [student.id]),
-            db.query('SELECT * FROM exams WHERE student_id = $1 ORDER BY date DESC LIMIT 5', [student.id]),
-            db.query('SELECT * FROM payments WHERE student_id = $1 ORDER BY due_date DESC LIMIT 5', [student.id])
-        ]);
+        let sessionsR = { rows: [] }, examsR = { rows: [] }, paymentsR = { rows: [] };
+        
+        try { sessionsR = await db.query('SELECT * FROM sessions WHERE student_id = $1 ORDER BY date DESC LIMIT 5', [student.id]); } catch(e) { console.error('sessions query error:', e.message); }
+        try { examsR = await db.query('SELECT * FROM exams WHERE student_id = $1 ORDER BY date DESC LIMIT 5', [student.id]); } catch(e) { console.error('exams query error:', e.message); }
+        try { paymentsR = await db.query('SELECT * FROM payments WHERE student_id = $1 ORDER BY due_date DESC LIMIT 5', [student.id]); } catch(e) { console.error('payments query error:', e.message); }
 
         const sessions = sessionsR.rows || [];
         const exams = examsR.rows || [];
@@ -1883,7 +1883,7 @@ app.get('/api/student/portal-data', authenticateJWT, async (req, res) => {
             homeworkRate: sessions.length ? Math.round(sessions.filter(s => s.homework_done).length / sessions.length * 100) : 0
         });
     } catch (err) {
-        console.error('Student portal error:', err.message);
+        console.error('Student portal full exception:', err.message);
         res.status(500).json({ error: err.message });
     }
 });
@@ -2846,6 +2846,29 @@ app.delete('/api/auth/delete-account', authenticateJWT, async (req, res) => {
 });
 
 db.initDb().then(async () => {
+    try {
+        await db.query(`
+            INSERT INTO students (name, email, course, subject, status, academy_id, user_id)
+            SELECT u.name, u.email, 'Sin asignar', 'Sin asignar', 'active', u.academy_id, u.id
+            FROM users u 
+            WHERE u.role = 'student' 
+            AND u.id NOT IN (SELECT user_id FROM students WHERE user_id IS NOT NULL)
+        `);
+    } catch(e) {
+        console.log('Student table sync with email failed, trying without email column:', e.message);
+        try {
+            await db.query(`
+                INSERT INTO students (name, course, subject, status, academy_id, user_id)
+                SELECT u.name, 'Sin asignar', 'Sin asignar', 'active', u.academy_id, u.id
+                FROM users u 
+                WHERE u.role = 'student' 
+                AND u.id NOT IN (SELECT user_id FROM students WHERE user_id IS NOT NULL)
+            `);
+        } catch(e2) {
+            console.log('Student table auto-sync completely failed:', e2.message);
+        }
+    }
+
     server.listen(PORT, () => {
         console.log('Server running on port ' + PORT);
 

@@ -506,29 +506,41 @@
 
     <script>
         async function loadProfile() {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                window.location.href = '/login';
-                return;
-            }
-
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
-            document.getElementById('sidebar-name').textContent = user.name || 'Alumno';
-
             try {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    window.location.href = '/login';
+                    return;
+                }
+
+                const user = JSON.parse(localStorage.getItem('user') || '{}');
+                if (document.getElementById('sidebar-name')) {
+                    document.getElementById('sidebar-name').textContent = user.name || 'Alumno';
+                }
+
                 const res = await fetch('/api/student/portal-data', {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
+                if (!res.ok) {
+                    console.error('Portal data error:', res.status);
+                    return; 
+                }
                 const data = await res.json();
+                if (!data || !data.student) return;
+
                 const student = data.student;
                 const stats = data.stats || data;
 
-                if (student.name) {
-                    document.getElementById('sidebar-name').textContent = student.name;
+                const studentName = student?.name || user.name || 'Alumno';
+                if (document.getElementById('sidebar-name')) {
+                    document.getElementById('sidebar-name').textContent = studentName;
                 }
-                document.getElementById('sidebar-name').textContent = student.name;
-                document.getElementById('student-welcome').textContent = `¡Hola, ${student.name}! 👋`;
-                document.getElementById('student-info').textContent = `${student.course} • ${student.subject}`;
+                if (document.getElementById('student-welcome')) {
+                    document.getElementById('student-welcome').textContent = `¡Hola, ${studentName}! 👋`;
+                }
+                if (document.getElementById('student-info')) {
+                    document.getElementById('student-info').textContent = `${student.course || 'Sin asignar'} • ${student.subject || 'Sin asignar'}`;
+                }
 
                 // Stats
                 if (stats.nextSession) {
@@ -620,7 +632,8 @@
                 });
 
             } catch (err) {
-                console.error(err);
+                console.error('loadProfile error:', err.message);
+                // Don't crash - just show empty state
             }
         }
 
