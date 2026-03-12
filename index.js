@@ -1368,7 +1368,7 @@ app.delete('/api/admin/students/:id', authenticateJWT, requireAdmin, (req, res) 
 
 // DELETE teacher from academy
 app.delete('/api/admin/teachers/:id', authenticateJWT, requireAdmin, (req, res) => {
-    db.query('SELECT id FROM users WHERE id = $1 AND role = "teacher" AND academy_id = $2', [req.params.id, req.user.academy_id], (err, row) => {
+    db.query(`SELECT id FROM users WHERE id = $1 AND role = 'teacher' AND academy_id = $2`, [req.params.id, req.user.academy_id], (err, row) => {
         const teacher = row?.rows[0];
         if (!teacher) return res.status(404).json({ error: 'Teacher not found' });
 
@@ -1445,21 +1445,21 @@ app.get('/api/students-list', authenticateJWT, (req, res) => {
 });
 
 app.get('/api/teachers', authenticateJWT, requireAdmin, (req, res) => {
-    db.query('SELECT id, name FROM users WHERE academy_id = $1 AND role = "teacher"', [req.user.academy_id], (err, result) => {
+    db.query(`SELECT id, name FROM users WHERE academy_id = $1 AND role = 'teacher'`, [req.user.academy_id], (err, result) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json(result.rows);
     });
 });
 
 app.get('/api/teachers/rates', authenticateJWT, requireAdmin, (req, res) => {
-    db.query('SELECT id, name, hourly_rate FROM users WHERE academy_id = $1 AND role = "teacher"', [req.user.academy_id], (err, result) => {
+    db.query(`SELECT id, name, hourly_rate FROM users WHERE academy_id = $1 AND role = 'teacher'`, [req.user.academy_id], (err, result) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json(result.rows);
     });
 });
 
 app.put('/api/teachers/:id/rate', authenticateJWT, requireAdmin, (req, res) => {
-    db.query('UPDATE users SET hourly_rate = $1 WHERE id = $2 AND academy_id = $3 AND role = "teacher"',
+    db.query(`UPDATE users SET hourly_rate = $1 WHERE id = $2 AND academy_id = $3 AND role = 'teacher'`,
         [req.body.hourly_rate || 0, req.params.id, req.user.academy_id], (err, result) => {
             if (err) return res.status(500).json({ error: err.message });
             res.json({ success: true });
@@ -1753,7 +1753,7 @@ app.get('/api/teacher-payments', authenticateJWT, requireAdmin, (req, res) => {
     const year = now.getFullYear();
     const likePattern = `${year}-${String(month).padStart(2, '0')}%`;
 
-    db.query('SELECT id, name, hourly_rate FROM users WHERE role = "teacher" AND academy_id = $1', [acadId], (err, tRes) => {
+    db.query(`SELECT id, name, hourly_rate FROM users WHERE role = 'teacher' AND academy_id = $1`, [acadId], (err, tRes) => {
         if (err) return res.status(500).json({ error: err.message });
         const teachers = tRes.rows || [];
 
@@ -1851,19 +1851,37 @@ app.post('/api/admin/send-monthly-report', authenticateJWT, requireAdmin, async 
 
 app.get('/api/student/portal-data', authenticateJWT, async (req, res) => {
     try {
-        const studentResult = await db.query(
+        let studentResult = await db.query(
             'SELECT * FROM students WHERE user_id = $1',
             [req.user.id]
         );
-        const student = studentResult.rows?.[0] || studentResult[0] || null;
+        let student = studentResult.rows?.[0] || studentResult[0] || null;
 
-        const defaultResponse = {
-            student: { id: null, name: req.user.name, email: req.user.email, course: 'Sin asignar', subject: 'Sin asignar', status: 'active' },
-            sessions: [], exams: [], payments: [],
-            averageScore: 0, pendingPayments: 0, homeworkRate: 0
-        };
+        if (!student) {
+            try {
+                // Auto-create student record if missing
+                await db.query(
+                    `INSERT INTO students (name, course, subject, status, academy_id, user_id)
+                     VALUES ($1, 'Sin asignar', 'Sin asignar', 'active', $2, $3)`,
+                    [req.user.name, req.user.academy_id, req.user.id]
+                );
+                const newResult = await db.query(
+                    'SELECT * FROM students WHERE user_id = $1', [req.user.id]
+                );
+                student = newResult.rows?.[0] || newResult[0] || null;
+            } catch(e) {
+                console.error('Failed to auto-create student:', e.message);
+            }
+        }
 
-        if (!student) return res.json(defaultResponse);
+        if (!student) {
+            const defaultResponse = {
+                student: { id: null, name: req.user.name, email: req.user.email, course: 'Sin asignar', subject: 'Sin asignar', status: 'active' },
+                sessions: [], exams: [], payments: [],
+                averageScore: 0, pendingPayments: 0, homeworkRate: 0
+            };
+            return res.json(defaultResponse);
+        }
 
         let sessionsR = { rows: [] }, examsR = { rows: [] }, paymentsR = { rows: [] };
         
