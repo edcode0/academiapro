@@ -94,8 +94,54 @@ app.get('/api/debug/users', async (req, res) => {
 
 const server = http.createServer(app);
 const io = new Server(server, {
+    cors: { origin: '*', methods: ['GET', 'POST'] },
     maxHttpBufferSize: 1e7 // 10MB
 });
+
+io.use((socket, next) => {
+  const token = socket.handshake.auth.token;
+  if (!token) return next(new Error('No token'));
+  try {
+    const user = jwt.verify(token, process.env.JWT_SECRET || 'super_secret_jwt');
+    socket.user = user;
+    next();
+  } catch(e) {
+    next(new Error('Invalid token'));
+  }
+});
+
+io.on('connection', (socket) => {
+  console.log('Socket connected:', socket.id, 'user:', socket.user?.id);
+  
+  // Join user to their academy room
+  socket.join(`academy_${socket.user.academy_id}`);
+  socket.join(`user_${socket.user.id}`);
+
+  // Send message
+  socket.on('send_message', async ({ roomId, content }) => {
+    try {
+      const result = await db.query(
+        'INSERT INTO messages (room_id, sender_id, academy_id, content, created_at) VALUES ($1, $2, $3, $4, NOW()) RETURNING *',
+        [roomId, socket.user.id, socket.user.academy_id, content]
+      );
+      const message = result.rows[0];
+      // Broadcast to room members
+      io.to(`academy_${socket.user.academy_id}`).emit('new_message', {
+        ...message,
+        sender_name: socket.user.name,
+        sender_role: socket.user.role
+      });
+    } catch(err) {
+      console.error('Socket message error:', err.message);
+      socket.emit('error', { message: 'Error sending message' });
+    }
+  });
+
+  socket.on('disconnect', () => {
+    console.log('Socket disconnected:', socket.user?.id);
+  });
+});
+
 const isPostgres = !!process.env.DATABASE_URL;
 
 global.roomsEnsured = false;
@@ -2172,6 +2218,31 @@ app.get('/api/chat/messages/:userId', authenticateJWT, async (req, res) => {
 // Admin backwards compatibility alias
 app.get('/api/chat/conversations', authenticateJWT, (req, res) => {
     res.redirect('/api/chat/rooms');
+});
+
+app.post('/api/chat/messages', authenticateJWT, async (req, res) => {
+  try {
+    const { roomId, content } = req.body;
+    if (!roomId || !content) {
+      return res.status(400).json({ error: 'roomId and content required' });
+    }
+    const result = await db.query(
+      'INSERT INTO messages (room_id, sender_id, academy_id, content, created_at) VALUES ($1, $2, $3, $4, NOW()) RETURNING *',
+      [roomId, req.user.id, req.user.academy_id, content]
+    );
+    const message = result.rows[0];
+    // Also emit via socket
+    if (typeof io !== 'undefined' && io) {
+      io.to(`academy_${req.user.academy_id}`).emit('new_message', {
+        ...message,
+        sender_name: req.user.name,
+        sender_role: req.user.role
+      });
+    }
+    res.json(message);
+  } catch(err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.get('/api/chat/rooms/:roomId/messages', authenticateJWT, async (req, res) => {
