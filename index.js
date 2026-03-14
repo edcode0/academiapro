@@ -74,24 +74,6 @@ app.get('/health', async (req, res) => {
     res.json({ status: 'ok', uptime: process.uptime() });
 });
 
-app.get('/api/debug/academies', authenticateJWT, requireAdmin, async (req, res) => {
-    try {
-        const result = await db.query('SELECT * FROM academies');
-        res.json(result.rows || result);
-    } catch (err) {
-        res.json({ error: err.message });
-    }
-});
-
-app.get('/api/debug/users', authenticateJWT, requireAdmin, async (req, res) => {
-    try {
-        const result = await db.query('SELECT id, name, email, role, academy_id FROM users');
-        res.json(result.rows || result);
-    } catch (err) {
-        res.json({ error: err.message });
-    }
-});
-
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: { origin: '*', methods: ['GET', 'POST'] },
@@ -229,6 +211,24 @@ const requireRole = (role) => (req, res, next) => {
 const requireAdmin = requireRole('admin');
 const requireTeacher = requireRole('teacher');
 const requireStudent = requireRole('student');
+
+app.get('/api/debug/academies', authenticateJWT, requireAdmin, async (req, res) => {
+    try {
+        const result = await db.query('SELECT * FROM academies');
+        res.json(result.rows || result);
+    } catch (err) {
+        res.json({ error: err.message });
+    }
+});
+
+app.get('/api/debug/users', authenticateJWT, requireAdmin, async (req, res) => {
+    try {
+        const result = await db.query('SELECT id, name, email, role, academy_id FROM users');
+        res.json(result.rows || result);
+    } catch (err) {
+        res.json({ error: err.message });
+    }
+});
 
 // Auth Routes
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public/login.html')));
