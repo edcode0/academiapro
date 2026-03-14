@@ -234,6 +234,7 @@ app.get('/api/debug/users', authenticateJWT, requireAdmin, async (req, res) => {
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public/login.html')));
 app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'public/register.html')));
 app.get('/join', (req, res) => res.sendFile(path.join(__dirname, 'public/join.html')));
+app.get('/auth-success', (req, res) => res.sendFile(path.join(__dirname, 'public', 'auth-success.html')));
 app.get('/teacher', (req, res) => res.sendFile(path.join(__dirname, 'public', 'teacher_dashboard.html')));
 app.get('/teacher/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'teacher_dashboard.html')));
 app.get('/teacher/sessions', (req, res) => res.sendFile(path.join(__dirname, 'public', 'teacher_sessions.html')));
