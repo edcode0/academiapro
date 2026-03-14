@@ -562,7 +562,7 @@
 
             document.getElementById('search-input').oninput = (e) => {
                 const term = e.target.value.toLowerCase();
-                renderRooms(allRooms.filter(r => r.name.toLowerCase().includes(term)));
+                renderRooms(allRooms.filter(r => (r.name || '').toLowerCase().includes(term)));
             };
 
             document.getElementById('msg-input').onkeydown = (e) => {
@@ -621,6 +621,7 @@
         }
 
         function renderRooms(rooms) {
+            rooms = rooms.filter(r => r !== null && r !== undefined && r.id);
             const container = document.getElementById('rooms-scroll');
 
             // Fix sorting: pin group chat to the top, then sort by latest activity
@@ -633,13 +634,13 @@
             });
 
             container.innerHTML = rooms.map(room => {
-                const initials = room.name.split(' ').map(n => n[0]).join('').substring(0, 2);
+                const initials = (room.name || 'Chat').split(' ').map(n => n[0]).join('').substring(0, 2);
                 return `
                     <div class="room-item ${activeRoom && activeRoom.id === room.id ? 'active' : ''}" onclick="selectRoom(${JSON.stringify(room).replace(/"/g, '&quot;')})">
                         <div class="avatar ${room.type === 'group' ? 'group' : ''}">${initials}</div>
                         <div class="room-info">
                             <div class="room-header">
-                                <span class="room-name">${room.name}</span>
+                                <span class="room-name">${room.name || 'Chat'}</span>
                             </div>
                             <div class="last-msg">${room.last_message || 'Sin mensajes'}</div>
                         </div>
@@ -653,9 +654,9 @@
             activeRoom = room;
             document.getElementById('empty-state').style.display = 'none';
             document.getElementById('chat-box').style.display = 'flex';
-            document.getElementById('header-name').textContent = room.name;
+            document.getElementById('header-name').textContent = room.name || 'Chat';
             document.getElementById('header-badge').textContent = room.type === 'group' ? 'Grupo' : room.other_role;
-            document.getElementById('header-avatar').textContent = room.name[0];
+            document.getElementById('header-avatar').textContent = (room.name || 'Chat')[0];
 
             // ALWAYS clear messages first
             const container = document.getElementById('messages-area');

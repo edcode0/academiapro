@@ -504,6 +504,31 @@
     </div>
 
     <script>
+        // Read token from URL if present (Google OAuth redirect)
+        (function () {
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlToken = urlParams.get('token');
+            const urlRole = urlParams.get('role');
+            if (urlToken) {
+                localStorage.setItem('token', urlToken);
+                try {
+                    const payload = JSON.parse(atob(urlToken.split('.')[1]));
+                    localStorage.setItem('user', JSON.stringify({
+                        id: payload.id,
+                        name: payload.name,
+                        email: payload.email,
+                        role: payload.role,
+                        academy_id: payload.academy_id
+                    }));
+                    history.replaceState({}, '', '/');
+                    const role = urlRole || payload.role;
+                    if (role === 'teacher') { window.location.href = '/teacher'; return; }
+                    if (role === 'student') { window.location.href = '/student-portal'; return; }
+                    // admin: stay on this page, fall through to loadDashboard
+                } catch (e) { console.error('Token parse error:', e); }
+            }
+        })();
+
         async function loadDashboard() {
             try {
                 const userRes = await fetch('/auth/me');

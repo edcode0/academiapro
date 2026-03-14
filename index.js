@@ -2262,6 +2262,40 @@ app.post('/api/chat/messages', authenticateJWT, async (req, res) => {
   }
 });
 
+app.post('/api/chat/rooms/:roomId/messages', authenticateJWT, async (req, res) => {
+    try {
+        const { content } = req.body;
+        const roomId = parseInt(req.params.roomId);
+        if (!content || !roomId) {
+            return res.status(400).json({ error: 'content and roomId required' });
+        }
+        const memberCheck = await db.query(
+            'SELECT 1 FROM room_members WHERE room_id = $1 AND user_id = $2',
+            [roomId, req.user.id]
+        );
+        if (!memberCheck.rows.length) {
+            return res.status(403).json({ error: 'Not a member of this room' });
+        }
+        const result = await db.query(
+            `INSERT INTO messages (room_id, sender_id, academy_id, content, created_at)
+             VALUES ($1, $2, $3, $4, NOW()) RETURNING *`,
+            [roomId, req.user.id, req.user.academy_id, content]
+        );
+        const message = result.rows[0];
+        if (typeof io !== 'undefined') {
+            io.to(`room_${roomId}`).emit('new_message', {
+                ...message,
+                sender_name: req.user.name,
+                sender_role: req.user.role
+            });
+        }
+        res.json(message);
+    } catch (err) {
+        console.error('Send message error:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.get('/api/chat/rooms/:roomId/messages', authenticateJWT, async (req, res) => {
     try {
         const roomId = parseInt(req.params.roomId);
