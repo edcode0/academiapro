@@ -508,62 +508,69 @@ app.get('/auth/google/callback', passport.authenticate('google', { failureRedire
 
     try {
         const existingResult = await db.query('SELECT * FROM users WHERE email = $1', [email]);
-        let user = existingResult?.rows ? existingResult.rows[0] : (existingResult || [])[0];
+        const existingUser = existingResult.rows?.[0];
 
-        if (!user) {
-            // New User
-            const pendingCode = req.cookies.pending_code;
-            res.clearCookie('pending_code');
-
-            let role = 'admin';
-            let academyId = null;
-
-            if (pendingCode) {
-                const actResult = await db.query('SELECT * FROM academies WHERE teacher_code = $1 OR student_code = $2', [pendingCode, pendingCode]);
-                const acad = actResult?.rows ? actResult.rows[0] : (actResult || [])[0];
-                if (acad) {
-                    role = pendingCode === acad.teacher_code ? 'teacher' : 'student';
-                    academyId = acad.id;
-                }
+        if (existingUser) {
+            // Existing user — always use their role and academy from the DB, never override
+            if (!existingUser.google_id) {
+                await db.query('UPDATE users SET google_id = $1 WHERE id = $2', [profile.id, existingUser.id]);
             }
+            const token = jwt.sign(
+                { id: existingUser.id, email: existingUser.email, role: existingUser.role, academy_id: existingUser.academy_id, name: existingUser.name, user_code: existingUser.user_code },
+                JWT_SECRET, { expiresIn: '7d' }
+            );
+            res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'strict' });
+            console.log('Google Auth existing user:', email, 'role:', existingUser.role);
+            return res.redirect(`/auth-success?token=${token}&role=${existingUser.role}`);
+        }
 
-            if (!academyId) {
-                const academyName = `${name}'s Academy`;
-                const tCode = generateCode();
-                const sCode = generateCode();
-                const resAcad = await db.query(!!process.env.DATABASE_URL
-                    ? 'INSERT INTO academies (name, teacher_code, student_code) VALUES ($1, $2, $3) RETURNING id'
-                    : 'INSERT INTO academies (name, teacher_code, student_code) VALUES ($1, $2, $3)', [academyName, tCode, sCode]);
-                academyId = !!process.env.DATABASE_URL && resAcad.rows ? resAcad.rows[0].id : resAcad.lastID;
-            }
+        // New user — create with appropriate role
+        const pendingCode = req.cookies.pending_code;
+        res.clearCookie('pending_code');
 
-            const userCode = generateUserCode();
-            const resUser = await db.query(!!process.env.DATABASE_URL
-                ? 'INSERT INTO users (name, email, google_id, role, academy_id, user_code) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id'
-                : 'INSERT INTO users (name, email, google_id, role, academy_id, user_code) VALUES ($1, $2, $3, $4, $5, $6)',
-                [name, email, profile.id, role, academyId, userCode]);
-            const userId = !!process.env.DATABASE_URL && resUser.rows ? resUser.rows[0].id : resUser.lastID;
+        let role = 'admin';
+        let academyId = null;
 
-            if (role === 'admin') {
-                await db.query('UPDATE academies SET owner_id = $1 WHERE id = $2', [userId, academyId]);
-            }
-
-            const uRes = await db.query('SELECT * FROM users WHERE id = $1', [userId]);
-            user = uRes?.rows ? uRes.rows[0] : (uRes || [])[0];
-        } else {
-            // User exists - update google_id if missing
-            if (!user.google_id) {
-                await db.query('UPDATE users SET google_id = $1 WHERE id = $2', [profile.id, user.id]);
+        if (pendingCode) {
+            const actResult = await db.query('SELECT * FROM academies WHERE teacher_code = $1 OR student_code = $2', [pendingCode, pendingCode]);
+            const acad = actResult?.rows ? actResult.rows[0] : (actResult || [])[0];
+            if (acad) {
+                role = pendingCode === acad.teacher_code ? 'teacher' : 'student';
+                academyId = acad.id;
             }
         }
 
-        const token = jwt.sign({ id: user.id, email: user.email, role: user.role, academy_id: user.academy_id, name: user.name, user_code: user.user_code }, JWT_SECRET, { expiresIn: '7d' });
+        if (!academyId) {
+            const academyName = `${name}'s Academy`;
+            const tCode = generateCode();
+            const sCode = generateCode();
+            const resAcad = await db.query(!!process.env.DATABASE_URL
+                ? 'INSERT INTO academies (name, teacher_code, student_code) VALUES ($1, $2, $3) RETURNING id'
+                : 'INSERT INTO academies (name, teacher_code, student_code) VALUES ($1, $2, $3)', [academyName, tCode, sCode]);
+            academyId = !!process.env.DATABASE_URL && resAcad.rows ? resAcad.rows[0].id : resAcad.lastID;
+        }
+
+        const userCode = generateUserCode();
+        const resUser = await db.query(!!process.env.DATABASE_URL
+            ? 'INSERT INTO users (name, email, google_id, role, academy_id, user_code) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id'
+            : 'INSERT INTO users (name, email, google_id, role, academy_id, user_code) VALUES ($1, $2, $3, $4, $5, $6)',
+            [name, email, profile.id, role, academyId, userCode]);
+        const userId = !!process.env.DATABASE_URL && resUser.rows ? resUser.rows[0].id : resUser.lastID;
+
+        if (role === 'admin') {
+            await db.query('UPDATE academies SET owner_id = $1 WHERE id = $2', [userId, academyId]);
+        }
+
+        const newUserRes = await db.query('SELECT * FROM users WHERE id = $1', [userId]);
+        const newUser = newUserRes.rows?.[0];
+
+        const token = jwt.sign(
+            { id: newUser.id, email: newUser.email, role: newUser.role, academy_id: newUser.academy_id, name: newUser.name, user_code: newUser.user_code },
+            JWT_SECRET, { expiresIn: '7d' }
+        );
         res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'strict' });
-
-        console.log('Google Auth success:', email, 'role:', user.role);
-
-        // Always redirect through auth-success so localStorage token is saved for socket.io
-        return res.redirect(`/auth-success?token=${token}&role=${user.role}`);
+        console.log('Google Auth new user:', email, 'role:', newUser.role);
+        return res.redirect(`/auth-success?token=${token}&role=${newUser.role}`);
 
     } catch (err) {
         console.error('Google callback error:', err);
