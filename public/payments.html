@@ -862,17 +862,26 @@
             } catch (err) { console.error(err); }
         }
 
+        let isGenerating = false;
         async function generateMonthlyPayments() {
+            if (isGenerating) return;
             if (!confirm('Se van a generar los pagos del mes actual para los alumnos configurados. ¿Continuar?')) return;
+            isGenerating = true;
             try {
                 const res = await fetch('/api/payments/auto-generate', { method: 'POST' });
                 if (res.ok) {
                     showToast('✅ Pagos generados correctamente', 'success');
                     loadPaymentsData();
                 } else {
-                    showToast('❌ Hubo un error procesando los pagos', 'error');
+                    const data = await res.json().catch(() => ({}));
+                    showToast('❌ Error: ' + (data.error || 'No se pudieron generar los pagos'), 'error');
                 }
-            } catch (err) { console.error(err); }
+            } catch (err) {
+                console.error('Generate payments error:', err);
+                showToast('❌ Error: ' + err.message, 'error');
+            } finally {
+                isGenerating = false;
+            }
         }
 
         init();

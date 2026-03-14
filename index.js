@@ -1595,6 +1595,23 @@ app.put('/api/students/:id', authenticateJWT, requireAdmin, (req, res) => {
     });
 });
 
+app.post('/api/sessions', authenticateJWT, async (req, res) => {
+    try {
+        const { student_id, date, duration_minutes, homework_done, teacher_notes, notes, homework } = req.body;
+        const result = await db.query(
+            `INSERT INTO sessions (student_id, date, duration_minutes, homework_done, teacher_notes)
+             VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+            [student_id, date || new Date(), duration_minutes || 60, homework_done || false, teacher_notes || notes || '']
+        );
+        const session = result.rows[0];
+        if (session) checkStudentRisk(student_id);
+        res.json(session);
+    } catch (err) {
+        console.error('Session error:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.get('/api/sessions', authenticateJWT, (req, res) => {
     let sql = 'SELECT s.*, st.name as student_name FROM sessions s JOIN students st ON s.student_id = st.id WHERE st.academy_id = $1';
     let params = [req.user.academy_id];
@@ -1643,6 +1660,21 @@ app.get('/api/sessions-list', authenticateJWT, (req, res) => {
     });
 });
 
+
+app.post('/api/payments', authenticateJWT, async (req, res) => {
+    try {
+        const { student_id, amount, due_date, status, paid_date, notes } = req.body;
+        const result = await db.query(
+            `INSERT INTO payments (student_id, amount, due_date, status, paid_date)
+             VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+            [student_id, amount, due_date, status || 'pending', paid_date || null]
+        );
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error('Payment error:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
 
 app.get('/api/payments', authenticateJWT, (req, res) => {
     db.query('SELECT p.* FROM payments p JOIN students st ON p.student_id = st.id WHERE st.academy_id = $1', [req.user.academy_id], (err, result) => {
