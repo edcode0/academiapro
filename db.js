@@ -301,13 +301,15 @@ async function initDb() {
     `CREATE TABLE IF NOT EXISTS teacher_payments (
             id ${idType},
             teacher_id INTEGER,
+            academy_id INTEGER,
             month INTEGER,
             year INTEGER,
             hours REAL,
             hourly_rate REAL,
             total_amount REAL,
-            status TEXT DEFAULT 'pending',
-            paid_at TEXT
+            paid INTEGER DEFAULT 0,
+            paid_at TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`,
     `CREATE TABLE IF NOT EXISTS available_slots (
             id ${idType},
@@ -382,20 +384,6 @@ async function initDb() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`,
 
-    `CREATE TABLE IF NOT EXISTS teacher_payments (
-      id ${idType},
-      teacher_id INTEGER,
-      academy_id INTEGER,
-      month INTEGER,
-      year INTEGER,
-      hours REAL,
-      hourly_rate REAL,
-      total REAL,
-      status TEXT DEFAULT 'pending',
-      paid_date TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`,
-
     `CREATE TABLE IF NOT EXISTS settings (
       id ${idType},
       academy_id INTEGER UNIQUE,
@@ -413,21 +401,6 @@ async function initDb() {
 
     // New columns for calendar slots
     "ALTER TABLE available_slots ADD COLUMN notes TEXT",
-
-    // Teacher payments tracking table
-    `CREATE TABLE IF NOT EXISTS teacher_payments (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      teacher_id INTEGER NOT NULL,
-      academy_id INTEGER,
-      month INTEGER NOT NULL,
-      year INTEGER NOT NULL,
-      hours REAL DEFAULT 0,
-      hourly_rate REAL DEFAULT 0,
-      total REAL DEFAULT 0,
-      status TEXT DEFAULT 'pending',
-      paid_date TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`,
 
     // --- NEW TABLES FOR RECENT REQUESTS ---
 
@@ -556,27 +529,6 @@ async function initDb() {
 
     // Delete rooms 6-32 if still empty after cleanup
     await db.query(`DELETE FROM rooms WHERE id NOT IN (SELECT DISTINCT room_id FROM room_members)`);
-
-    // Check if room already exists between user 2 and user 3
-    const existing = await db.query(`
-      SELECT r.id FROM rooms r
-      JOIN room_members rm1 ON rm1.room_id = r.id AND rm1.user_id = 2
-      JOIN room_members rm2 ON rm2.room_id = r.id AND rm2.user_id = 3
-      WHERE r.type = 'direct' AND r.academy_id = 1
-    `);
-    const rows = existing.rows || existing;
-
-    if (!rows || rows.length === 0) {
-      const newRoom = await db.query(
-        "INSERT INTO rooms (academy_id, type, name, created_at) VALUES (1, 'direct', 'Eduard - edu', CURRENT_TIMESTAMP)"
-      );
-      const roomId = newRoom.lastID || newRoom.insertId;
-      await db.query("INSERT INTO room_members (room_id, user_id) VALUES ($1, 2)", [roomId]);
-      await db.query("INSERT INTO room_members (room_id, user_id) VALUES ($1, 3)", [roomId]);
-      console.log('✅ Created direct room between teacher (2) and student (3), room id:', roomId);
-    } else {
-      console.log('✅ Direct room already exists:', rows[0].id);
-    }
 
     // Find and delete duplicate direct rooms (same two members)
     const allDirectRooms = await db.query(

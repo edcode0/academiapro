@@ -74,7 +74,7 @@ app.get('/health', async (req, res) => {
     res.json({ status: 'ok', uptime: process.uptime() });
 });
 
-app.get('/api/debug/academies', async (req, res) => {
+app.get('/api/debug/academies', authenticateJWT, requireAdmin, async (req, res) => {
     try {
         const result = await db.query('SELECT * FROM academies');
         res.json(result.rows || result);
@@ -83,7 +83,7 @@ app.get('/api/debug/academies', async (req, res) => {
     }
 });
 
-app.get('/api/debug/users', async (req, res) => {
+app.get('/api/debug/users', authenticateJWT, requireAdmin, async (req, res) => {
     try {
         const result = await db.query('SELECT id, name, email, role, academy_id FROM users');
         res.json(result.rows || result);
@@ -231,7 +231,6 @@ const requireTeacher = requireRole('teacher');
 const requireStudent = requireRole('student');
 
 // Auth Routes
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public/index.html')));
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public/login.html')));
 app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'public/register.html')));
 app.get('/join', (req, res) => res.sendFile(path.join(__dirname, 'public/join.html')));
@@ -321,7 +320,7 @@ app.post('/auth/register', async (req, res) => {
                     await db.query('INSERT INTO room_members (room_id, user_id) VALUES ($1, $2)', [roomId, acad.owner_id]);
                 } catch (e) { }
 
-                const resGroup = await db.query('SELECT id FROM rooms WHERE academy_id = $1 AND type = "group" AND name = "👥 Profesores & Admin"', [acad.id]);
+                const resGroup = await db.query("SELECT id FROM rooms WHERE academy_id = $1 AND type = 'group' AND name = '👥 Profesores & Admin'", [acad.id]);
                 const room = resGroup?.rows ? resGroup.rows[0] : (resGroup || [])[0];
                 if (room) {
                     await db.query('INSERT INTO room_members (room_id, user_id) VALUES ($1, $2)', [room.id, userId]);
@@ -349,7 +348,7 @@ app.post('/auth/register', async (req, res) => {
 
                 try {
                     const res3 = await db.query(
-                        !!process.env.DATABASE_URL ? 'INSERT INTO rooms (academy_id, type, name) VALUES ($1, "group", "👥 Profesores & Admin") RETURNING id' : 'INSERT INTO rooms (academy_id, type, name) VALUES ($1, "group", "👥 Profesores & Admin")', [acadId]
+                        !!process.env.DATABASE_URL ? "INSERT INTO rooms (academy_id, type, name) VALUES ($1, 'group', '👥 Profesores & Admin') RETURNING id" : "INSERT INTO rooms (academy_id, type, name) VALUES ($1, 'group', '👥 Profesores & Admin')", [acadId]
                     );
                     const roomId = !!process.env.DATABASE_URL && res3.rows ? res3.rows[0].id : res3.lastID;
                     await db.query('INSERT INTO room_members (room_id, user_id) VALUES ($1, $2)', [roomId, userId]);
@@ -408,7 +407,7 @@ app.post('/auth/login', async (req, res) => {
             process.env.JWT_SECRET || 'super_secret_jwt',
             { expiresIn: '7d' }
         );
-        res.cookie('token', token, { httpOnly: false }); // Ensure frontend socket authenticates correctly 
+        res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'strict' });
 
         console.log('Login successful:', user.email, 'role:', user.role);
         res.json({
@@ -558,7 +557,7 @@ app.get('/auth/google/callback', passport.authenticate('google', { failureRedire
         }
 
         const token = jwt.sign({ id: user.id, email: user.email, role: user.role, academy_id: user.academy_id, name: user.name, user_code: user.user_code }, JWT_SECRET, { expiresIn: '7d' });
-        res.cookie('token', token, { httpOnly: false });
+        res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'strict' });
 
         console.log('Google Auth success:', email, 'role:', user.role);
 
@@ -692,7 +691,7 @@ app.get('/api/teacher/profile', authenticateJWT, async (req, res) => {
 app.get('/api/admin/teachers', authenticateJWT, (req, res) => {
     const now = new Date();
     const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-    const monthEnd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-31`;
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
 
     console.log('[teachers] academy_id=', req.user.academy_id);
     console.log(`[/api/admin/teachers] academy_id=${req.user.academy_id}, user=${req.user.name}, role=${req.user.role}, month=${monthStart} to ${monthEnd}`);
@@ -727,7 +726,7 @@ app.get('/api/admin/teachers', authenticateJWT, (req, res) => {
 app.get('/api/admin/teachers/:id', authenticateJWT, (req, res) => {
     const now = new Date();
     const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-    const monthEnd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-31`;
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
 
     db.query('SELECT id, name, email, user_code, hourly_rate FROM users WHERE id = $1 AND academy_id = $2 AND role = \'teacher\'',
         [req.params.id, req.user.academy_id], (err, tRes) => {
@@ -797,7 +796,9 @@ app.get('/api/admin/teachers/:id', authenticateJWT, (req, res) => {
 app.get('/api/admin/teachers/:id/sessions', authenticateJWT, (req, res) => {
     const { month } = req.query; // YYYY-MM
     const monthStart = month ? `${month}-01` : new Date().toISOString().slice(0, 7) + '-01';
-    const monthEnd = month ? `${month}-31` : new Date().toISOString().slice(0, 7) + '-31';
+    const monthEnd = month
+        ? new Date(parseInt(month.slice(0, 4)), parseInt(month.slice(5, 7)), 0).toISOString().split('T')[0]
+        : new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0];
 
     const sql = `
         SELECT se.*, s.name as student_name
@@ -1103,22 +1104,6 @@ app.post('/api/ai-tutor/generate-pdf', authenticateJWT, (req, res) => {
     } catch (err) {
         console.error('PDF gen error:', err);
         res.status(500).json({ error: 'Failed to generate PDF' });
-    }
-});
-
-app.post('/api/ai-tutor/extract-pdf', authenticateJWT, pdfUpload.single('pdf'), async (req, res) => {
-    try {
-        if (!req.file) return res.status(400).json({ error: 'No PDF provided' });
-
-        const data = await pdfParse(req.file.buffer);
-        if (!data || !data.text) {
-            return res.status(500).json({ error: 'Could not extract text' });
-        }
-
-        res.json({ text: data.text });
-    } catch (err) {
-        console.error('PDF Extract Error:', err);
-        res.status(500).json({ error: 'Failed to extract text from PDF' });
     }
 });
 
@@ -1690,7 +1675,7 @@ app.get('/api/teacher/dashboard-stats', authenticateJWT, requireTeacher, (req, r
         stats.studentCount = result1?.rows[0]?.count || 0;
         db.query('SELECT COUNT(*) as count FROM sessions s JOIN students st ON s.student_id = st.id WHERE st.assigned_teacher_id = $1 AND s.date LIKE $2', [teacherId, `${currentMonth}%`], (err, result2) => {
             stats.sessionCount = result2?.rows[0]?.count || 0;
-            db.query('SELECT COUNT(*) as count FROM students WHERE assigned_teacher_id = $1 AND status = "at_risk"', [teacherId], (err, result3) => {
+            db.query("SELECT COUNT(*) as count FROM students WHERE assigned_teacher_id = $1 AND status = 'at_risk'", [teacherId], (err, result3) => {
                 stats.atRiskCount = result3?.rows[0]?.count || 0;
                 db.query('SELECT AVG(score) as avg FROM exams e JOIN students st ON e.student_id = st.id WHERE st.assigned_teacher_id = $1', [teacherId], (err, result4) => {
                     stats.avgScore = result4?.rows[0]?.avg ? parseFloat(result4.rows[0].avg).toFixed(1) : 0;
@@ -1835,7 +1820,7 @@ app.post('/api/payments/auto-generate', authenticateJWT, requireAdmin, (req, res
             db.query('SELECT id FROM payments WHERE student_id = $1 AND amount = $2 AND due_date = $3',
                 [s.id, s.monthly_fee, dueDate], (err, exRes) => {
                     if (!exRes || !exRes.rows || exRes.rows.length === 0) {
-                        db.query('INSERT INTO payments (student_id, amount, due_date, status) VALUES ($1, $2, $3, "pendiente")',
+                        db.query("INSERT INTO payments (student_id, amount, due_date, status) VALUES ($1, $2, $3, 'pendiente')",
                             [s.id, s.monthly_fee, dueDate]);
                     }
                 });
@@ -1896,7 +1881,7 @@ app.get('/api/teacher-payments', authenticateJWT, requireAdmin, (req, res) => {
 
 app.post('/api/teacher-payments/:id/pay', authenticateJWT, requireAdmin, (req, res) => {
     const today = new Date().toISOString().split('T')[0];
-    db.query('UPDATE teacher_payments SET status = "paid", paid_at = $1 WHERE id = $2', [today, req.params.id], (err) => {
+    db.query("UPDATE teacher_payments SET status = 'paid', paid_at = $1 WHERE id = $2", [today, req.params.id], (err) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ success: true });
     });
