@@ -92,38 +92,6 @@ io.use((socket, next) => {
   }
 });
 
-io.on('connection', (socket) => {
-  console.log('Socket connected:', socket.id, 'user:', socket.user?.id);
-  
-  // Join user to their academy room
-  socket.join(`academy_${socket.user.academy_id}`);
-  socket.join(`user_${socket.user.id}`);
-
-  // Send message
-  socket.on('send_message', async ({ roomId, content }) => {
-    try {
-      const result = await db.query(
-        'INSERT INTO messages (room_id, sender_id, academy_id, content, created_at) VALUES ($1, $2, $3, $4, NOW()) RETURNING *',
-        [roomId, socket.user.id, socket.user.academy_id, content]
-      );
-      const message = result.rows[0];
-      // Broadcast to room members
-      io.to(`academy_${socket.user.academy_id}`).emit('new_message', {
-        ...message,
-        sender_name: socket.user.name,
-        sender_role: socket.user.role
-      });
-    } catch(err) {
-      console.error('Socket message error:', err.message);
-      socket.emit('error', { message: 'Error sending message' });
-    }
-  });
-
-  socket.on('disconnect', () => {
-    console.log('Socket disconnected:', socket.user?.id);
-  });
-});
-
 const isPostgres = !!process.env.DATABASE_URL;
 
 global.roomsEnsured = false;
@@ -2849,104 +2817,77 @@ io.on('error', (err) => console.error('Socket error:', err));
 io.on('connection', (socket) => {
     console.log('Socket connected:', socket.id);
 
-    socket.on('authenticate', (token) => {
-        try {
-            const decoded = jwt.verify(token, process.env.JWT_SECRET || 'super_secret_jwt');
-            socket.userId = decoded.id || decoded.userId;
-            console.log('Socket authenticated, userId:', socket.userId);
-            socket.emit('authenticated', { success: true, userId: socket.userId });
-        } catch (e) {
-            console.log('Socket auth failed:', e.message);
-            socket.emit('authenticated', { success: false });
-        }
-    });
+    // socket.user is already set by io.use() middleware
+    const user = socket.user;
+    if (!user) {
+        console.log('No user on socket, disconnecting');
+        socket.disconnect();
+        return;
+    }
 
-    socket.on('join_academy', (academyId) => {
-        socket.join(`academy_${academyId}`);
-    });
+    console.log('Socket authenticated, userId:', user.id, 'role:', user.role);
+
+    // Auto-join academy and user rooms
+    socket.join(`academy_${user.academy_id}`);
+    socket.join(`user_${user.id}`);
 
     socket.on('join_rooms', (roomIds) => {
-        roomIds.forEach(id => socket.join(`room_${id}`));
+        if (!Array.isArray(roomIds)) return;
+        roomIds.forEach(roomId => socket.join(`room_${roomId}`));
+        console.log('User', user.id, 'joined rooms:', roomIds);
     });
 
     socket.on('join_room', (roomId) => {
-        const roomName = 'room_' + roomId;
-        socket.join(roomName);
-        console.log('Socket', socket.userId, 'joined room:', roomName);
+        socket.join(`room_${roomId}`);
+    });
+
+    socket.on('sendMessage', async ({ roomId, content }) => {
+        console.log('sendMessage from', user.id, 'to room', roomId, ':', content);
+        try {
+            if (!roomId || !content?.trim()) return;
+
+            // Verify membership
+            const memberCheck = await db.query(
+                'SELECT 1 FROM room_members WHERE room_id = $1 AND user_id = $2',
+                [roomId, user.id]
+            );
+            if (!memberCheck.rows.length) {
+                console.log('User', user.id, 'not member of room', roomId);
+                socket.emit('error', { message: 'Not a member of this room' });
+                return;
+            }
+
+            // Save to DB
+            const result = await db.query(
+                `INSERT INTO messages (room_id, sender_id, academy_id, content, created_at)
+                 VALUES ($1, $2, $3, $4, NOW()) RETURNING *`,
+                [roomId, user.id, user.academy_id, content.trim()]
+            );
+            const message = result.rows[0];
+            console.log('Message saved to DB, id:', message.id);
+
+            // Broadcast to room
+            io.to(`room_${roomId}`).emit('new_message', {
+                ...message,
+                sender_name: user.name,
+                sender_role: user.role,
+                sender_id: user.id
+            });
+        } catch (err) {
+            console.error('sendMessage error:', err.message);
+            socket.emit('error', { message: 'Error sending message' });
+        }
+    });
+
+    socket.on('typing', ({ roomId }) => {
+        socket.to(`room_${roomId}`).emit('typing', {
+            userId: user.id,
+            userName: user.name
+        });
     });
 
     socket.on('disconnect', () => {
-        console.log('Socket disconnected:', socket.userId);
-    });
-
-    const handleSendMessage = async (data) => {
-        console.log('send_message received:', data);
-        console.log('socket.userId:', socket.userId);
-
-        try {
-            const { room_id, content, file_url, file_name } = data;
-            const sender_id = socket.userId;
-
-            if (!sender_id) {
-                console.log('ERROR: no sender_id on socket');
-                return;
-            }
-
-            // Get user info
-            const userResult = await db.query(
-                'SELECT id, name, academy_id FROM users WHERE id = $1',
-                [sender_id]
-            );
-            const userRows = userResult.rows || userResult;
-            const user = userRows[0];
-
-            if (!user) {
-                console.log('ERROR: user not found for id:', sender_id);
-                return;
-            }
-
-            console.log('Saving message from user:', user.name, 'to room:', room_id);
-
-            // Save to database
-            const insertSql = isPostgres
-                ? `INSERT INTO messages 
-                (room_id, sender_id, content, file_url, file_name, academy_id, read, created_at) 
-                VALUES ($1, $2, $3, $4, $5, $6, 0, NOW()) RETURNING id`
-                : `INSERT INTO messages 
-                (room_id, sender_id, content, file_url, file_name, academy_id, read, created_at) 
-                VALUES ($1, $2, $3, $4, $5, $6, 0, datetime('now'))`;
-
-            const result = await db.query(insertSql, [room_id, sender_id, content || '', file_url || null, file_name || null, user.academy_id]);
-
-            const messageId = isPostgres && result?.rows ? result.rows[0].id : result.lastID;
-            console.log('Message saved with id:', messageId);
-
-            // Emit to room
-            const messageData = {
-                id: messageId,
-                room_id: parseInt(room_id),
-                sender_id: sender_id,
-                sender_name: user.name,
-                content: content || '',
-                file_url: file_url || null,
-                file_name: file_name || null,
-                created_at: new Date().toISOString(),
-                read: 0
-            };
-
-            console.log('Emitting to room_' + room_id, messageData);
-            io.to('room_' + room_id).emit('new_message', messageData);
-
-        } catch (err) {
-            console.error('send_message error:', err);
-        }
-    };
-
-    socket.on('sendMessage', handleSendMessage);
-    socket.on('send_message', handleSendMessage);
-
-    socket.on('typing', (data) => {
-        socket.to(`room_${data.room_id}`).emit('typing', { room_id: data.room_id, user_name: data.user_name });
+        console.log('Socket disconnected:', user.id);
     });
 });
 
@@ -2975,10 +2916,19 @@ async function createDirectRoomIfNotExists(u1, u2, academyId) {
         [u1, u2, academyId]
     );
     if (!exists.rows || exists.rows.length === 0) {
+        // Look up names to build a meaningful room name
+        const usersRes = await db.query(
+            'SELECT id, name FROM users WHERE id = ANY($1::int[])',
+            [[u1, u2]]
+        );
+        const usersMap = {};
+        (usersRes.rows || []).forEach(u => { usersMap[u.id] = u.name; });
+        const roomName = `${usersMap[u1] || u1} - ${usersMap[u2] || u2}`;
+
         const insertSql = isPostgres
-            ? "INSERT INTO rooms (academy_id, type, name, created_at) VALUES ($1, 'direct', 'Direct', NOW()) RETURNING id"
-            : "INSERT INTO rooms (academy_id, type, name, created_at) VALUES ($1, 'direct', 'Direct', datetime('now'))";
-        const newR = await db.query(insertSql, [academyId]);
+            ? "INSERT INTO rooms (academy_id, type, name, created_at) VALUES ($1, 'direct', $2, NOW()) RETURNING id"
+            : "INSERT INTO rooms (academy_id, type, name, created_at) VALUES ($1, 'direct', $2, datetime('now'))";
+        const newR = await db.query(insertSql, [academyId, roomName]);
         const nrId = isPostgres && newR.rows ? newR.rows[0].id : newR.lastID;
 
         const insertMemberSql = isPostgres

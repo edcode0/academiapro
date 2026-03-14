@@ -480,24 +480,9 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        function getAuthToken() {
-            const token = localStorage.getItem('token') ||
-                localStorage.getItem('authToken') ||
-                localStorage.getItem('jwt') ||
-                sessionStorage.getItem('token') ||
-                sessionStorage.getItem('authToken');
-            const keyUsed = localStorage.getItem('token') ? 'localStorage.token'
-                : localStorage.getItem('authToken') ? 'localStorage.authToken'
-                : sessionStorage.getItem('token') ? 'sessionStorage.token' : 'none';
-            console.log('Token found:', token ? 'YES' : 'NO', '| Key:', keyUsed);
-            return token;
-        }
+        const token = localStorage.getItem('token');
+        if (!token) { window.location.href = '/login'; }
 
-        const token = getAuthToken();
-        if (!token) {
-            console.error('No token found, redirecting to login');
-            window.location.href = '/login';
-        }
         const socket = io({
             auth: { token: token },
             transports: ['websocket', 'polling']
@@ -505,41 +490,28 @@
 
         let currentUser = null;
         let activeRoom = null;
+        let currentRoomId = null;
         let allRooms = [];
 
         socket.on('connect', () => {
-            console.log('✅ Socket connected, id:', socket.id);
-
-            // Try all possible token locations
-            let token = getAuthToken();
-
-            console.log('Token value:', token ? token.substring(0, 20) + '...' : 'NOT FOUND');
-
-            if (!token) {
-                console.error('❌ No token found! User may not be logged in.');
-                // Try to get token from the page itself
-                const metaToken = document.querySelector('meta[name="token"]');
-                if (metaToken) {
-                    token = metaToken.content;
-                    console.log('Token found via meta tag');
-                }
-            }
-
-            socket.emit('authenticate', token);
-        });
-
-        socket.on('authenticated', (data) => {
-            console.log('🔐 Auth response:', data);
-            if (data.success) {
-                console.log('✅ Socket authenticated as userId:', data.userId);
-                loadRooms(); // load rooms after auth confirmed
-            } else {
-                console.error('❌ Socket auth failed');
-            }
+            console.log('Socket connected:', socket.id);
+            loadRooms();
         });
 
         socket.on('connect_error', (err) => {
-            console.error('Socket connection error:', err);
+            console.error('Socket error:', err.message);
+            if (err.message === 'No token' || err.message === 'Invalid token') {
+                window.location.href = '/login';
+            }
+        });
+
+        socket.on('new_message', (message) => {
+            console.log('New message received:', message);
+            if (currentRoomId === message.room_id) {
+                appendMessage(message);
+                markRoomAsRead(message.room_id);
+            }
+            updateRoomLastMessage(message.room_id, message.content);
         });
 
         async function init() {
@@ -553,7 +525,6 @@
 
             renderSidebar();
 
-            socket.emit('join_academy', currentUser.academy_id);
             try { await fetch('/api/chat/ensure-rooms', { method: 'POST' }); } catch (e) { console.error(e); }
             await loadRooms();
             updateTotalUnread();
@@ -568,8 +539,6 @@
             };
 
             document.getElementById('send-btn').onclick = () => sendMessage();
-            document.getElementById('attach-btn').onclick = () => document.getElementById('file-picker').click();
-            document.getElementById('file-picker').onchange = handleFileUpload;
         }
 
         function renderSidebar() {
@@ -650,6 +619,7 @@
 
         async function selectRoom(room) {
             activeRoom = room;
+            currentRoomId = room.id;
             document.getElementById('empty-state').style.display = 'none';
             document.getElementById('chat-box').style.display = 'flex';
             document.getElementById('header-name').textContent = room.name || 'Chat';
@@ -713,105 +683,47 @@
             area.scrollTop = area.scrollHeight;
         }
 
-        let pendingFile = null;
-
-        function handleFileUpload(e) {
-            pendingFile = e.target.files[0];
-            if (!pendingFile) return;
-
-            const container = document.getElementById('file-preview-container');
-            const content = document.getElementById('file-preview-content');
-
-            container.style.display = 'flex';
-
-            let previewHtml = '';
-            if (pendingFile.type.startsWith('image/')) {
-                const tempUrl = URL.createObjectURL(pendingFile);
-                previewHtml = `<img src="${tempUrl}" style="height: 40px; border-radius: 4px;"> <span style="font-size: 0.85rem; font-weight:600; color: var(--text-main);">${pendingFile.name}</span>`;
-            } else if (pendingFile.type === 'application/pdf') {
-                previewHtml = `📄 <span style="font-size: 0.85rem; font-weight:600; color: var(--text-main);">${pendingFile.name}</span>`;
-            } else {
-                previewHtml = `📎 <span style="font-size: 0.85rem; font-weight:600; color: var(--text-main);">${pendingFile.name}</span>`;
-            }
-
-            previewHtml += `<button onclick="clearFileSelection()" style="background:none; border:none; color:var(--danger); cursor:pointer; font-weight:bold; margin-left:1rem; font-size: 1.1rem; padding: 0 0.5rem;">×</button>`;
-            content.innerHTML = previewHtml;
-
-            e.target.value = '';
+        function appendMessage(msg) {
+            const area = document.getElementById('messages-area');
+            const duplicate = area.querySelector(`.msg[data-id="${msg.id}"]`);
+            if (duplicate) return;
+            area.insertAdjacentHTML('beforeend', renderMessage(msg));
+            area.scrollTop = area.scrollHeight;
         }
 
-        function clearFileSelection() {
-            pendingFile = null;
-            document.getElementById('file-preview-container').style.display = 'none';
-            document.getElementById('file-preview-content').innerHTML = '';
+        async function markRoomAsRead(roomId) {
+            await fetch(`/api/chat/mark-read/${roomId}`, { method: 'POST' });
+            updateTotalUnread();
+        }
+
+        function updateRoomLastMessage(roomId, content) {
+            const room = allRooms.find(r => r.id === roomId);
+            if (room) {
+                room.last_message = content;
+                renderRooms(allRooms);
+            }
         }
 
         async function sendMessage() {
             const input = document.getElementById('msg-input');
-            const txt = input.value.trim();
-            if (!txt && !pendingFile) return;
+            const content = input.value.trim();
+            if (!content || !currentRoomId) return;
 
-            let file_url = null;
-            let file_name = null;
-            let file_type = null;
-
-            if (pendingFile) {
-                const formData = new FormData();
-                formData.append('file', pendingFile);
-                try {
-                    const sendBtn = document.getElementById('send-btn');
-                    sendBtn.style.opacity = '0.5';
-                    sendBtn.style.pointerEvents = 'none';
-
-                    const res = await fetch('/api/chat/upload-file', {
-                        method: 'POST',
-                        headers: { 'Authorization': 'Bearer ' + getAuthToken() },
-                        body: formData
-                    });
-
-                    if (!res.ok) {
-                        const errData = await res.json();
-                        alert('Error subiendo archivo: ' + (errData.error || res.statusText));
-                        throw new Error('Upload error');
-                    }
-                    const dat = await res.json();
-                    file_url = dat.file_url;
-                    file_name = dat.file_name;
-                    file_type = dat.file_type;
-                } catch (err) {
-                    console.error('Error uploading file', err);
-                    const sendBtn = document.getElementById('send-btn');
-                    sendBtn.style.opacity = '1';
-                    sendBtn.style.pointerEvents = 'auto';
-                    return;
-                } finally {
-                    const sendBtn = document.getElementById('send-btn');
-                    sendBtn.style.opacity = '1';
-                    sendBtn.style.pointerEvents = 'auto';
-                }
-            }
-
-            const tempId = 'temp_' + Date.now();
-            const messageData = {
-                academy_id: currentUser.academy_id,
-                room_id: activeRoom.id,
+            // Optimistic UI update
+            const tempMessage = {
+                id: 'temp_' + Date.now(),
+                room_id: currentRoomId,
                 sender_id: currentUser.id,
-                content: txt,
-                file_url: file_url,
-                file_name: file_name,
-                file_type: file_type,
-                id: tempId,
-                created_at: new Date().toISOString(),
-                sender_name: currentUser.name
+                sender_name: currentUser.name,
+                sender_role: currentUser.role,
+                content: content,
+                created_at: new Date().toISOString()
             };
-
-            const area = document.getElementById('messages-area');
-            area.insertAdjacentHTML('beforeend', renderMessage(messageData));
-            area.scrollTop = area.scrollHeight;
-
-            socket.emit('sendMessage', messageData);
+            appendMessage(tempMessage);
             input.value = '';
-            clearFileSelection();
+
+            // Send via socket
+            socket.emit('sendMessage', { roomId: currentRoomId, content });
         }
 
         async function updateTotalUnread() {
@@ -823,40 +735,6 @@
                 else badge.style.display = 'none';
             }
         }
-
-        socket.on('new_message', (msg) => {
-            if (!activeRoom || activeRoom.id !== msg.room_id) {
-                updateTotalUnread();
-                loadRooms();
-                return; // ignore messages from other rooms
-            }
-
-            const area = document.getElementById('messages-area');
-
-            // Find existing temp message
-            const isMatched = Array.from(area.querySelectorAll('.msg')).find(el => {
-                const dataId = el.getAttribute('data-id');
-                if (dataId && dataId.startsWith('temp_')) {
-                    const contentEl = el.querySelector('.bubble div');
-                    const htmlContent = contentEl ? contentEl.textContent.trim() : '';
-                    const msgContent = msg.content ? msg.content.trim() : '';
-                    if (htmlContent === msgContent) return true;
-                    if (!msgContent && msg.file_url && el.innerHTML.includes(msg.file_name || 'Archivo')) return true;
-                }
-                return false;
-            });
-
-            if (isMatched) {
-                isMatched.setAttribute('data-id', msg.id);
-            } else {
-                const duplicate = area.querySelector(`.msg[data-id="${msg.id}"]`);
-                if (!duplicate) {
-                    area.insertAdjacentHTML('beforeend', renderMessage(msg));
-                    area.scrollTop = area.scrollHeight;
-                }
-            }
-            loadRooms();
-        });
 
         init();
     </script>
