@@ -481,27 +481,25 @@
     <script src="/socket.io/socket.io.js"></script>
     <script>
         function getAuthToken() {
-            // Try all possible storage locations
-            let token = localStorage.getItem('token') ||
+            const token = localStorage.getItem('token') ||
                 localStorage.getItem('authToken') ||
                 localStorage.getItem('jwt') ||
                 sessionStorage.getItem('token') ||
                 sessionStorage.getItem('authToken');
-
-            // Try cookie as fallback
-            if (!token) {
-                const match = document.cookie.match(/(?:^|;\s*)token=([^;]+)/);
-                if (match) token = match[1];
-            }
-
-            console.log('Token found:', token ? 'YES' : 'NO');
+            const keyUsed = localStorage.getItem('token') ? 'localStorage.token'
+                : localStorage.getItem('authToken') ? 'localStorage.authToken'
+                : sessionStorage.getItem('token') ? 'sessionStorage.token' : 'none';
+            console.log('Token found:', token ? 'YES' : 'NO', '| Key:', keyUsed);
             return token;
         }
 
+        const token = getAuthToken();
+        if (!token) {
+            console.error('No token found, redirecting to login');
+            window.location.href = '/login';
+        }
         const socket = io({
-            auth: {
-                token: getAuthToken()
-            },
+            auth: { token: token },
             transports: ['websocket', 'polling']
         });
 

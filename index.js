@@ -561,12 +561,8 @@ app.get('/auth/google/callback', passport.authenticate('google', { failureRedire
 
         console.log('Google Auth success:', email, 'role:', user.role);
 
-        // Explicit requested redirect implementation or fallback standard redirect
-        if (req.cookies.wants_auth_success === '1' || req.query.auth_success) {
-            return res.redirect(`/auth-success?token=${token}&role=${user.role}`);
-        } else if (user.role === 'admin') res.redirect('/');
-        else if (user.role === 'teacher') res.redirect('/teacher/dashboard');
-        else res.redirect('/student-portal');
+        // Always redirect through auth-success so localStorage token is saved for socket.io
+        return res.redirect(`/auth-success?token=${token}&role=${user.role}`);
 
     } catch (err) {
         console.error('Google callback error:', err);
