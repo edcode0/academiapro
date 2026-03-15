@@ -977,6 +977,8 @@ app.post('/api/ai-tutor/extract-pdf', authenticateJWT, async (req, res) => {
 
 app.post('/api/ai-tutor/chat', authenticateJWT, async (req, res) => {
     const { messages } = req.body;
+    console.log('[ai-tutor/chat] user:', req.user?.id, 'role:', req.user?.role, 'academy_id:', req.user?.academy_id);
+    console.log('[ai-tutor/chat] GROQ_API_KEY set:', !!process.env.GROQ_API_KEY);
     let systemPrompt = "Eres un asistente educativo inteligente de AcademiaPro. Ayudas a estudiantes con cualquier materia y duda académica. Explicas conceptos de forma clara y adaptada al nivel del alumno. Eres paciente, motivador y pedagógico. Responde SIEMPRE en español.";
 
     try {
@@ -989,11 +991,13 @@ app.post('/api/ai-tutor/chat', authenticateJWT, async (req, res) => {
         const userMessageStr = typeof userMessage === 'string' ? userMessage : JSON.stringify(userMessage);
 
         // Get or create conversation
+        console.log('[ai-tutor/chat] looking for conversation user_id=%s academy_id=%s', req.user.id, req.user.academy_id);
         const convResult = await db.query(
           'SELECT id FROM ai_conversations WHERE user_id = $1 AND academy_id = $2 ORDER BY created_at DESC LIMIT 1',
           [req.user.id, req.user.academy_id]
         );
         let conversationId = convResult.rows?.[0]?.id;
+        console.log('[ai-tutor/chat] existing conversationId:', conversationId);
 
         if (!conversationId) {
           const newConv = await db.query(
@@ -1001,10 +1005,11 @@ app.post('/api/ai-tutor/chat', authenticateJWT, async (req, res) => {
             [req.user.id, req.user.academy_id]
           );
           conversationId = newConv.rows[0].id;
-          console.log('Created new conversation:', conversationId);
+          console.log('[ai-tutor/chat] created new conversation:', conversationId);
         }
 
         // Save user message BEFORE calling AI
+        console.log('[ai-tutor/chat] saving user message to conversation', conversationId);
         await db.query(
           'INSERT INTO ai_messages (conversation_id, role, content, created_at) VALUES ($1, $2, $3, NOW())',
           [conversationId, 'user', userMessageStr]
@@ -1028,10 +1033,11 @@ app.post('/api/ai-tutor/chat', authenticateJWT, async (req, res) => {
           'INSERT INTO ai_messages (conversation_id, role, content, created_at) VALUES ($1, $2, $3, NOW())',
           [conversationId, 'assistant', aiResponse]
         );
+        console.log('[ai-tutor/chat] messages saved OK, conversation', conversationId);
 
         res.json({ response: aiResponse });
     } catch (e) {
-        console.error('Groq Error:', e);
+        console.error('[ai-tutor/chat] ERROR:', e.message, e.stack);
         res.status(500).json({ error: e.message });
     }
 });
