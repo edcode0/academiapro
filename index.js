@@ -1746,6 +1746,56 @@ app.get('/api/exams-list', authenticateJWT, (req, res) => {
     });
 });
 
+// Enriched exams data for exams.html (ranking + stats)
+app.get('/api/exams-data', authenticateJWT, async (req, res) => {
+    try {
+        let sql = 'SELECT e.*, st.name as student_name, st.id as student_id FROM exams e JOIN students st ON e.student_id = st.id WHERE st.academy_id = $1';
+        let params = [req.user.academy_id];
+        if (req.user.role === 'teacher') {
+            sql += ' AND st.assigned_teacher_id = $2';
+            params.push(req.user.id);
+        }
+        const result = await db.query(sql + ' ORDER BY e.date DESC', params);
+        const exams = result.rows || [];
+
+        const thisMonth = new Date().toISOString().slice(0, 7);
+        const scored = exams.filter(e => e.score != null);
+        const avgScore = scored.length > 0 ? (scored.reduce((s, e) => s + e.score, 0) / scored.length).toFixed(1) : '0.0';
+        const failingCount = scored.filter(e => e.score < 5).length;
+        const thisMonthCount = exams.filter(e => (e.date || '').startsWith(thisMonth)).length;
+
+        // Group by student for ranking
+        const byStudent = {};
+        exams.forEach(e => {
+            if (!byStudent[e.student_id]) byStudent[e.student_id] = { student_id: e.student_id, student_name: e.student_name, scores: [], subjects: [] };
+            if (e.score != null) byStudent[e.student_id].scores.push(e.score);
+            if (e.subject) byStudent[e.student_id].subjects.push(e.subject);
+        });
+
+        let bestStudent = '-', bestAvg = -1;
+        Object.values(byStudent).forEach(s => {
+            if (s.scores.length > 0) {
+                const avg = s.scores.reduce((a, b) => a + b, 0) / s.scores.length;
+                if (avg > bestAvg) { bestAvg = avg; bestStudent = s.student_name; }
+            }
+        });
+
+        const ranking = Object.values(byStudent).map(s => {
+            const avg = s.scores.length > 0 ? (s.scores.reduce((a, b) => a + b, 0) / s.scores.length).toFixed(1) : '0.0';
+            let trend = '→';
+            if (s.scores.length >= 2) trend = s.scores[0] > s.scores[1] ? '↑' : (s.scores[0] < s.scores[1] ? '↓' : '→');
+            const subjectFreq = {};
+            s.subjects.forEach(sub => { subjectFreq[sub] = (subjectFreq[sub] || 0) + 1; });
+            const main_subject = Object.entries(subjectFreq).sort((a, b) => b[1] - a[1])[0]?.[0] || '-';
+            return { student_id: s.student_id, student_name: s.student_name, avg_score: parseFloat(avg), total_exams: s.scores.length, main_subject, trend };
+        }).sort((a, b) => b.avg_score - a.avg_score);
+
+        res.json({ exams, ranking, stats: { avgScore, failingCount, thisMonthCount, bestStudent } });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Detailed Student Profile Data
 app.get('/api/student-detail/:id', authenticateJWT, (req, res) => {
     const id = req.params.id;
@@ -1891,7 +1941,7 @@ app.get('/api/teacher-payments', authenticateJWT, requireAdmin, (req, res) => {
 
 app.post('/api/teacher-payments/:id/pay', authenticateJWT, requireAdmin, (req, res) => {
     const today = new Date().toISOString().split('T')[0];
-    db.query("UPDATE teacher_payments SET status = 'paid', paid_at = $1 WHERE id = $2", [today, req.params.id], (err) => {
+    db.query("UPDATE teacher_payments SET status = 'paid', paid_at = $1 WHERE id = $2 AND academy_id = $3", [today, req.params.id, req.user.academy_id], (err) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ success: true });
     });
@@ -2323,9 +2373,21 @@ app.get('/api/chat/rooms/:roomId/messages', authenticateJWT, async (req, res) =>
     }
 });
 
+app.get('/api/chat/contacts', authenticateJWT, async (req, res) => {
+    try {
+        const result = await db.query(
+            'SELECT id, name, role FROM users WHERE academy_id = $1 AND id != $2 ORDER BY role, name',
+            [req.user.academy_id, req.user.id]
+        );
+        res.json(result.rows || []);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.post('/api/chat/upload', authenticateJWT, upload.single('file'), (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'No hay archivo' });
-    const fileUrl = `/ uploads / chat / ${req.file.filename} `;
+    const fileUrl = `/uploads/chat/${req.file.filename}`;
     res.json({ url: fileUrl, name: req.file.originalname });
 });
 
@@ -2401,11 +2463,13 @@ app.post('/api/academy/regenerate', authenticateJWT, requireAdmin, (req, res) =>
 // --- AI TUTOR / ASSISTANT CONVERSATION HISTORY ---
 
 // List conversations for current user
-app.get('/api/ai/conversations', authenticateJWT, (req, res) => {
-    db.all('SELECT * FROM ai_conversations WHERE user_id = $1 ORDER BY COALESCE(is_pinned, FALSE) DESC, updated_at DESC', [req.user.id], (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json(rows);
-    });
+app.get('/api/ai/conversations', authenticateJWT, async (req, res) => {
+    try {
+        const result = await db.query('SELECT * FROM ai_conversations WHERE user_id = $1 ORDER BY COALESCE(is_pinned, FALSE) DESC, updated_at DESC', [req.user.id]);
+        res.json(result.rows || []);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Create new conversation
@@ -2427,11 +2491,13 @@ app.put('/api/ai/conversations/:id/pin', authenticateJWT, (req, res) => {
 });
 
 // Get messages for a conversation
-app.get('/api/ai/conversations/:id/messages', authenticateJWT, (req, res) => {
-    db.all('SELECT * FROM ai_messages WHERE conversation_id = $1 ORDER BY created_at ASC', [req.params.id], (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json(rows);
-    });
+app.get('/api/ai/conversations/:id/messages', authenticateJWT, async (req, res) => {
+    try {
+        const result = await db.query('SELECT * FROM ai_messages WHERE conversation_id = $1 ORDER BY created_at ASC', [req.params.id]);
+        res.json(result.rows || []);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Save message to conversation
@@ -2487,11 +2553,13 @@ app.post('/api/simulator/results', authenticateJWT, (req, res) => {
 });
 
 // Get simulator results for a student (Teacher/Admin access)
-app.get('/api/simulator/results/student/:studentId', authenticateJWT, (req, res) => {
-    db.all('SELECT * FROM simulator_results WHERE student_id = $1 ORDER BY created_at DESC', [req.params.studentId], (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json(rows);
-    });
+app.get('/api/simulator/results/student/:studentId', authenticateJWT, async (req, res) => {
+    try {
+        const result = await db.query('SELECT * FROM simulator_results WHERE student_id = $1 ORDER BY created_at DESC', [req.params.studentId]);
+        res.json(result.rows || []);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Get single result detail
@@ -2518,16 +2586,16 @@ app.put('/api/simulator/results/:id/grade', authenticateJWT, requireTeacher, (re
 // --- STUDENT EXAM MANAGEMENT ---
 
 // GET exams for current student
-app.get('/api/exams/student', authenticateJWT, (req, res) => {
-    db.query('SELECT id FROM students WHERE user_id = $1', [req.user.id], (err, sRes) => {
-        const student = sRes?.rows[0];
+app.get('/api/exams/student', authenticateJWT, async (req, res) => {
+    try {
+        const sRes = await db.query('SELECT id FROM students WHERE user_id = $1', [req.user.id]);
+        const student = sRes.rows?.[0];
         if (!student) return res.status(403).json({ error: 'Perfil de estudiante no encontrado' });
-
-        db.all('SELECT * FROM exams WHERE student_id = $1 ORDER BY date DESC', [student.id], (err, rows) => {
-            if (err) return res.status(500).json({ error: err.message });
-            res.json(rows);
-        });
-    });
+        const result = await db.query('SELECT * FROM exams WHERE student_id = $1 ORDER BY date DESC', [student.id]);
+        res.json(result.rows || []);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // POST new exam (student adding it)
@@ -2635,13 +2703,15 @@ app.put('/api/exams/:id/score', authenticateJWT, (req, res) => {
 });
 
 // Settings API
-app.get('/api/settings', authenticateJWT, (req, res) => {
-    db.all("SELECT * FROM settings", [], (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
+app.get('/api/settings', authenticateJWT, async (req, res) => {
+    try {
+        const result = await db.query("SELECT * FROM settings");
         const settings = {};
-        rows.forEach(r => settings[r.key] = r.value);
+        (result.rows || []).forEach(r => settings[r.key] = r.value);
         res.json(settings);
-    });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 app.post('/api/settings', authenticateJWT, requireAdmin, async (req, res) => {
