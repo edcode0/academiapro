@@ -2678,6 +2678,102 @@ app.put('/api/exams/:id/score', authenticateJWT, (req, res) => {
 });
 
 
+// --- Scoped CRUD: exams, sessions, payments (with academy_id isolation) ---
+// These specific routes are registered BEFORE the generic forEach loop so they take precedence.
+// exams/sessions/payments don't have academy_id directly; we scope via student_id subquery.
+
+app.post('/api/exams', authenticateJWT, async (req, res) => {
+    try {
+        const { student_id, subject, score, date, notes } = req.body;
+        const result = await db.query(
+            'INSERT INTO exams (student_id, subject, score, date, notes) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+            [student_id, subject, score || null, date || new Date().toISOString().split('T')[0], notes || '']
+        );
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.put('/api/exams/:id', authenticateJWT, async (req, res) => {
+    try {
+        const { subject, score, date, notes } = req.body;
+        const result = await db.query(
+            `UPDATE exams SET subject=$1, score=$2, date=$3, notes=$4
+             WHERE id=$5 AND student_id IN (SELECT id FROM students WHERE academy_id=$6) RETURNING *`,
+            [subject, score, date, notes, req.params.id, req.user.academy_id]
+        );
+        res.json(result.rows[0] || { updated: 0 });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/exams/:id', authenticateJWT, async (req, res) => {
+    try {
+        await db.query(
+            'DELETE FROM exams WHERE id=$1 AND student_id IN (SELECT id FROM students WHERE academy_id=$2)',
+            [req.params.id, req.user.academy_id]
+        );
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.put('/api/sessions/:id', authenticateJWT, async (req, res) => {
+    try {
+        const { date, duration_minutes, homework_done, teacher_notes } = req.body;
+        const result = await db.query(
+            `UPDATE sessions SET date=$1, duration_minutes=$2, homework_done=$3, teacher_notes=$4
+             WHERE id=$5 AND student_id IN (SELECT id FROM students WHERE academy_id=$6) RETURNING *`,
+            [date, duration_minutes, homework_done, teacher_notes, req.params.id, req.user.academy_id]
+        );
+        res.json(result.rows[0] || { updated: 0 });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/sessions/:id', authenticateJWT, async (req, res) => {
+    try {
+        await db.query(
+            'DELETE FROM sessions WHERE id=$1 AND student_id IN (SELECT id FROM students WHERE academy_id=$2)',
+            [req.params.id, req.user.academy_id]
+        );
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.put('/api/payments/:id', authenticateJWT, async (req, res) => {
+    try {
+        const { amount, due_date, status, paid_date } = req.body;
+        const result = await db.query(
+            `UPDATE payments SET amount=$1, due_date=$2, status=$3, paid_date=$4
+             WHERE id=$5 AND student_id IN (SELECT id FROM students WHERE academy_id=$6) RETURNING *`,
+            [amount, due_date, status, paid_date, req.params.id, req.user.academy_id]
+        );
+        res.json(result.rows[0] || { updated: 0 });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/payments/:id', authenticateJWT, async (req, res) => {
+    try {
+        await db.query(
+            'DELETE FROM payments WHERE id=$1 AND student_id IN (SELECT id FROM students WHERE academy_id=$2)',
+            [req.params.id, req.user.academy_id]
+        );
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Generic CRUD fallback (no academy scoping — specific routes above take precedence for exams/sessions/payments)
 ['students', 'sessions', 'exams', 'payments'].forEach(tableName => {
     app.put(`/api/${tableName}/:id`, authenticateJWT, (req, res) => {
         const keys = Object.keys(req.body);
@@ -2703,7 +2799,7 @@ app.put('/api/exams/:id/score', authenticateJWT, (req, res) => {
 });
 
 // Settings API
-app.get('/api/settings', authenticateJWT, async (req, res) => {
+app.get('/api/settings', authenticateJWT, requireAdmin, async (req, res) => {
     try {
         const result = await db.query("SELECT * FROM settings");
         const settings = {};
