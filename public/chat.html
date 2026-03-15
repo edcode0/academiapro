@@ -539,6 +539,35 @@
             };
 
             document.getElementById('send-btn').onclick = () => sendMessage();
+
+            // Attachment button opens file picker
+            document.getElementById('attach-btn').onclick = () => document.getElementById('file-picker').click();
+
+            // File picker: upload then send as message
+            document.getElementById('file-picker').onchange = async (e) => {
+                const file = e.target.files[0];
+                if (!file || !currentRoomId) return;
+                try {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    const uploadRes = await fetch('/api/chat/upload-file', {
+                        method: 'POST',
+                        headers: { 'Authorization': 'Bearer ' + token },
+                        body: formData
+                    });
+                    if (!uploadRes.ok) { console.error('Upload failed:', await uploadRes.text()); return; }
+                    const fileData = await uploadRes.json();
+                    await fetch(`/api/chat/rooms/${currentRoomId}/messages`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                        body: JSON.stringify({ content: fileData.file_name, file_url: fileData.file_url, file_name: fileData.file_name, file_type: fileData.file_type })
+                    });
+                } catch (err) {
+                    console.error('File send error:', err);
+                } finally {
+                    e.target.value = '';
+                }
+            };
         }
 
         function renderSidebar() {
@@ -581,7 +610,9 @@
         }
 
         async function loadRooms() {
-            const res = await fetch('/api/chat/rooms');
+            const res = await fetch('/api/chat/rooms', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
             allRooms = await res.json();
             renderRooms(allRooms);
             socket.emit('join_rooms', allRooms.map(r => r.id));
@@ -634,11 +665,9 @@
             socket.emit('join_room', room.id);
 
             // Fetch only messages for THIS room
-            let token = '';
-            try { token = typeof getAuthToken === 'function' ? getAuthToken() : ''; } catch (e) { }
-            const options = token ? { headers: { 'Authorization': 'Bearer ' + token } } : {};
-
-            const res = await fetch(`/api/chat/rooms/${room.id}/messages`, options);
+            const res = await fetch(`/api/chat/rooms/${room.id}/messages`, {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
             const messages = await res.json();
 
             // Render only these messages

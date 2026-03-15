@@ -2292,10 +2292,10 @@ app.post('/api/chat/messages', authenticateJWT, async (req, res) => {
 
 app.post('/api/chat/rooms/:roomId/messages', authenticateJWT, async (req, res) => {
     try {
-        const { content } = req.body;
+        const { content, file_url, file_name, file_type } = req.body;
         const roomId = parseInt(req.params.roomId);
-        if (!content || !roomId) {
-            return res.status(400).json({ error: 'content and roomId required' });
+        if ((!content && !file_url) || !roomId) {
+            return res.status(400).json({ error: 'content or file_url and roomId required' });
         }
         const memberCheck = await db.query(
             'SELECT 1 FROM room_members WHERE room_id = $1 AND user_id = $2',
@@ -2305,9 +2305,9 @@ app.post('/api/chat/rooms/:roomId/messages', authenticateJWT, async (req, res) =
             return res.status(403).json({ error: 'Not a member of this room' });
         }
         const result = await db.query(
-            `INSERT INTO messages (room_id, sender_id, academy_id, content, created_at)
-             VALUES ($1, $2, $3, $4, NOW()) RETURNING *`,
-            [roomId, req.user.id, req.user.academy_id, content]
+            `INSERT INTO messages (room_id, sender_id, academy_id, content, file_url, file_name, file_type, created_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, NOW()) RETURNING *`,
+            [roomId, req.user.id, req.user.academy_id, content || '', file_url || null, file_name || null, file_type || null]
         );
         const message = result.rows[0];
         if (typeof io !== 'undefined') {
