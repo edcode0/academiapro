@@ -1102,12 +1102,13 @@
                         'Content-Type': 'application/json',
                         'Authorization': 'Bearer ' + token
                     },
-                    body: JSON.stringify({ messages: apiPayload })
+                    body: JSON.stringify({ messages: apiPayload, conversationId: currentConversationId })
                 });
 
                 if (res.ok) {
                     const data = await res.json();
                     const aiContent = data.response;
+                    if (data.conversationId) currentConversationId = data.conversationId;
                     messagesContext.push({ role: 'assistant', content: aiContent, timestamp: new Date().toISOString() });
                     renderMessages();
                     loadConversations();
