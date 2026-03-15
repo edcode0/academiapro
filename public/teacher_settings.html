@@ -358,6 +358,27 @@
             </div>
         </div>
 
+        <div class="settings-card" id="gmail-card">
+            <h3>📧 Gmail &amp; Transcripciones Automáticas</h3>
+            <p class="desc">Conecta tu Gmail para que AcademiaPro detecte automáticamente las transcripciones de Google Meet y las envíe al chat del alumno.</p>
+
+            <div id="gmail-status-badge" style="margin-top:1rem;padding:0.6rem 1rem;border-radius:0.5rem;display:inline-block;font-weight:600;font-size:0.9rem;">Cargando...</div>
+
+            <div class="info-row" style="margin-top:1.25rem;">
+                <span class="info-label">Email alternativo para transcripciones</span>
+            </div>
+            <div style="display:flex;gap:0.75rem;margin-top:0.5rem;">
+                <input type="email" id="transcript-email" placeholder="tu@email.com"
+                    style="flex:1;padding:0.6rem 1rem;border:1px solid var(--border);border-radius:0.5rem;font-size:0.9rem;">
+                <button class="btn btn-ghost" onclick="saveTranscriptEmail()">Guardar</button>
+            </div>
+
+            <div style="margin-top:1.5rem;display:flex;gap:0.75rem;flex-wrap:wrap;">
+                <button class="btn btn-primary" id="gmail-connect-btn" onclick="connectGmail()">🔗 Conectar Gmail</button>
+                <button class="btn btn-ghost" onclick="checkTranscriptsNow(event)">🔄 Buscar transcripciones ahora</button>
+            </div>
+        </div>
+
         <div class="danger-zone"
             style="margin-top: 2rem; border: 1px solid #fee2e2; border-radius: 12px; padding: 1.5rem; background: #fff5f5;">
             <h3 style="color: #dc2626; margin-bottom: 0.5rem;">⚠️ Zona de peligro</h3>
@@ -462,6 +483,93 @@
         });
 
         init();
+
+        // ── Gmail functions ──────────────────────────────────────────────────
+        async function loadGmailStatus() {
+            const token = localStorage.getItem('token');
+            try {
+                const res = await fetch('/api/gmail/status', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const data = await res.json();
+                const badge = document.getElementById('gmail-status-badge');
+                const btn = document.getElementById('gmail-connect-btn');
+                if (data.connected) {
+                    badge.textContent = '✅ Gmail conectado';
+                    badge.style.background = '#d1fae5';
+                    badge.style.color = '#065f46';
+                    btn.textContent = '🔄 Reconectar Gmail';
+                } else {
+                    badge.textContent = '❌ Gmail no conectado';
+                    badge.style.background = '#fee2e2';
+                    badge.style.color = '#991b1b';
+                }
+                if (data.transcript_email) {
+                    document.getElementById('transcript-email').value = data.transcript_email;
+                }
+            } catch (e) {
+                console.error('Gmail status error:', e);
+            }
+        }
+
+        async function connectGmail() {
+            const token = localStorage.getItem('token');
+            const res = await fetch('/api/gmail/connect', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            const data = await res.json();
+            if (data.authUrl) window.location.href = data.authUrl;
+        }
+
+        async function saveTranscriptEmail() {
+            const token = localStorage.getItem('token');
+            const email = document.getElementById('transcript-email').value.trim();
+            if (!email) return;
+            const res = await fetch('/api/gmail/transcript-email', {
+                method: 'PUT',
+                headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ transcript_email: email })
+            });
+            if (res.ok) showToast('✅ Email alternativo guardado');
+        }
+
+        async function checkTranscriptsNow(e) {
+            const token = localStorage.getItem('token');
+            const btn = e.target;
+            btn.textContent = '⏳ Buscando...';
+            btn.disabled = true;
+            try {
+                const res = await fetch('/api/gmail/check-transcripts', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    showToast('⚠️ ' + (data.error || 'Error al buscar'));
+                } else if (data.processed > 0) {
+                    showToast(`✅ ${data.processed} transcripción(es) procesada(s) y enviadas al chat`);
+                } else {
+                    showToast('📭 No se encontraron transcripciones nuevas');
+                }
+            } catch (err) {
+                showToast('❌ Error de conexión');
+            } finally {
+                btn.textContent = '🔄 Buscar transcripciones ahora';
+                btn.disabled = false;
+            }
+        }
+
+        // Handle ?gmail=connected redirect from OAuth callback
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('gmail') === 'connected') {
+            showToast('✅ Gmail conectado correctamente');
+            history.replaceState({}, '', '/teacher/settings');
+        } else if (urlParams.get('gmail') === 'error') {
+            showToast('❌ Error al conectar Gmail. Inténtalo de nuevo.');
+            history.replaceState({}, '', '/teacher/settings');
+        }
+
+        loadGmailStatus();
     </script>
 </body>
 

@@ -471,7 +471,14 @@ async function initDb() {
     "ALTER TABLE ai_conversations ADD COLUMN IF NOT EXISTS academy_id INTEGER",
 
     // Ensure academy_id exists on settings (for older deploys)
-    "ALTER TABLE settings ADD COLUMN IF NOT EXISTS academy_id INTEGER"
+    "ALTER TABLE settings ADD COLUMN IF NOT EXISTS academy_id INTEGER",
+
+    // Gmail OAuth + transcript email columns on users
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS transcript_email VARCHAR(255)",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS gmail_access_token TEXT",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS gmail_refresh_token TEXT",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS gmail_token_expiry BIGINT",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS gmail_last_check TIMESTAMP"
   ];
 
   for (const sql of migrations) {
