@@ -463,7 +463,10 @@ async function initDb() {
       raw_text TEXT,
       processed_json TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`
+    )`,
+
+    // Add academy_id to ai_conversations if missing
+    "ALTER TABLE ai_conversations ADD COLUMN IF NOT EXISTS academy_id INTEGER"
   ];
 
   for (const sql of migrations) {

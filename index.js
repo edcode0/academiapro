@@ -984,26 +984,34 @@ app.post('/api/ai-tutor/chat', authenticateJWT, async (req, res) => {
             systemPrompt = "Eres un asistente pedagógico inteligente de AcademiaPro. Ayudas a profesores a preparar clases, crear ejercicios, explicar conceptos difíciles, gestionar alumnos y mejorar su metodología docente. Responde SIEMPRE en español.";
         }
 
+        // Extract user message before anything else
+        const userMessage = messages[messages.length - 1]?.content || '';
+        const userMessageStr = typeof userMessage === 'string' ? userMessage : JSON.stringify(userMessage);
+
         // Get or create conversation
-        let conversationId;
         const convResult = await db.query(
           'SELECT id FROM ai_conversations WHERE user_id = $1 AND academy_id = $2 ORDER BY created_at DESC LIMIT 1',
           [req.user.id, req.user.academy_id]
-        ).catch(() => ({ rows: [] }));
+        );
+        let conversationId = convResult.rows?.[0]?.id;
 
-        if (convResult.rows?.[0]) {
-          conversationId = convResult.rows[0].id;
-        } else {
+        if (!conversationId) {
           const newConv = await db.query(
             'INSERT INTO ai_conversations (user_id, academy_id, created_at) VALUES ($1, $2, NOW()) RETURNING id',
             [req.user.id, req.user.academy_id]
           );
           conversationId = newConv.rows[0].id;
+          console.log('Created new conversation:', conversationId);
         }
+
+        // Save user message BEFORE calling AI
+        await db.query(
+          'INSERT INTO ai_messages (conversation_id, role, content, created_at) VALUES ($1, $2, $3, NOW())',
+          [conversationId, 'user', userMessageStr]
+        );
 
         // Check if any message contains a doc/image object (like PDF base64).
         const hasComplexContent = messages.some(m => Array.isArray(m.content));
-        // Fallback model if we have documents (llama-3.2-11b-vision-preview or fallback versatile)
         const modelToUse = hasComplexContent ? "llama-3.2-11b-vision-preview" : "llama-3.3-70b-versatile";
 
         const apiResponse = await groqClient.chat.completions.create({
@@ -1015,18 +1023,11 @@ app.post('/api/ai-tutor/chat', authenticateJWT, async (req, res) => {
 
         const aiResponse = apiResponse.choices[0].message.content;
 
-        // Save user message (assuming last message is from user)
-        const userMessage = messages[messages.length - 1]?.content || '';
-        await db.query(
-          'INSERT INTO ai_messages (conversation_id, role, content, created_at) VALUES ($1, $2, $3, NOW())',
-          [conversationId, 'user', typeof userMessage === 'string' ? userMessage : JSON.stringify(userMessage)]
-        ).catch(e => console.log('Save user msg error:', e.message));
-
-        // Save AI response  
+        // Save AI response
         await db.query(
           'INSERT INTO ai_messages (conversation_id, role, content, created_at) VALUES ($1, $2, $3, NOW())',
           [conversationId, 'assistant', aiResponse]
-        ).catch(e => console.log('Save ai msg error:', e.message));
+        );
 
         res.json({ response: aiResponse });
     } catch (e) {
@@ -1038,20 +1039,20 @@ app.post('/api/ai-tutor/chat', authenticateJWT, async (req, res) => {
 app.get('/api/ai-tutor/history', authenticateJWT, async (req, res) => {
   try {
     const convResult = await db.query(
-      'SELECT id FROM ai_conversations WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1',
-      [req.user.id]
+      'SELECT id FROM ai_conversations WHERE user_id = $1 AND academy_id = $2 ORDER BY created_at DESC LIMIT 1',
+      [req.user.id, req.user.academy_id]
     );
     const conv = convResult.rows?.[0];
-    if (!conv) return res.json({ messages: [] });
+    if (!conv) return res.json({ messages: [], conversationId: null });
 
     const messagesResult = await db.query(
-      'SELECT role, content, created_at FROM ai_messages WHERE conversation_id = $1 ORDER BY created_at ASC LIMIT 50',
+      'SELECT id, role, content, created_at FROM ai_messages WHERE conversation_id = $1 ORDER BY created_at ASC',
       [conv.id]
     );
-    res.json({ messages: messagesResult.rows || [] });
+    res.json({ messages: messagesResult.rows || [], conversationId: conv.id });
   } catch(err) {
     console.error('History error:', err.message);
-    res.json({ messages: [] });
+    res.json({ messages: [], conversationId: null });
   }
 });
 

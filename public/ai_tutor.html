@@ -742,9 +742,13 @@
                         messagesContext.push({ role: msg.role, content: msg.content, timestamp: msg.created_at || new Date().toISOString() });
                     });
                     renderMessages();
+                    console.log('Loaded', data.messages.length, 'messages from history');
+                    return true;
                 }
+                return false;
             } catch (e) {
-                console.log('History load error:', e);
+                console.error('History load error:', e);
+                return false;
             }
         }
 
@@ -755,8 +759,10 @@
                     userData = await res.json();
                     setupUserUI(userData);
                     await loadConversations();
-                    startNewConversation();
-                    await loadChatHistory();
+                    const hasHistory = await loadChatHistory();
+                    if (!hasHistory) {
+                        startNewConversation();
+                    }
                 }
             } catch (err) { console.error(err); }
 
