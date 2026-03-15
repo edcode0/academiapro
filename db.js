@@ -358,7 +358,7 @@ async function initDb() {
       academy_id INTEGER,
       type TEXT,
       name TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`,
 
     `CREATE TABLE IF NOT EXISTS room_members (
@@ -381,7 +381,7 @@ async function initDb() {
       end_datetime TEXT,
       is_booked INTEGER DEFAULT 0,
       student_id INTEGER,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`,
 
     `CREATE TABLE IF NOT EXISTS settings (
@@ -408,19 +408,20 @@ async function initDb() {
     `CREATE TABLE IF NOT EXISTS ai_conversations (
       id ${idType},
       user_id INTEGER NOT NULL,
+      academy_id INTEGER,
       title TEXT,
       is_pinned BOOLEAN DEFAULT FALSE,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`,
 
     // 2. AI Messages
     `CREATE TABLE IF NOT EXISTS ai_messages (
       id ${idType},
       conversation_id INTEGER NOT NULL,
-      role TEXT NOT NULL, -- 'user' or 'assistant'
+      role TEXT NOT NULL,
       content TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`,
 
     // 3. Simulator Results
@@ -433,12 +434,12 @@ async function initDb() {
       score REAL,
       max_score REAL,
       percentage REAL,
-      questions_json TEXT, -- JSON string
-      answers_json TEXT, -- JSON string
-      teacher_grade REAL, -- 0-10
+      questions_json TEXT,
+      answers_json TEXT,
+      teacher_grade REAL,
       teacher_feedback TEXT,
-      graded_at DATETIME,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      graded_at TIMESTAMP,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`,
 
     // 4. Update Exams table
@@ -451,7 +452,7 @@ async function initDb() {
       student_id INTEGER NOT NULL,
       month INTEGER NOT NULL,
       year INTEGER NOT NULL,
-      sent_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`,
 
     // 6. Transcripts
@@ -462,10 +463,10 @@ async function initDb() {
       student_id INTEGER,
       raw_text TEXT,
       processed_json TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`,
 
-    // Add academy_id to ai_conversations if missing
+    // Ensure academy_id exists on ai_conversations (for older deploys)
     "ALTER TABLE ai_conversations ADD COLUMN IF NOT EXISTS academy_id INTEGER"
   ];
 
