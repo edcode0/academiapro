@@ -2798,12 +2798,18 @@ app.delete('/api/payments/:id', authenticateJWT, async (req, res) => {
     });
 });
 
-// Settings API
+// Settings API — all keys stored as "{academy_id}_{key}" for multi-tenancy isolation
 app.get('/api/settings', authenticateJWT, requireAdmin, async (req, res) => {
     try {
-        const result = await db.query("SELECT * FROM settings");
+        const prefix = `${req.user.academy_id}_`;
+        const result = await db.query(
+            "SELECT key, value FROM settings WHERE key LIKE $1",
+            [prefix + '%']
+        );
         const settings = {};
-        (result.rows || []).forEach(r => settings[r.key] = r.value);
+        (result.rows || []).forEach(r => {
+            settings[r.key.slice(prefix.length)] = r.value;
+        });
         res.json(settings);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -2812,12 +2818,14 @@ app.get('/api/settings', authenticateJWT, requireAdmin, async (req, res) => {
 
 app.post('/api/settings', authenticateJWT, requireAdmin, async (req, res) => {
     const settings = req.body;
+    const academyId = req.user.academy_id;
     try {
         for (const [key, val] of Object.entries(settings)) {
+            const prefixedKey = `${academyId}_${key}`;
             const sql = isPostgres
-                ? "INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value"
-                : "INSERT OR REPLACE INTO settings (key, value) VALUES ($1, $2)";
-            await db.query(sql, [key, String(val)]);
+                ? "INSERT INTO settings (key, value, academy_id) VALUES ($1, $2, $3) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value"
+                : "INSERT OR REPLACE INTO settings (key, value, academy_id) VALUES ($1, $2, $3)";
+            await db.query(sql, [prefixedKey, String(val), academyId]);
         }
         res.json({ success: true });
     } catch (err) {

@@ -296,7 +296,8 @@ async function initDb() {
         )`,
     `CREATE TABLE IF NOT EXISTS settings (
             key TEXT PRIMARY KEY,
-            value TEXT
+            value TEXT,
+            academy_id INTEGER
         )`,
     `CREATE TABLE IF NOT EXISTS teacher_payments (
             id ${idType},
@@ -467,7 +468,10 @@ async function initDb() {
     )`,
 
     // Ensure academy_id exists on ai_conversations (for older deploys)
-    "ALTER TABLE ai_conversations ADD COLUMN IF NOT EXISTS academy_id INTEGER"
+    "ALTER TABLE ai_conversations ADD COLUMN IF NOT EXISTS academy_id INTEGER",
+
+    // Ensure academy_id exists on settings (for older deploys)
+    "ALTER TABLE settings ADD COLUMN IF NOT EXISTS academy_id INTEGER"
   ];
 
   for (const sql of migrations) {
@@ -479,31 +483,7 @@ async function initDb() {
     await db.query("ALTER TABLE users ADD CONSTRAINT users_user_code_key UNIQUE (user_code)").catch(() => { });
   }
 
-  // Default settings
-  try {
-    const settingsRes = await db.query("SELECT COUNT(*) as count FROM settings");
-    const count = isPostgres ? parseInt(settingsRes.rows[0].count) : settingsRes.rows[0].count;
-    if (count === 0) {
-      const defaults = [
-        ['academy_name', 'AcademiaPro'],
-        ['contact_email', 'info@academiapro.com'],
-        ['contact_phone', '+34 600 000 000'],
-        ['contact_address', 'Calle Falsa 123, Madrid'],
-        ['report_name', 'Academia Profesional'],
-        ['report_footer', 'Gracias por confiar en nosotros.'],
-        ['report_signature', 'El Director'],
-        ['notify_risk', 'false'],
-        ['notify_payment', 'false'],
-        ['notify_monthly', 'false']
-      ];
-      for (const [key, val] of defaults) {
-        const insertSql = isPostgres
-          ? "INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO NOTHING"
-          : "INSERT OR IGNORE INTO settings (key, value) VALUES ($1, $2)";
-        await db.query(insertSql, [key, val]);
-      }
-    }
-  } catch (e) { console.error('Settings Init Error', e); }
+  // Default settings seeding removed — settings are now scoped per academy_id via key prefixing.
 
   // Clean up duplicate group rooms and orphan members
   try {
