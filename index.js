@@ -3176,159 +3176,155 @@ app.post('/api/settings', authenticateJWT, requireAdmin, async (req, res) => {
 // AI Report Generation
 app.post('/api/generate-report', authenticateJWT, async (req, res) => {
     try {
-        const { studentId, month, year, observations, sendEmail } = req.body;
-        const monthNum = parseInt(month);
-        const yearNum = parseInt(year);
-        const monthStr = monthNum < 10 ? `0${monthNum}` : `${monthNum}`;
-        const datePrefix = `${yearNum}-${monthStr}`;
+        const { student_id, studentId, month, year, observations, send_email, sendEmail } = req.body;
+        const sid = student_id || studentId;
+        const sendMail = send_email !== undefined ? send_email : sendEmail;
+        const monthNum = parseInt(month) || new Date().getMonth() + 1;
+        const yearNum = parseInt(year) || new Date().getFullYear();
         const monthsNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
         const monthText = monthsNames[monthNum - 1];
+        const monthStart = `${yearNum}-${String(monthNum).padStart(2, '0')}-01`;
+        const monthEnd = new Date(yearNum, monthNum, 0).toISOString().split('T')[0];
 
-        db.query(`SELECT * FROM students WHERE id = $1`, [studentId], async (err, resStudent) => {
-            const student = resStudent?.rows[0];
-            if (err || !student) return res.status(404).json({ error: 'Estudiante no encontrado' });
+        // Access control: teachers can only see their own students
+        const studentQ = req.user.role === 'teacher'
+            ? await db.query('SELECT * FROM students WHERE id=$1 AND academy_id=$2 AND assigned_teacher_id=$3', [sid, req.user.academy_id, req.user.id])
+            : await db.query('SELECT * FROM students WHERE id=$1 AND academy_id=$2', [sid, req.user.academy_id]);
+        const student = studentQ.rows[0];
+        if (!student) return res.status(404).json({ error: 'Alumno no encontrado o sin acceso' });
 
-            db.query(`SELECT * FROM sessions WHERE student_id = $1 AND date LIKE $2`, [studentId, `${datePrefix}%`], async (err, resSessions) => {
-                db.query(`SELECT * FROM exams WHERE student_id = $1 AND date LIKE $2`, [studentId, `${datePrefix}%`], async (err, resExams) => {
-                    db.query(`SELECT * FROM simulator_results WHERE student_id = $1 AND created_at LIKE $2`, [studentId, `${datePrefix}%`], async (err, resSims) => {
-                        const sessions = resSessions?.rows || [];
-                        const exams = resExams?.rows || [];
-                        const sims = resSims?.rows || [];
+        // Fetch data in parallel
+        const [sessionsR, examsR, simsR] = await Promise.all([
+            db.query('SELECT * FROM sessions WHERE student_id=$1 AND date>=$2 AND date<=$3 ORDER BY date', [sid, monthStart, monthEnd]),
+            db.query('SELECT * FROM exams WHERE student_id=$1 AND date>=$2 AND date<=$3 ORDER BY date', [sid, monthStart, monthEnd]),
+            db.query("SELECT * FROM simulator_results WHERE student_id=$1 AND created_at::text LIKE $2", [sid, `${yearNum}-${String(monthNum).padStart(2, '0')}%`]).catch(() => ({ rows: [] }))
+        ]);
+        const sessions = sessionsR.rows || [];
+        const exams = examsR.rows || [];
+        const sims = simsR.rows || [];
 
-                        const sessionCount = sessions.length;
-                        const homeworkCount = sessions.filter(s => s.homework_done).length;
-                        const homeworkRate = sessionCount > 0 ? ((homeworkCount / sessionCount) * 100).toFixed(0) : 0;
-                        const examDetails = exams.map(e => `${e.subject}: ${e.score}${e.score === null ? ' (Pendiente)' : ''}`).join(', ');
-                        const simDetails = sims.map(s => `${s.topic} (${s.percentage}%)${s.teacher_grade ? ' - Nota Profesor: ' + s.teacher_grade : ''}`).join(', ');
+        const homeworkRate = sessions.length ? Math.round(sessions.filter(s => s.homework_done).length / sessions.length * 100) : 0;
+        const avgScore = exams.length ? (exams.reduce((s, e) => s + (e.score || 0), 0) / exams.length).toFixed(1) : null;
+        const examDetails = exams.map(e => `${e.subject}: ${e.score ?? 'Pendiente'}`).join(', ');
+        const simDetails = sims.map(s => `${s.topic} (${s.percentage}%)${s.teacher_grade ? ' - Nota: ' + s.teacher_grade : ''}`).join(', ');
 
-                        if (sendEmail) {
-                            const checkSentRes = await new Promise(resolve => {
-                                db.query('SELECT id FROM sent_reports WHERE student_id = $1 AND month = $2 AND year = $3 AND academy_id = $4 LIMIT 1',
-                                    [studentId, monthNum, yearNum, student.academy_id], (err, r) => resolve(r?.rows[0]));
-                            });
-                            if (checkSentRes) {
-                                return res.status(400).json({ error: 'Ya se ha enviado un informe mensual a este alumno para el mes especificado. Espera al mes siguiente o elimínalo manualmente de la Base de Datos.' });
-                            }
-                        }
-
-                        const groqClient = new Groq({ apiKey: process.env.GROQ_API_KEY });
-                        try {
-                            const chatCompletion = await groqClient.chat.completions.create({
-                                messages: [
-                                    {
-                                        role: "system",
-                                        content: "Eres el asistente de una academia de repaso española. Genera un informe mensual profesional y cercano para la familia del alumno. Tono cálido pero profesional, como un tutor de confianza. Estructura: saludo personalizado, resumen positivo del mes (mencionando asistencia y tareas), análisis de exámenes y simulacros, áreas de mejora con tacto, próximos objetivos, cierre motivador. Máximo 250 palabras. Siempre en español."
-                                    },
-                                    {
-                                        role: "user",
-                                        content: `Estudiante: ${student.name}, Curso: ${student.course}, Asignatura: ${student.subject}. Sesiones este mes: ${sessionCount}. Tareas completadas: ${homeworkRate}%. Notas exámenes: ${examDetails || 'Ninguno'}. Simulacros realizados: ${simDetails || 'Ninguno'}. Observaciones del profesor: ${observations}`
-                                    }
-                                ],
-                                model: "llama-3.3-70b-versatile",
-                            });
-
-                            const reportText = chatCompletion.choices[0].message.content;
-
-                            const doc = new PDFDocument();
-                            let buffers = [];
-                            doc.on('data', buffers.push.bind(buffers));
-                            doc.on('end', async () => {
-                                let pdfData = Buffer.concat(buffers);
-                                const fileName = `informe_${student.name.replace(/ /g, '_')}_${monthNum}_${yearNum}_${Date.now()}.pdf`;
-                                const reportsDir = path.join(__dirname, 'public/uploads/reports');
-                                if (!fs.existsSync(reportsDir)) fs.mkdirSync(reportsDir, { recursive: true });
-                                const filePath = path.join(reportsDir, fileName);
-                                fs.writeFileSync(filePath, pdfData);
-
-                                const fileUrl = `/uploads/reports/${fileName}`;
-                                db.query('INSERT INTO reports (student_id, academy_id, month, year, file_url) VALUES ($1, $2, $3, $4, $5)',
-                                    [studentId, student.academy_id, monthNum, yearNum, fileUrl]);
-
-                                let emailStatus = { sent: false };
-                                if (sendEmail && student.parent_email) {
-                                    const resend = new Resend(process.env.RESEND_API_KEY);
-                                    try {
-                                        await resend.emails.send({
-                                            from: 'AcademiaPro <onboarding@resend.dev>',
-                                            to: student.parent_email,
-                                            subject: `Informe mensual de ${student.name} - ${monthText} ${yearNum}`,
-                                            html: `Estimada familia,<br><br>Adjuntamos el informe mensual de <b>${student.name}</b> correspondiente a ${monthText} ${yearNum}.<br><br>Quedamos a su disposición para cualquier consulta.<br><br>Un saludo,<br>El equipo de AcademiaPro`,
-                                            attachments: [
-                                                {
-                                                    filename: fileName,
-                                                    content: pdfData,
-                                                },
-                                            ],
-                                        });
-                                        emailStatus.sent = true;
-                                        emailStatus.to = student.parent_email;
-
-                                        // Register sent report
-                                        db.query('INSERT INTO sent_reports (academy_id, student_id, month, year) VALUES ($1, $2, $3, $4)',
-                                            [student.academy_id, studentId, monthNum, yearNum]);
-
-                                    } catch (eError) {
-                                        console.error('Resend Email Error:', eError);
-                                        emailStatus.error = eError.message;
-                                    }
-                                }
-
-                                res.setHeader('Content-Type', 'application/pdf');
-                                res.setHeader('Content-Disposition', `attachment; filename=${fileName}`);
-                                res.setHeader('X-Email-Status', JSON.stringify(emailStatus));
-                                res.send(pdfData);
-                            });
-
-                            // Header Rectangle
-                            doc.rect(0, 0, 612, 100).fill('#1A56A0');
-                            doc.fillColor('white').fontSize(24).text('AcademiaPro', 50, 40);
-                            doc.fontSize(14).text(`Informe Mensual - ${monthText} ${yearNum}`, 400, 45);
-
-                            // Body
-                            doc.fillColor('black').fontSize(12).moveDown(5);
-                            doc.fontSize(16).text(`Estudiante: ${student.name}`, { underline: true });
-                            doc.fontSize(12).text(`Curso: ${student.course} | Asignatura: ${student.subject}`);
-
-                            doc.moveDown(2);
-                            doc.fontSize(11).text(reportText, { align: 'justify', lineGap: 5 });
-
-                            // Section: Exams
-                            if (exams.length > 0) {
-                                doc.moveDown();
-                                doc.fontSize(14).text('Exámenes del mes', { underline: true });
-                                exams.forEach(e => {
-                                    doc.fontSize(11).text(`• ${e.subject}: ${e.score || 'Pendiente'}`);
-                                });
-                            }
-
-                            // Section: Simulators
-                            if (sims.length > 0) {
-                                doc.moveDown();
-                                doc.fontSize(14).text('Simulacros del mes', { underline: true });
-                                sims.forEach(s => {
-                                    let simText = `• ${s.topic}: ${s.percentage}%`;
-                                    if (s.teacher_grade) simText += ` (Nota Profesor: ${s.teacher_grade}/10)`;
-                                    doc.fontSize(11).text(simText);
-                                });
-                            }
-
-                            // Footer
-                            doc.moveDown(4);
-                            doc.fillColor('#64748b').fontSize(10).text('Generado por AcademiaPro', { align: 'center' });
-
-                            doc.end();
-
-                        } catch (apiError) {
-                            console.error('Groq API Error:', apiError);
-                            res.status(500).json({ error: 'Error al generar el informe con IA' });
-                        }
-                    });
-                });
-            });
+        // Generate AI text
+        const aiResponse = await groqClient.chat.completions.create({
+            model: 'llama-3.3-70b-versatile',
+            messages: [
+                { role: 'system', content: 'Eres el tutor de una academia de repaso española. Genera un informe mensual profesional y cercano para la familia. Tono cálido pero profesional. Estructura: saludo personalizado, resumen positivo del mes, análisis de exámenes, áreas de mejora, próximos objetivos, cierre motivador. Máximo 250 palabras. Siempre en español.' },
+                { role: 'user', content: `Estudiante: ${student.name}, Curso: ${student.course || '-'}, Asignatura: ${student.subject || '-'}. Sesiones este mes: ${sessions.length}. Tareas completadas: ${homeworkRate}%. Notas exámenes: ${examDetails || 'Ninguno'}. Simulacros: ${simDetails || 'Ninguno'}. Observaciones: ${observations || 'Sin observaciones adicionales'}.` }
+            ],
+            max_tokens: 500
         });
+        const reportText = aiResponse.choices[0].message.content;
+
+        // Generate PDF
+        const reportsDir = path.join(__dirname, 'public/uploads/reports');
+        if (!fs.existsSync(reportsDir)) fs.mkdirSync(reportsDir, { recursive: true });
+        const fileName = `informe_${student.name.replace(/ /g, '_')}_${monthNum}_${yearNum}_${Date.now()}.pdf`;
+        const filePath = path.join(reportsDir, fileName);
+        const fileUrl = `/uploads/reports/${fileName}`;
+
+        await new Promise((resolve, reject) => {
+            const doc = new PDFDocument({ margin: 50 });
+            const stream = fs.createWriteStream(filePath);
+            doc.pipe(stream);
+
+            // Header
+            doc.rect(0, 0, doc.page.width, 100).fill('#6366f1');
+            doc.fillColor('white').fontSize(24).font('Helvetica-Bold').text('AcademiaPro', 50, 30);
+            doc.fontSize(14).font('Helvetica').text(`Informe mensual — ${monthText} ${yearNum}`, 50, 62);
+
+            // Student info
+            doc.fillColor('#1e293b').fontSize(18).font('Helvetica-Bold').text(student.name, 50, 120);
+            doc.fillColor('#64748b').fontSize(12).font('Helvetica').text(`${student.course || ''} · ${student.subject || ''}`, 50, 145);
+
+            // Divider
+            doc.moveTo(50, 170).lineTo(doc.page.width - 50, 170).strokeColor('#e2e8f0').lineWidth(1).stroke();
+
+            // Stats
+            doc.fillColor('#1e293b').fontSize(14).font('Helvetica-Bold').text('Resumen del mes', 50, 185);
+            doc.fillColor('#374151').fontSize(12).font('Helvetica')
+                .text(`• Sesiones realizadas: ${sessions.length}`, 50, 210)
+                .text(`• Deberes entregados: ${homeworkRate}%`, 50, 230)
+                .text(`• Nota media: ${avgScore || 'Sin exámenes'}`, 50, 250);
+
+            // Divider
+            doc.moveTo(50, 275).lineTo(doc.page.width - 50, 275).strokeColor('#e2e8f0').lineWidth(1).stroke();
+
+            // AI text
+            doc.fillColor('#1e293b').fontSize(14).font('Helvetica-Bold').text('Informe del tutor', 50, 290);
+            doc.fillColor('#374151').fontSize(11).font('Helvetica').text(reportText, 50, 315, { width: doc.page.width - 100, lineGap: 4 });
+
+            // Exams on next page if present
+            if (exams.length > 0) {
+                doc.addPage();
+                doc.fillColor('#1e293b').fontSize(14).font('Helvetica-Bold').text('Exámenes del mes', 50, 50);
+                let y = 80;
+                exams.forEach(exam => {
+                    doc.fillColor('#374151').fontSize(12).font('Helvetica')
+                        .text(`• ${exam.subject}: ${exam.score ?? 'Pendiente'} — ${exam.date}`, 50, y);
+                    y += 22;
+                });
+            }
+
+            // Simulacros
+            if (sims.length > 0) {
+                if (exams.length === 0) doc.addPage();
+                doc.fillColor('#1e293b').fontSize(14).font('Helvetica-Bold').moveDown(2).text('Simulacros del mes');
+                sims.forEach(s => {
+                    let t = `• ${s.topic}: ${s.percentage}%`;
+                    if (s.teacher_grade) t += ` (Nota: ${s.teacher_grade}/10)`;
+                    doc.fillColor('#374151').fontSize(12).font('Helvetica').text(t);
+                });
+            }
+
+            // Footer
+            doc.fillColor('#94a3b8').fontSize(10)
+                .text(`Generado por AcademiaPro · ${new Date().toLocaleDateString('es-ES')}`, 50, doc.page.height - 40, { align: 'center' });
+
+            doc.end();
+            stream.on('finish', resolve);
+            stream.on('error', reject);
+        });
+
+        // Save record
+        await db.query(
+            'INSERT INTO reports (student_id, academy_id, month, year, file_url, created_at) VALUES ($1,$2,$3,$4,$5,NOW())',
+            [sid, req.user.academy_id, monthNum, yearNum, fileUrl]
+        ).catch(() => {});
+
+        // Send email
+        let emailSent = false;
+        if (sendMail && student.parent_email) {
+            try {
+                const resend = new Resend(process.env.RESEND_API_KEY);
+                const pdfBuffer = fs.readFileSync(filePath);
+                await resend.emails.send({
+                    from: 'AcademiaPro <onboarding@resend.dev>',
+                    to: student.parent_email,
+                    subject: `Informe mensual de ${student.name} — ${monthText} ${yearNum}`,
+                    html: `<div style="font-family:Inter,sans-serif;max-width:500px;margin:0 auto;"><div style="background:linear-gradient(135deg,#6366f1,#8b5cf6);padding:32px;border-radius:12px 12px 0 0;text-align:center;"><h1 style="color:white;margin:0;font-size:22px;">🎓 AcademiaPro</h1></div><div style="background:white;padding:32px;border:1px solid #e2e8f0;border-radius:0 0 12px 12px;"><p style="color:#1e293b">Estimada familia,</p><p style="color:#64748b">Adjunto encontrarás el informe mensual de <strong>${student.name}</strong> correspondiente a <strong>${monthText} ${yearNum}</strong>.</p><p style="color:#94a3b8;font-size:13px;margin-top:24px;">AcademiaPro · La plataforma inteligente para academias</p></div></div>`,
+                    attachments: [{ filename: fileName, content: pdfBuffer.toString('base64') }]
+                });
+                emailSent = true;
+                await db.query('INSERT INTO sent_reports (academy_id, student_id, month, year) VALUES ($1,$2,$3,$4)', [req.user.academy_id, sid, monthNum, yearNum]).catch(() => {});
+            } catch (emailErr) {
+                console.error('[Report] Email error:', emailErr.message);
+            }
+        }
+
+        res.json({
+            success: true,
+            file_url: fileUrl,
+            email_sent: emailSent,
+            message: emailSent ? `Informe generado y enviado a ${student.parent_email}` : 'Informe generado correctamente'
+        });
+
     } catch (err) {
-        console.error('Route error:', err.message);
-        res.status(500).json({ error: 'Internal server error', details: err.message });
+        console.error('[Report] Error:', err.message);
+        res.status(500).json({ error: err.message });
     }
 });
 

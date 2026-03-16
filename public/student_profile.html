@@ -1115,25 +1115,26 @@
             btn.textContent = 'Generando con IA...';
             btn.disabled = true;
 
-            const sendEmail = document.getElementById('r_send_email').checked;
+            const token = localStorage.getItem('token');
             const data = {
-                studentId: parseInt(studentId),
-                month: document.getElementById('r_month').value,
-                year: document.getElementById('r_year').value,
+                student_id: parseInt(studentId),
+                month: parseInt(document.getElementById('r_month').value),
+                year: parseInt(document.getElementById('r_year').value),
                 observations: document.getElementById('r_observations').value,
-                sendEmail: sendEmail
+                send_email: document.getElementById('r_send_email').checked
             };
 
             try {
                 const res = await fetch('/api/generate-report', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
                     body: JSON.stringify(data)
                 });
 
+                const result = await res.json();
+
                 if (!res.ok) {
-                    const errData = await res.json();
-                    alert(errData.error || 'Error al generar el informe');
+                    alert(result.error || 'Error al generar el informe');
                     btn.textContent = originalText;
                     btn.disabled = false;
                     return;
@@ -1141,33 +1142,17 @@
 
                 localStorage.setItem(cooldownKey, Date.now().toString());
 
-                const emailStatus = JSON.parse(res.headers.get('X-Email-Status') || '{}');
+                // Auto-download
+                const a = document.createElement('a');
+                a.href = result.file_url;
+                a.download = result.file_url.split('/').pop();
+                a.target = '_blank';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
 
-                if (res.ok) {
-                    const blob = await res.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    const studentName = document.getElementById('student-name').textContent;
-                    a.href = url;
-                    a.download = `informe_${studentName.replace(/ /g, '_')}_${data.month}_${data.year}.pdf`;
-                    document.body.appendChild(a);
-                    a.click();
-                    a.remove();
-                    closeModal('reportModal');
-
-                    if (sendEmail) {
-                        if (emailStatus.sent) {
-                            showToast(`✅ Informe generado y enviado a ${emailStatus.to}`);
-                        }
-                        else {
-                            showToast(`⚠️ PDF generado correctamente pero el email no se pudo enviar.`, 'warning');
-                        }
-                    } else {
-                        showToast('✅ PDF generado correctamente');
-                    }
-                } else {
-                    showToast('❌ Error al generar el informe con IA', 'error');
-                }
+                closeModal('reportModal');
+                showToast(`✅ ${result.message}`);
             } catch (err) {
                 console.error('Error generating report:', err);
                 showToast('❌ Error de conexión con el servidor', 'error');

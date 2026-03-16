@@ -562,13 +562,21 @@
     <!-- Report Modal -->
     <div id="reportModal" class="modal-overlay">
         <div class="modal">
-            <h3>Informe IA</h3>
+            <h3>📄 Generar Informe Mensual (IA)</h3>
             <form id="reportForm">
-                <div class="form-group"><label>Mes</label><select id="r_month"></select></div>
-                <div class="form-group"><label>Notas adicionales</label><textarea id="r_observations"></textarea></div>
-                <div style="display:flex; justify-content:flex-end; gap:1rem;"><button type="button" class="btn"
-                        onclick="closeModal('reportModal')">Cancelar</button><button type="submit" id="generate-btn"
-                        class="btn btn-primary">Generar PDF</button></div>
+                <div class="form-group" style="display:flex;gap:1rem;">
+                    <div style="flex:1"><label>Mes</label><select id="r_month"></select></div>
+                    <div style="flex:1"><label>Año</label><input type="number" id="r_year" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:8px;font-size:14px;"></div>
+                </div>
+                <div class="form-group"><label>Observaciones del profesor</label><textarea id="r_observations" placeholder="Escribe 3-4 frases sobre el progreso del alumno..."></textarea></div>
+                <div class="form-group" style="display:flex;align-items:center;gap:0.5rem;">
+                    <input type="checkbox" id="r_send_email" checked style="width:auto;">
+                    <label style="margin-bottom:0;">Enviar por email a la familia</label>
+                </div>
+                <div style="display:flex;justify-content:flex-end;gap:1rem;">
+                    <button type="button" class="btn" onclick="closeModal('reportModal')">Cancelar</button>
+                    <button type="submit" id="generate-btn" class="btn btn-primary">Generar PDF con IA</button>
+                </div>
             </form>
         </div>
     </div>
@@ -702,8 +710,10 @@
         function openModal(id) {
             document.getElementById(id).style.display = 'flex';
             if (id === 'reportModal') {
+                const now = new Date();
                 const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-                document.getElementById('r_month').innerHTML = months.map((m, i) => `<option value="${i + 1}">${m}</option>`).join('');
+                document.getElementById('r_month').innerHTML = months.map((m, i) => `<option value="${i + 1}" ${i + 1 === now.getMonth() + 1 ? 'selected' : ''}>${m}</option>`).join('');
+                document.getElementById('r_year').value = now.getFullYear();
             }
         }
         function closeModal(id) { document.getElementById(id).style.display = 'none'; }
@@ -747,39 +757,44 @@
             btn.textContent = 'Generando...';
             btn.disabled = true;
 
+            const token = localStorage.getItem('token');
             const data = {
-                studentId,
-                month: document.getElementById('r_month').value,
-                year: new Date().getFullYear(),
+                student_id: parseInt(studentId),
+                month: parseInt(document.getElementById('r_month').value),
+                year: parseInt(document.getElementById('r_year').value),
                 observations: document.getElementById('r_observations').value,
-                sendEmail: true
+                send_email: document.getElementById('r_send_email').checked
             };
 
             try {
                 const res = await fetch('/api/generate-report', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
                     body: JSON.stringify(data)
                 });
 
+                const result = await res.json();
+
                 if (!res.ok) {
-                    const errData = await res.json();
-                    alert(errData.error || 'Error al generar informe con IA.');
+                    alert(result.error || 'Error al generar informe con IA.');
                 } else {
                     localStorage.setItem(cooldownKey, Date.now().toString());
-                    const blob = await res.blob();
-                    const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `informe_${studentId}.pdf`;
+                    a.href = result.file_url;
+                    a.download = result.file_url.split('/').pop();
+                    a.target = '_blank';
+                    document.body.appendChild(a);
                     a.click();
+                    a.remove();
                     closeModal('reportModal');
+                    if (typeof showToast === 'function') showToast(`✅ ${result.message}`);
+                    else alert(result.message);
                 }
             } catch (err) {
                 alert('No se pudo conectar con el servidor.');
             }
 
-            btn.textContent = 'Generar PDF';
+            btn.textContent = 'Generar PDF con IA';
             btn.disabled = false;
         };
 
