@@ -636,6 +636,150 @@
 
         loadDashboard();
     </script>
+
+<!-- ── ONBOARDING OVERLAY ────────────────────────────────────────────── -->
+<div id="onboarding-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:20px;padding:40px;max-width:560px;width:90%;position:relative;box-shadow:0 25px 60px rgba(0,0,0,0.3);">
+
+    <!-- Progress dots -->
+    <div style="display:flex;gap:8px;margin-bottom:32px;">
+      <div class="ob-dot active" data-step="1"></div>
+      <div class="ob-dot" data-step="2"></div>
+      <div class="ob-dot" data-step="3"></div>
+      <div class="ob-dot" data-step="4"></div>
+    </div>
+
+    <!-- Step 1: Welcome -->
+    <div class="ob-step" id="ob-step-1">
+      <div style="font-size:3rem;margin-bottom:16px;">🎉</div>
+      <h2 style="color:#1e293b;margin:0 0 8px;">¡Bienvenido a AcademiaPro!</h2>
+      <p style="color:#64748b;margin:0 0 24px;">Tu academia está lista. En 4 pasos rápidos te ayudamos a configurarla.</p>
+      <button class="ob-btn-primary" onclick="obNext()">Empezar →</button>
+    </div>
+
+    <!-- Step 2: Academy codes -->
+    <div class="ob-step" id="ob-step-2" style="display:none;">
+      <div style="font-size:3rem;margin-bottom:16px;">🔑</div>
+      <h2 style="color:#1e293b;margin:0 0 8px;">Tus códigos de academia</h2>
+      <p style="color:#64748b;margin:0 0 20px;">Comparte estos códigos con tus profesores y alumnos para que se unan.</p>
+      <div style="background:#f1f5f9;border-radius:12px;padding:20px;margin-bottom:20px;">
+        <div style="margin-bottom:12px;">
+          <span style="font-size:12px;color:#94a3b8;text-transform:uppercase;font-weight:600;">Código para Profesores</span>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+            <code id="ob-teacher-code" style="font-size:20px;font-weight:700;color:#6366f1;letter-spacing:3px;"></code>
+            <button onclick="obCopy('teacher',event)" style="background:#ede9fe;border:none;border-radius:6px;padding:4px 10px;color:#6366f1;cursor:pointer;font-size:12px;">Copiar</button>
+          </div>
+        </div>
+        <div>
+          <span style="font-size:12px;color:#94a3b8;text-transform:uppercase;font-weight:600;">Código para Alumnos</span>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+            <code id="ob-student-code" style="font-size:20px;font-weight:700;color:#8b5cf6;letter-spacing:3px;"></code>
+            <button onclick="obCopy('student',event)" style="background:#ede9fe;border:none;border-radius:6px;padding:4px 10px;color:#8b5cf6;cursor:pointer;font-size:12px;">Copiar</button>
+          </div>
+        </div>
+      </div>
+      <button class="ob-btn-primary" onclick="obNext()">Siguiente →</button>
+    </div>
+
+    <!-- Step 3: First student -->
+    <div class="ob-step" id="ob-step-3" style="display:none;">
+      <div style="font-size:3rem;margin-bottom:16px;">👨‍🎓</div>
+      <h2 style="color:#1e293b;margin:0 0 8px;">Añade tu primer alumno</h2>
+      <p style="color:#64748b;margin:0 0 20px;">Puedes añadir alumnos manualmente o pedirles que se unan con el código.</p>
+      <div style="background:#f1f5f9;border-radius:12px;padding:16px;margin-bottom:20px;">
+        <p style="margin:0;color:#475569;font-size:14px;">💡 <strong>Tip:</strong> Los alumnos pueden registrarse solos en <strong>/join</strong> usando el código de alumnos. Tú solo tienes que compartírselo.</p>
+      </div>
+      <button class="ob-btn-primary" onclick="obNext()">Entendido →</button>
+      <button class="ob-btn-secondary" onclick="obFinishAndGo('/students')">Ir a Estudiantes ahora</button>
+    </div>
+
+    <!-- Step 4: Feature overview -->
+    <div class="ob-step" id="ob-step-4" style="display:none;">
+      <div style="font-size:3rem;margin-bottom:16px;">🚀</div>
+      <h2 style="color:#1e293b;margin:0 0 8px;">¡Todo listo!</h2>
+      <p style="color:#64748b;margin:0 0 20px;">Estas son las funciones principales de tu academia:</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;">
+        <div style="background:#f8fafc;border-radius:10px;padding:14px;"><div style="font-size:1.5rem;">💬</div><div style="font-weight:600;color:#1e293b;font-size:14px;margin-top:4px;">Chat en tiempo real</div><div style="color:#94a3b8;font-size:12px;">Con profesores y alumnos</div></div>
+        <div style="background:#f8fafc;border-radius:10px;padding:14px;"><div style="font-size:1.5rem;">🤖</div><div style="font-weight:600;color:#1e293b;font-size:14px;margin-top:4px;">Tutor IA</div><div style="color:#94a3b8;font-size:12px;">Asistente inteligente</div></div>
+        <div style="background:#f8fafc;border-radius:10px;padding:14px;"><div style="font-size:1.5rem;">📊</div><div style="font-weight:600;color:#1e293b;font-size:14px;margin-top:4px;">Seguimiento</div><div style="color:#94a3b8;font-size:12px;">Sesiones y exámenes</div></div>
+        <div style="background:#f8fafc;border-radius:10px;padding:14px;"><div style="font-size:1.5rem;">📧</div><div style="font-weight:600;color:#1e293b;font-size:14px;margin-top:4px;">Transcripciones</div><div style="color:#94a3b8;font-size:12px;">Desde Google Meet</div></div>
+      </div>
+      <button class="ob-btn-primary" onclick="obFinish()">¡Empezar a usar AcademiaPro! 🎉</button>
+    </div>
+
+  </div>
+</div>
+
+<style>
+.ob-dot { width:32px;height:6px;border-radius:3px;background:#e2e8f0;transition:background .3s; }
+.ob-dot.active { background:#6366f1; }
+.ob-btn-primary { background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;border:none;border-radius:10px;padding:12px 28px;font-weight:600;font-size:15px;cursor:pointer;width:100%;margin-bottom:8px;transition:opacity .2s; }
+.ob-btn-primary:hover { opacity:.9; }
+.ob-btn-secondary { background:white;color:#6366f1;border:2px solid #e2e8f0;border-radius:10px;padding:10px 28px;font-weight:600;font-size:14px;cursor:pointer;width:100%;transition:border-color .2s; }
+.ob-btn-secondary:hover { border-color:#6366f1; }
+</style>
+
+<script>
+(function () {
+    let obStep = 1;
+    let obStats = {};
+
+    async function checkOnboarding() {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+            const res = await fetch('/api/onboarding/status', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            const data = await res.json();
+            if (!data.show) return;
+            obStats = data.stats || {};
+            document.getElementById('ob-teacher-code').textContent = obStats.teacher_code || '------';
+            document.getElementById('ob-student-code').textContent = obStats.student_code || '------';
+            const overlay = document.getElementById('onboarding-overlay');
+            overlay.style.display = 'flex';
+        } catch (e) { /* silent */ }
+    }
+
+    window.obNext = function () {
+        document.getElementById('ob-step-' + obStep).style.display = 'none';
+        document.querySelectorAll('.ob-dot')[obStep - 1].classList.remove('active');
+        obStep++;
+        document.getElementById('ob-step-' + obStep).style.display = 'block';
+        document.querySelectorAll('.ob-dot')[obStep - 1].classList.add('active');
+    };
+
+    window.obCopy = function (type, e) {
+        const code = type === 'teacher' ? obStats.teacher_code : obStats.student_code;
+        navigator.clipboard.writeText(code || '');
+        const btn = e.target;
+        btn.textContent = '✓ Copiado';
+        setTimeout(() => btn.textContent = 'Copiar', 2000);
+    };
+
+    async function markComplete() {
+        const token = localStorage.getItem('token');
+        await fetch('/api/onboarding/complete', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + token }
+        }).catch(() => {});
+    }
+
+    window.obFinish = async function () {
+        await markComplete();
+        document.getElementById('onboarding-overlay').style.display = 'none';
+    };
+
+    window.obFinishAndGo = async function (path) {
+        await markComplete();
+        window.location.href = path;
+    };
+
+    // Trigger after dashboard loads
+    setTimeout(checkOnboarding, 1500);
+})();
+</script>
+<!-- ─────────────────────────────────────────────────────────────────────── -->
 </body>
 
 </html>
