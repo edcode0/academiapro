@@ -75,8 +75,10 @@
         /* Main Content */
         main {
             flex: 1;
+            margin-left: 260px;
             padding: 2.5rem;
             overflow-y: auto;
+            min-width: 0;
         }
 
         .back-link {
@@ -494,6 +496,8 @@
                 <button class="btn btn-ghost"
                     style="color: var(--danger); border: 1px solid var(--danger); margin-right: auto;"
                     onclick="openDeleteModal()">🗑️ Eliminar alumno</button>
+                <button class="btn btn-ghost" style="border: 1px solid var(--border); margin-right: 0.5rem;"
+                    onclick="openModal('editStudentModal')">✏️ Editar</button>
                 <button class="btn btn-ghost" style="border: 1px solid var(--border); margin-right: 1rem;"
                     onclick="openModal('reportModal')">📊 Generar Informe</button>
                 <button class="btn btn-primary" onclick="openModal('sessionModal')">+ Añadir Sesión</button>
@@ -525,6 +529,9 @@
                     <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem;">
                         <input type="checkbox" id="r_send_email" checked style="width: auto;">
                         <label style="margin-bottom: 0;">Enviar por email a la familia</label>
+                    </div>
+                    <div id="report-email-warning" style="display:none;background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:10px 14px;font-size:13px;color:#92400e;margin-bottom:8px;">
+                        ⚠️ Este alumno no tiene email de familia registrado. <a href="#" onclick="openModal('editStudentModal');closeModal('reportModal');return false;" style="color:#6366f1;font-weight:600;">Añádelo en su perfil →</a>
                     </div>
                     <div class="modal-actions">
                         <button type="button" class="btn btn-ghost"
@@ -588,6 +595,38 @@
                     <div class="modal-actions">
                         <button type="button" class="btn btn-ghost" onclick="closeModal('examModal')">Cancelar</button>
                         <button type="submit" class="btn btn-primary">Guardar Examen</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Edit Student Modal -->
+        <div id="editStudentModal" class="modal-overlay">
+            <div class="modal">
+                <h3>✏️ Editar Alumno</h3>
+                <form id="editStudentForm">
+                    <div class="form-group">
+                        <label>Nombre</label>
+                        <input type="text" id="edit_name" required>
+                    </div>
+                    <div class="form-group" style="display:flex;gap:1rem;">
+                        <div style="flex:1">
+                            <label>Curso</label>
+                            <input type="text" id="edit_course" placeholder="Ej: 4º ESO">
+                        </div>
+                        <div style="flex:1">
+                            <label>Asignatura</label>
+                            <input type="text" id="edit_subject" placeholder="Ej: Matemáticas">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Email de la familia</label>
+                        <input type="email" id="edit_parent_email" placeholder="familia@email.com">
+                        <small style="color:var(--text-muted);font-size:12px;">Se usa para enviar informes mensuales por email.</small>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-ghost" onclick="closeModal('editStudentModal')">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">💾 Guardar cambios</button>
                     </div>
                 </form>
             </div>
@@ -743,12 +782,17 @@
 
     <script>
         const studentId = window.location.pathname.split('/').pop();
+        let currentStudent = null; // store globally for report modal
 
         async function loadProfile() {
             try {
-                const res = await fetch(`/api/student-detail/${studentId}`);
+                const token = localStorage.getItem('token');
+                const res = await fetch(`/api/student-detail/${studentId}`, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
                 const data = await res.json();
                 const { student, sessions, exams, payments } = data;
+                currentStudent = student; // cache for report modal
 
                 // Header info
                 document.getElementById('student-name').textContent = student.name;
@@ -991,6 +1035,15 @@
                 const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
                 monthSelect.innerHTML = months.map((m, i) => `<option value="${i + 1}" ${i + 1 === month ? 'selected' : ''}>${m}</option>`).join('');
                 document.getElementById('r_year').value = year;
+                // Show warning if no parent_email
+                const warning = document.getElementById('report-email-warning');
+                warning.style.display = currentStudent && !currentStudent.parent_email ? 'block' : 'none';
+            }
+            if (modalId === 'editStudentModal' && currentStudent) {
+                document.getElementById('edit_name').value = currentStudent.name || '';
+                document.getElementById('edit_course').value = currentStudent.course || '';
+                document.getElementById('edit_subject').value = currentStudent.subject || '';
+                document.getElementById('edit_parent_email').value = currentStudent.parent_email || '';
             }
         }
 
@@ -1071,6 +1124,36 @@
                 }
             } catch (err) {
                 console.error('Error saving payment config:', err);
+            }
+        });
+
+        // Edit Student Submission
+        document.getElementById('editStudentForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const token = localStorage.getItem('token');
+            const data = {
+                name: document.getElementById('edit_name').value.trim(),
+                course: document.getElementById('edit_course').value.trim(),
+                subject: document.getElementById('edit_subject').value.trim(),
+                parent_email: document.getElementById('edit_parent_email').value.trim()
+            };
+            try {
+                const res = await fetch(`/api/students/${studentId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify(data)
+                });
+                if (res.ok) {
+                    currentStudent = { ...currentStudent, ...data };
+                    closeModal('editStudentModal');
+                    showToast('✅ Alumno actualizado correctamente', 'success');
+                    loadProfile();
+                } else {
+                    showToast('❌ Error al guardar los cambios', 'error');
+                }
+            } catch (err) {
+                console.error('Error updating student:', err);
+                showToast('❌ Error de conexión', 'error');
             }
         });
 
