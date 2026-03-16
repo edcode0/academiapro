@@ -3533,6 +3533,24 @@ db.initDb().then(async () => {
         }
     }
 
+    // DEBUG: Test email endpoint — remove after verifying Resend works
+    app.get('/api/test-email', authenticateJWT, requireAdmin, async (req, res) => {
+        try {
+            const resend = new Resend(process.env.RESEND_API_KEY);
+            const result = await resend.emails.send({
+                from: 'AcademiaPro <onboarding@resend.dev>',
+                to: req.user.email,
+                subject: 'Test email AcademiaPro',
+                html: '<h1>Test email funcionando ✅</h1><p>RESEND_API_KEY está configurado correctamente.</p>'
+            });
+            console.log('[Email] Test result:', JSON.stringify(result));
+            res.json({ success: true, result });
+        } catch (err) {
+            console.error('[Email] Test error:', err.message);
+            res.status(500).json({ error: err.message, resend_key_set: !!process.env.RESEND_API_KEY });
+        }
+    });
+
     server.listen(PORT, () => {
         console.log('Server running on port ' + PORT);
 
