@@ -113,6 +113,8 @@ const io = new Server(server, {
     cors: { origin: '*', methods: ['GET', 'POST'] },
     maxHttpBufferSize: 1e7 // 10MB
 });
+const { createNotification, setIo: setNotifIo } = require('./notifications');
+setNotifIo(io);
 
 io.use((socket, next) => {
   const token = socket.handshake.auth.token;
@@ -283,6 +285,15 @@ async function checkAndProcessTranscripts(teacher) {
                 'INSERT INTO transcripts (academy_id, teacher_id, student_id, raw_text, processed_json) VALUES ($1, $2, $3, $4, $5)',
                 [teacher.academy_id, teacher.id, student.id, body.substring(0, 5000), JSON.stringify(analysisData)]
             );
+
+            // Notify student if they have an account
+            if (student.user_id) {
+                createNotification(student.user_id, teacher.academy_id, 'transcript',
+                    '📝 Resumen de sesión disponible',
+                    `Tu profesor ha procesado la transcripción de la última sesión.`,
+                    '/student-portal'
+                );
+            }
 
             // Emit via Socket.IO
             io.to(`room_${roomId}`).emit('new_message', {
@@ -1685,6 +1696,45 @@ app.get('/api/transcripts/history', authenticateJWT, (req, res) => {
 // Add express static for other files (must be AFTER root and routes)
 app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 
+// ─── Notifications ────────────────────────────────────────────────────────────
+app.get('/api/notifications', authenticateJWT, async (req, res) => {
+    try {
+        const result = await db.query(
+            `SELECT * FROM notifications WHERE user_id = $1
+             ORDER BY created_at DESC LIMIT 50`,
+            [req.user.id]
+        );
+        res.json(result.rows || []);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/notifications/mark-read/:id', authenticateJWT, async (req, res) => {
+    try {
+        await db.query(
+            `UPDATE notifications SET read = TRUE WHERE id = $1 AND user_id = $2`,
+            [req.params.id, req.user.id]
+        );
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/notifications/mark-all-read', authenticateJWT, async (req, res) => {
+    try {
+        await db.query(
+            `UPDATE notifications SET read = TRUE WHERE user_id = $1`,
+            [req.user.id]
+        );
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+// ──────────────────────────────────────────────────────────────────────────────
+
 // Risk logic
 const checkStudentRisk = (studentId) => {
     db.query(`SELECT * FROM students WHERE id = $1`, [studentId], (err, result) => {
@@ -1696,6 +1746,7 @@ const checkStudentRisk = (studentId) => {
                 const allNoHomework = sessions.every(s => !s.homework_done);
                 if (allNoHomework) {
                     db.query(`UPDATE students SET status = 'at_risk' WHERE id = $1`, [studentId]);
+                    notifyAtRisk(studentId, 'No entrega deberes (3 sesiones seguidas)');
                     return;
                 }
             }
@@ -1706,12 +1757,33 @@ const checkStudentRisk = (studentId) => {
                     const prev2Avg = (exams[2].score + exams[3].score) / 2;
                     if (last2Avg < prev2Avg) {
                         db.query(`UPDATE students SET status = 'at_risk' WHERE id = $1`, [studentId]);
+                        notifyAtRisk(studentId, 'Bajada de notas en los últimos exámenes');
                     }
                 }
             });
         });
     });
 };
+
+async function notifyAtRisk(studentId, reason) {
+    try {
+        const r = await db.query(
+            `SELECT s.name, s.academy_id, s.assigned_teacher_id,
+                    u_admin.id AS admin_id
+             FROM students s
+             LEFT JOIN users u_admin ON u_admin.academy_id = s.academy_id AND u_admin.role = 'admin'
+             WHERE s.id = $1 LIMIT 1`,
+            [studentId]
+        );
+        const row = r.rows[0];
+        if (!row) return;
+        const title = `⚠️ Alumno en riesgo: ${row.name}`;
+        const msg = reason;
+        const link = null;
+        if (row.admin_id) createNotification(row.admin_id, row.academy_id, 'at_risk', title, msg, link);
+        if (row.assigned_teacher_id) createNotification(row.assigned_teacher_id, row.academy_id, 'at_risk', title, msg, link);
+    } catch (e) { console.error('[notifyAtRisk]', e.message); }
+}
 
 // DELETE student from academy
 app.delete('/api/admin/students/:id', authenticateJWT, requireAdmin, (req, res) => {
@@ -1887,7 +1959,21 @@ app.post('/api/sessions', authenticateJWT, async (req, res) => {
             [student_id, date || new Date(), duration_minutes || 60, homework_done || false, teacher_notes || notes || '']
         );
         const session = result.rows[0];
-        if (session) checkStudentRisk(student_id);
+        if (session) {
+            checkStudentRisk(student_id);
+            // Notify student if they have a user account
+            db.query(`SELECT user_id, name, academy_id FROM students WHERE id = $1`, [student_id], (err, r) => {
+                const st = r?.rows?.[0];
+                if (!err && st?.user_id) {
+                    const dateStr = session.date ? new Date(session.date).toLocaleDateString('es-ES') : 'hoy';
+                    createNotification(st.user_id, st.academy_id, 'session',
+                        '📅 Nueva sesión registrada',
+                        `Se ha registrado una sesión el ${dateStr} (${session.duration_minutes} min).`,
+                        '/student-portal'
+                    );
+                }
+            });
+        }
         res.json(session);
     } catch (err) {
         console.error('Session error:', err.message);
@@ -3321,6 +3407,15 @@ app.post('/api/generate-report', authenticateJWT, async (req, res) => {
             }
         }
 
+        // Notify student if they have an account
+        if (student.user_id) {
+            createNotification(student.user_id, req.user.academy_id, 'report',
+                '📊 Nuevo informe disponible',
+                `Tu informe de ${monthText} ${yearNum} ya está listo.`,
+                fileUrl
+            );
+        }
+
         res.json({
             success: true,
             file_url: fileUrl,
@@ -3395,6 +3490,20 @@ io.on('connection', (socket) => {
                 sender_role: user.role,
                 sender_id: user.id
             });
+
+            // Notify other room members
+            const membersRes = await db.query(
+                'SELECT user_id FROM room_members WHERE room_id = $1 AND user_id != $2',
+                [roomId, user.id]
+            );
+            const preview = content.trim().length > 60 ? content.trim().slice(0, 60) + '…' : content.trim();
+            for (const m of membersRes.rows) {
+                createNotification(m.user_id, user.academy_id, 'message',
+                    `💬 Nuevo mensaje de ${user.name}`,
+                    preview,
+                    '/chat'
+                );
+            }
         } catch (err) {
             console.error('sendMessage error:', err.message);
             socket.emit('error', { message: 'Error sending message' });

@@ -1,38 +1,50 @@
 const db = require('./db');
+const { createNotification } = require('./notifications');
 
 function runDailyJobs() {
     const now = new Date();
     const today = now.toISOString().split('T')[0];
     const isFirstOfMonth = now.getDate() === 1;
 
-    // 1. PAYMENT REMINDERS & AUTOGENERATEN
-    db.query('SELECT s.key, s.value FROM settings s', (err, result) => {
-        if (err || !result || !result.rows) return;
-        const settings = {};
-        result.rows.forEach(r => settings[r.key] = r.value);
-
-        if (settings['notify_payment'] === 'true') {
-            db.query(`SELECT p.*, st.parent_email, st.name as student_name, a.name as academy_name
-                      FROM payments p
-                      JOIN students st ON p.student_id = st.id
-                      JOIN academies a ON st.academy_id = a.id
-                      WHERE p.status = 'pendiente' AND p.due_date < $1`, [today], (err, pRes) => {
-                if (!err && pRes && pRes.rows) {
-                    pRes.rows.forEach(p => {
-                        // send an email warning
-                        if (p.parent_email && process.env.RESEND_API_KEY) {
-                            fetch('https://api.resend.com/emails', {
-                                method: 'POST',
-                                headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    from: 'AcademiaPro <onboarding@resend.dev>',
-                                    to: p.parent_email,
-                                    subject: `Aviso: Pago vencido de ${p.student_name}`,
-                                    html: `<p>Hola, le informamos que el pago correspondiente a ${p.amount}€ en la academia ${p.academy_name} se encuentra vencido desde ${p.due_date}. Por favor, póngase al corriente.</p>`
-                                })
-                            }).catch(e => console.error(e));
+    // 1. PAYMENT REMINDERS & OVERDUE NOTIFICATIONS
+    db.query(`SELECT p.id, p.amount, p.due_date, st.name as student_name, st.academy_id, st.parent_email,
+                     u_admin.id as admin_id, a.name as academy_name
+              FROM payments p
+              JOIN students st ON p.student_id = st.id
+              JOIN academies a ON st.academy_id = a.id
+              LEFT JOIN users u_admin ON u_admin.academy_id = st.academy_id AND u_admin.role = 'admin'
+              WHERE p.status = 'pendiente' AND p.due_date < $1`, [today], (err, pRes) => {
+        if (!err && pRes && pRes.rows) {
+            pRes.rows.forEach(p => {
+                // In-app notification for admin (deduplicate: only if no notification in last 24h for this payment)
+                if (p.admin_id) {
+                    db.query(
+                        `SELECT 1 FROM notifications WHERE user_id=$1 AND type='payment_overdue' AND link=$2
+                         AND created_at > NOW() - INTERVAL '24 hours' LIMIT 1`,
+                        [p.admin_id, `/payments?id=${p.id}`],
+                        (e, r) => {
+                            if (!e && !r?.rows?.length) {
+                                createNotification(p.admin_id, p.academy_id, 'payment_overdue',
+                                    `💳 Pago vencido: ${p.student_name}`,
+                                    `${p.amount}€ pendiente desde ${p.due_date}`,
+                                    `/payments?id=${p.id}`
+                                );
+                            }
                         }
-                    });
+                    );
+                }
+                // Email to parent
+                if (p.parent_email && process.env.RESEND_API_KEY) {
+                    fetch('https://api.resend.com/emails', {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            from: 'AcademiaPro <onboarding@resend.dev>',
+                            to: p.parent_email,
+                            subject: `Aviso: Pago vencido de ${p.student_name}`,
+                            html: `<p>Hola, le informamos que el pago correspondiente a ${p.amount}€ en la academia ${p.academy_name} se encuentra vencido desde ${p.due_date}. Por favor, póngase al corriente.</p>`
+                        })
+                    }).catch(e => console.error(e));
                 }
             });
         }

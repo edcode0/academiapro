@@ -481,7 +481,20 @@ async function initDb() {
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS gmail_last_check TIMESTAMP",
 
     // Onboarding wizard
-    "ALTER TABLE users ADD COLUMN IF NOT EXISTS onboarding_completed BOOLEAN DEFAULT FALSE"
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS onboarding_completed BOOLEAN DEFAULT FALSE",
+
+    // In-app notifications
+    `CREATE TABLE IF NOT EXISTS notifications (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL,
+      academy_id INTEGER,
+      type TEXT,
+      title TEXT NOT NULL,
+      message TEXT,
+      read BOOLEAN DEFAULT FALSE,
+      link TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`
   ];
 
   for (const sql of migrations) {
