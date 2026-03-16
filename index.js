@@ -825,13 +825,19 @@ app.put('/api/user/generate-code', authenticateJWT, (req, res) => {
     });
 });
 
-// Main Page Routes (Protected)
-app.get('/', authenticateJWT, (req, res) => {
-    if (req.user.role === 'admin') {
-        res.sendFile(path.join(__dirname, 'public/index.html'));
-    } else {
-        res.redirect(req.user.role === 'teacher' ? '/teacher/dashboard' : '/student-portal');
+// Main Page Routes
+app.get('/', (req, res) => {
+    let token = req.cookies.token;
+    if (!token && req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+        token = req.headers.authorization.split(' ')[1];
     }
+    if (!token) return res.sendFile(path.join(__dirname, 'public/landing.html'));
+
+    jwt.verify(token, JWT_SECRET, (err, user) => {
+        if (err) return res.sendFile(path.join(__dirname, 'public/landing.html'));
+        if (user.role === 'admin') res.sendFile(path.join(__dirname, 'public/index.html'));
+        else res.redirect(user.role === 'teacher' ? '/teacher/dashboard' : '/student-portal');
+    });
 });
 app.get('/student-portal/exams', authenticateJWT, requireStudent, (req, res) => res.sendFile(path.join(__dirname, 'public/student_portal_exams.html')));
 app.get('/student-portal/calendar', authenticateJWT, requireStudent, (req, res) => res.sendFile(path.join(__dirname, 'public/student_portal_calendar.html')));
