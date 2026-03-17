@@ -1691,7 +1691,13 @@ app.use(express.static(path.join(__dirname, 'public'), {
 }));
 
 // Authenticated file serving for uploads
-app.get('/uploads/:folder/:filename', authenticateJWT, (req, res) => {
+app.get('/uploads/:folder/:filename', (req, res, next) => {
+    // Return JSON 401 (not a redirect) so API clients handle it correctly
+    const token = req.cookies?.token ||
+        (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.split(' ')[1] : null);
+    if (!token) return res.status(401).json({ error: 'Unauthorized' });
+    next();
+}, authenticateJWT, (req, res) => {
     const { folder, filename } = req.params;
     // Only allow known upload folders
     if (!['chat', 'reports'].includes(folder)) return res.status(404).end();
