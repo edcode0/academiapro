@@ -45,7 +45,7 @@ async function sendWelcomeEmail(user, academyName) {
             subject: '¡Bienvenido a AcademiaPro! 🎓',
             html: `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{font-family:Inter,sans-serif;background:#f8fafc;margin:0;padding:0}.container{max-width:600px;margin:40px auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.08)}.header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);padding:40px;text-align:center}.header h1{color:white;margin:0;font-size:28px}.header p{color:rgba(255,255,255,.85);margin:8px 0 0}.body{padding:40px}.body h2{color:#1e293b;font-size:22px}.body p{color:#64748b;line-height:1.6}.steps{background:#f8fafc;border-radius:12px;padding:24px;margin:24px 0}.step{display:flex;align-items:flex-start;margin-bottom:16px}.step-num{background:#6366f1;color:white;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0;margin-right:12px;margin-top:2px}.step-text{color:#374151}.step-text strong{color:#1e293b;display:block;margin-bottom:2px}.btn{display:inline-block;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;text-decoration:none;padding:14px 32px;border-radius:10px;font-weight:600;font-size:16px;margin:8px 0}.footer{background:#f8fafc;padding:24px 40px;text-align:center}.footer p{color:#94a3b8;font-size:13px;margin:0}</style></head><body><div class="container"><div class="header"><h1>🎓 AcademiaPro</h1><p>La plataforma inteligente para academias</p></div><div class="body"><h2>¡Hola, ${user.name}! 👋</h2><p>Tu academia <strong>${academyName || 'AcademiaPro'}</strong> ya está creada y lista para usar. Aquí tienes los primeros pasos para empezar:</p><div class="steps"><div class="step"><div class="step-num">1</div><div class="step-text"><strong>Comparte los códigos de tu academia</strong>Ve a Configuración y copia los códigos para profesores y alumnos</div></div><div class="step"><div class="step-num">2</div><div class="step-text"><strong>Añade tus primeros alumnos</strong>Desde el panel de Estudiantes puedes crear fichas individuales</div></div><div class="step"><div class="step-num">3</div><div class="step-text"><strong>Invita a tus profesores</strong>Comparte el código de profesor para que se unan a tu academia</div></div><div class="step"><div class="step-num">4</div><div class="step-text"><strong>Prueba el Tutor IA</strong>El asistente inteligente está disponible para profesores y alumnos</div></div></div><div style="text-align:center;margin:32px 0"><a href="${process.env.BASE_URL || 'https://web-production-d02f4.up.railway.app'}" class="btn">Ir a mi academia →</a></div><p style="font-size:14px;color:#94a3b8;text-align:center">¿Tienes alguna duda? Responde a este email y te ayudamos.</p></div><div class="footer"><p>AcademiaPro · La plataforma inteligente para academias de repaso</p></div></div></body></html>`
         });
-        console.log('[Email] Welcome email sent to:', user.email);
+        console.log('[Email] Welcome email sent to user id:', user.id);
     } catch (err) {
         console.error('[Email] Welcome email error:', err.message);
     }
@@ -62,7 +62,7 @@ async function sendJoinWelcomeEmail(user, academyName, role) {
             subject: `✅ Te has unido a ${academyName} en AcademiaPro`,
             html: `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{font-family:Inter,sans-serif;background:#f8fafc;margin:0;padding:20px}.container{max-width:500px;margin:0 auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.08)}.header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);padding:32px;text-align:center}.header h1{color:white;margin:0;font-size:24px}.body{padding:32px}.body p{color:#64748b;line-height:1.6}.btn{display:inline-block;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;text-decoration:none;padding:12px 28px;border-radius:10px;font-weight:600}.footer{padding:20px 32px;text-align:center;background:#f8fafc}.footer p{color:#94a3b8;font-size:13px;margin:0}</style></head><body><div class="container"><div class="header"><h1>🎓 AcademiaPro</h1></div><div class="body"><h2 style="color:#1e293b">¡Bienvenido, ${user.name}! 👋</h2><p>Te has unido a <strong>${academyName}</strong> como <strong>${roleText}</strong>. Ya puedes acceder a tu panel.</p><div style="text-align:center;margin:24px 0"><a href="${process.env.BASE_URL || 'https://web-production-d02f4.up.railway.app'}${dashboardUrl}" class="btn">Ir a mi panel →</a></div></div><div class="footer"><p>AcademiaPro · La plataforma inteligente para academias</p></div></div></body></html>`
         });
-        console.log('[Email] Join welcome email sent to:', user.email);
+        console.log('[Email] Join welcome email sent to user id:', user.id);
     } catch (err) {
         console.error('[Email] Join welcome email error:', err.message);
     }
@@ -334,7 +334,10 @@ const multer = require('multer');
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, 'public/uploads/chat/'),
-    filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
+    filename: (req, file, cb) => {
+        const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        cb(null, unique + path.extname(file.originalname));
+    }
 });
 const upload = multer({
     storage,
@@ -407,24 +410,6 @@ const requireAdmin = requireRole('admin');
 const requireTeacher = requireRole('teacher');
 const requireStudent = requireRole('student');
 
-app.get('/api/debug/academies', authenticateJWT, requireAdmin, async (req, res) => {
-    try {
-        const result = await db.query('SELECT * FROM academies');
-        res.json(result.rows || result);
-    } catch (err) {
-        res.json({ error: err.message });
-    }
-});
-
-app.get('/api/debug/users', authenticateJWT, requireAdmin, async (req, res) => {
-    try {
-        const result = await db.query('SELECT id, name, email, role, academy_id FROM users');
-        res.json(result.rows || result);
-    } catch (err) {
-        res.json({ error: err.message });
-    }
-});
-
 app.get('/landing', (req, res) => res.sendFile(path.join(__dirname, 'public', 'landing.html')));
 
 // Auth Routes
@@ -455,7 +440,7 @@ app.get('/api/auth/check-code/:code', (req, res) => {
 app.post('/auth/register', async (req, res) => {
     try {
         const { name, email, password, academy_name, academy_code } = req.body;
-        const hash = bcrypt.hashSync(password, 8);
+        const hash = bcrypt.hashSync(password, 10);
         const userCode = generateUserCode();
 
         if (academy_code) {
@@ -610,7 +595,7 @@ app.post('/auth/login', async (req, res) => {
         );
         res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'strict' });
 
-        console.log('Login successful:', user.email, 'role:', user.role);
+        console.log('Login successful: id=%d role=%s', user.id, user.role);
         res.json({
             token,
             user: { id: user.id, name: user.name, email: user.email, role: user.role, user_code: user.user_code }
@@ -679,11 +664,11 @@ app.post('/api/auth/join', async (req, res) => {
 
         const token = jwt.sign(
             { id: user.id, email: user.email, role: user.role, academy_id: user.academy_id },
-            process.env.JWT_SECRET || 'secret',
+            process.env.JWT_SECRET || 'super_secret_jwt',
             { expiresIn: '7d' }
         );
 
-        console.log('User joined:', user.email, 'as', user.role, 'in academy', academy.id);
+        console.log('User joined: id=%d role=%s academy=%d', user.id, user.role, academy.id);
 
         // Send welcome email (non-blocking)
         sendJoinWelcomeEmail(user, academy.name, role);
@@ -724,7 +709,7 @@ app.get('/auth/google/callback', passport.authenticate('google', { failureRedire
                 JWT_SECRET, { expiresIn: '7d' }
             );
             res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'strict' });
-            console.log('Google Auth existing user:', email, 'role:', existingUser.role);
+            console.log('Google Auth existing user: id=%d role=%s', existingUser.id, existingUser.role);
             return res.redirect(`/auth-success?token=${token}&role=${existingUser.role}`);
         }
 
@@ -773,7 +758,7 @@ app.get('/auth/google/callback', passport.authenticate('google', { failureRedire
             JWT_SECRET, { expiresIn: '7d' }
         );
         res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'strict' });
-        console.log('Google Auth new user:', email, 'role:', newUser.role);
+        console.log('Google Auth new user: id=%d role=%s', newUser.id, newUser.role);
         return res.redirect(`/auth-success?token=${token}&role=${newUser.role}`);
 
     } catch (err) {
@@ -1694,7 +1679,30 @@ app.get('/api/transcripts/history', authenticateJWT, (req, res) => {
 });
 
 // Add express static for other files (must be AFTER root and routes)
-app.use(express.static(path.join(__dirname, 'public'), { index: false }));
+// Serve everything EXCEPT /uploads (which is protected below)
+app.use(express.static(path.join(__dirname, 'public'), {
+    index: false,
+    // Block direct access to uploads — handled by the authenticated route below
+    setHeaders: (res, filePath) => {
+        if (filePath.includes(path.sep + 'uploads' + path.sep)) {
+            res.status(403).end();
+        }
+    }
+}));
+
+// Authenticated file serving for uploads
+app.get('/uploads/:folder/:filename', authenticateJWT, (req, res) => {
+    const { folder, filename } = req.params;
+    // Only allow known upload folders
+    if (!['chat', 'reports'].includes(folder)) return res.status(404).end();
+
+    // Prevent path traversal
+    const safeName = path.basename(filename);
+    const filePath = path.join(__dirname, 'public', 'uploads', folder, safeName);
+
+    if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Archivo no encontrado' });
+    res.sendFile(filePath);
+});
 
 // ─── Notifications ────────────────────────────────────────────────────────────
 app.get('/api/notifications', authenticateJWT, async (req, res) => {
@@ -1953,6 +1961,13 @@ app.put('/api/students/:id', authenticateJWT, requireAdmin, (req, res) => {
 app.post('/api/sessions', authenticateJWT, async (req, res) => {
     try {
         const { student_id, date, duration_minutes, homework_done, teacher_notes, notes, homework } = req.body;
+
+        // Verify the student belongs to the caller's academy (and assigned to them if teacher)
+        const ownershipQ = req.user.role === 'teacher'
+            ? await db.query('SELECT id FROM students WHERE id=$1 AND academy_id=$2 AND assigned_teacher_id=$3', [student_id, req.user.academy_id, req.user.id])
+            : await db.query('SELECT id FROM students WHERE id=$1 AND academy_id=$2', [student_id, req.user.academy_id]);
+        if (!ownershipQ.rows.length) return res.status(403).json({ error: 'Acceso denegado a este alumno' });
+
         const result = await db.query(
             `INSERT INTO sessions (student_id, date, duration_minutes, homework_done, teacher_notes)
              VALUES ($1, $2, $3, $4, $5) RETURNING *`,
@@ -2453,18 +2468,20 @@ app.get('/api/student/reports', authenticateJWT, requireStudent, (req, res) => {
     });
 });
 
-app.get('/api/reports/student/:id', authenticateJWT, (req, res) => {
-    db.query('SELECT * FROM reports WHERE student_id = $1 ORDER BY year DESC, month DESC', [req.params.id], (err, result) => {
-        if (err) return res.status(500).json({ error: err.message });
-        const rows = result.rows;
+app.get('/api/reports/student/:id', authenticateJWT, async (req, res) => {
+    try {
+        // Verify student belongs to the caller's academy
+        const ownershipQ = req.user.role === 'student'
+            ? await db.query('SELECT id FROM students WHERE id=$1 AND user_id=$2', [req.params.id, req.user.id])
+            : await db.query('SELECT id FROM students WHERE id=$1 AND academy_id=$2', [req.params.id, req.user.academy_id]);
+        if (!ownershipQ.rows.length) return res.status(403).json({ error: 'Acceso denegado' });
+
+        const result = await db.query('SELECT * FROM reports WHERE student_id=$1 ORDER BY year DESC, month DESC', [req.params.id]);
         const monthsNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-        const formatted = rows.map(r => ({
-            ...r,
-            monthName: monthsNames[r.month - 1],
-            url: r.file_url
-        }));
-        res.json(formatted);
-    });
+        res.json(result.rows.map(r => ({ ...r, monthName: monthsNames[r.month - 1], url: r.file_url })));
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 
@@ -3645,24 +3662,6 @@ db.initDb().then(async () => {
             console.log('Student table auto-sync completely failed:', e2.message);
         }
     }
-
-    // DEBUG: Test email endpoint — remove after verifying Resend works
-    app.get('/api/test-email', authenticateJWT, requireAdmin, async (req, res) => {
-        try {
-            const resend = new Resend(process.env.RESEND_API_KEY);
-            const result = await resend.emails.send({
-                from: 'AcademiaPro <onboarding@resend.dev>',
-                to: req.user.email,
-                subject: 'Test email AcademiaPro',
-                html: '<h1>Test email funcionando ✅</h1><p>RESEND_API_KEY está configurado correctamente.</p>'
-            });
-            console.log('[Email] Test result:', JSON.stringify(result));
-            res.json({ success: true, result });
-        } catch (err) {
-            console.error('[Email] Test error:', err.message);
-            res.status(500).json({ error: err.message, resend_key_set: !!process.env.RESEND_API_KEY });
-        }
-    });
 
     server.listen(PORT, () => {
         console.log('Server running on port ' + PORT);

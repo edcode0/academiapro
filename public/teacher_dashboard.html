@@ -483,6 +483,17 @@
             }
         }
 
+        function showDashboardError(msg) {
+            const main = document.querySelector('main');
+            const existing = document.getElementById('dashboard-error');
+            if (existing) return;
+            const el = document.createElement('div');
+            el.id = 'dashboard-error';
+            el.style.cssText = 'background:#fef2f2;border:1px solid #fecaca;color:#991b1b;padding:1rem 1.25rem;border-radius:0.75rem;margin-bottom:1.5rem;font-size:0.875rem;';
+            el.textContent = '⚠️ ' + msg;
+            main.insertBefore(el, main.querySelector('.stats-grid') || main.children[1]);
+        }
+
         async function init() {
             await loadTeacherProfile();
 
@@ -492,40 +503,66 @@
                 a.classList.toggle('active', a.getAttribute('href') === path);
             });
 
-            const urRes = await fetch('/api/chat/unread-count');
-            const urData = await urRes.json();
-            if (urData.count > 0) {
-                const badge = document.getElementById('global-unread');
-                badge.textContent = urData.count;
-                badge.style.display = 'block';
+            const token = localStorage.getItem('token');
+            const headers = { 'Authorization': 'Bearer ' + token };
+
+            try {
+                const urRes = await fetch('/api/chat/unread-count', { headers });
+                if (urRes.ok) {
+                    const urData = await urRes.json();
+                    if (urData.count > 0) {
+                        const badge = document.getElementById('global-unread');
+                        badge.textContent = urData.count;
+                        badge.style.display = 'block';
+                    }
+                }
+            } catch (e) { /* unread count is non-critical */ }
+
+            try {
+                const statsRes = await fetch('/api/teacher/dashboard-stats', { headers });
+                if (!statsRes.ok) throw new Error('Error al cargar estadísticas');
+                const stats = await statsRes.json();
+                document.getElementById('stat-students').textContent = stats.studentCount ?? '—';
+                document.getElementById('stat-sessions').textContent = stats.sessionCount ?? '—';
+                document.getElementById('stat-risk').textContent = stats.atRiskCount ?? '—';
+                document.getElementById('stat-score').textContent = stats.avgScore ?? '—';
+
+                const feed = document.getElementById('activity-feed');
+                if (stats.recentActivity && stats.recentActivity.length) {
+                    feed.innerHTML = stats.recentActivity.map(act => `
+                        <div style="padding: 1rem 0; border-bottom: 1px solid var(--border);">
+                            <p style="font-size: 0.9rem;"><strong>${act.student_name}</strong> - Sesión</p>
+                            <span style="font-size: 0.75rem; color: #64748b;">${new Date(act.date).toLocaleDateString()}</span>
+                        </div>
+                    `).join('');
+                } else {
+                    feed.innerHTML = '<p style="color:#94a3b8;font-size:0.875rem;">Sin actividad reciente</p>';
+                }
+            } catch (e) {
+                console.error('Stats load error:', e);
+                showDashboardError('No se pudieron cargar las estadísticas. Recarga la página para intentarlo de nuevo.');
             }
 
-            const statsRes = await fetch('/api/teacher/dashboard-stats');
-            const stats = await statsRes.json();
-            document.getElementById('stat-students').textContent = stats.studentCount;
-            document.getElementById('stat-sessions').textContent = stats.sessionCount;
-            document.getElementById('stat-risk').textContent = stats.atRiskCount;
-            document.getElementById('stat-score').textContent = stats.avgScore;
-
-            const feed = document.getElementById('activity-feed');
-            feed.innerHTML = stats.recentActivity.map(act => `
-                <div style="padding: 1rem 0; border-bottom: 1px solid var(--border);">
-                    <p style="font-size: 0.9rem;"><strong>${act.student_name}</strong> - Sesión</p>
-                    <span style="font-size: 0.75rem; color: #64748b;">${new Date(act.date).toLocaleDateString()}</span>
-                </div>
-            `).join('');
-
-            const studentsRes = await fetch('/api/teacher/students');
-            const students = await studentsRes.json();
-            document.getElementById('students-table').innerHTML = students.map(s => `
-                <tr>
-                    <td><a href="/student/${s.id}" style="color:var(--accent); text-decoration:none; font-weight:600;">${s.name}</a></td>
-                    <td>${s.course}</td>
-                    <td>${s.subject}</td>
-                    <td><span class="status-badge ${s.status === 'at_risk' ? 'status-risk' : 'status-active'}">${s.status === 'at_risk' ? 'En Riesgo' : 'Activo'}</span></td>
-                    <td style="color: #64748b;">${s.last_session ? new Date(s.last_session).toLocaleDateString() : 'Sin sesiones'}</td>
-                </tr>
-            `).join('');
+            try {
+                const studentsRes = await fetch('/api/teacher/students', { headers });
+                if (!studentsRes.ok) throw new Error('Error al cargar alumnos');
+                const students = await studentsRes.json();
+                document.getElementById('students-table').innerHTML = students.length
+                    ? students.map(s => `
+                        <tr>
+                            <td><a href="/student/${s.id}" style="color:var(--accent); text-decoration:none; font-weight:600;">${s.name}</a></td>
+                            <td>${s.course}</td>
+                            <td>${s.subject}</td>
+                            <td><span class="status-badge ${s.status === 'at_risk' ? 'status-risk' : 'status-active'}">${s.status === 'at_risk' ? 'En Riesgo' : 'Activo'}</span></td>
+                            <td style="color: #64748b;">${s.last_session ? new Date(s.last_session).toLocaleDateString() : 'Sin sesiones'}</td>
+                        </tr>
+                    `).join('')
+                    : '<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:2rem;">No tienes alumnos asignados aún</td></tr>';
+            } catch (e) {
+                console.error('Students load error:', e);
+                document.getElementById('students-table').innerHTML =
+                    '<tr><td colspan="5" style="text-align:center;color:#991b1b;padding:2rem;">⚠️ Error al cargar la lista de alumnos</td></tr>';
+            }
         }
         init();
         initNotifications();
