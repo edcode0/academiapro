@@ -587,11 +587,34 @@
         const studentId = window.location.pathname.split('/').pop();
         let examChart = null;
 
+        const ADMIN_NAV_HTML = `
+            <div class="nav-section-title">Gestión de Academia</div>
+            <a href="/">🏠 Dashboard</a>
+            <a href="/students">👥 Estudiantes</a>
+            <a href="/admin/teachers">👨‍🏫 Profesores</a>
+            <a href="/payments">💳 Pagos</a>
+            <a href="/chat">💬 Chat <span class="unread-badge-sidebar" id="global-unread"></span></a>
+            <a href="/settings">⚙️ Configuración</a>
+            <div class="nav-section-title">Mi actividad docente</div>
+            <a href="/teacher/dashboard">👥 Mis Alumnos</a>
+            <a href="/teacher/sessions">📅 Sesiones</a>
+            <a href="/teacher/exams">📝 Exámenes</a>
+            <a href="/teacher/transcripts">📝 Transcripciones</a>
+            <a href="/teacher/calendar">🗓️ Calendario</a>
+            <a href="/ai-tutor">🤖 Asistente IA</a>
+        `;
+
         async function init() {
             const userRes = await fetch('/auth/me');
             const user = await userRes.json();
             document.getElementById('sidebarName').textContent = user.name;
             document.getElementById('sidebar-code').textContent = user.user_code || 'No asignado';
+
+            // If admin, show full admin two-section nav and ADMIN badge
+            if (user.role === 'admin') {
+                document.querySelector('aside .role-tag').textContent = 'ADMIN';
+                document.getElementById('mainNav').innerHTML = ADMIN_NAV_HTML;
+            }
 
             // Auto-highlight active link
             const path = window.location.pathname;
