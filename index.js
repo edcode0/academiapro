@@ -1448,9 +1448,14 @@ app.post('/api/transcripts/process', authenticateJWT, pdfUpload.single('file'), 
         if (req.file) {
             const ext = path.extname(req.file.originalname).toLowerCase();
             if (ext === '.pdf') {
-                const pdfParse = require('pdf-parse');
-                const data = await pdfParse(req.file.buffer);
-                transcript_text = data.text;
+                try {
+                    const pdfParse = require('pdf-parse');
+                    const data = await pdfParse(req.file.buffer);
+                    transcript_text = data.text;
+                } catch (e) {
+                    console.error('Error pdf-parse:', e);
+                    return res.status(400).json({ error: 'Error procesando el PDF. Asegúrate de que el archivo es válido.' });
+                }
             } else if (ext === '.docx') {
                 try {
                     const mammoth = require('mammoth');
@@ -1471,7 +1476,10 @@ app.post('/api/transcripts/process', authenticateJWT, pdfUpload.single('file'), 
             return res.status(400).json({ error: 'Se requiere ID de alumno y un texto válido de la clase (mín. 10 caracteres).' });
         }
 
-        const prompt = `Analiza esta transcripción de clase y genera un resumen estructurado. 
+        // Truncate to ~12 000 chars to stay well within token limits
+        const transcriptForAI = transcript_text.substring(0, 12000);
+
+        const prompt = `Analiza esta transcripción de clase y genera un resumen estructurado.
 Responde en JSON con este formato exacto (sin Markdown extra):
 {
   "resumen": "Resumen breve de la clase en 2-3 frases",
@@ -1483,17 +1491,24 @@ Responde en JSON con este formato exacto (sin Markdown extra):
 }
 
 Transcripción:
-${transcript_text}`;
+${transcriptForAI}`;
 
-        const apiResponse = await groqClient.chat.completions.create({
-            model: "llama-3.3-70b-versatile",
-            messages: [
-                { role: 'system', content: 'Eres un asistente educativo que analiza transcripciones de clases particulares. Tu tarea es extraer la información más útil para el alumno. Responde EXCLUSIVAMENTE con el JSON solicitado.' },
-                { role: 'user', content: prompt }
-            ],
-            temperature: 0.3,
-            response_format: { type: "json_object" }
-        });
+        let apiResponse;
+        try {
+            apiResponse = await groqClient.chat.completions.create({
+                model: "llama-3.3-70b-versatile",
+                messages: [
+                    { role: 'system', content: 'Eres un asistente educativo que analiza transcripciones de clases particulares. Tu tarea es extraer la información más útil para el alumno. Responde EXCLUSIVAMENTE con el JSON solicitado.' },
+                    { role: 'user', content: prompt }
+                ],
+                temperature: 0.3,
+                max_tokens: 1024,
+                response_format: { type: "json_object" }
+            });
+        } catch (e) {
+            console.error('Groq API error:', e.message, e.status, e.error);
+            return res.status(500).json({ error: 'Error al contactar la IA: ' + e.message });
+        }
 
         let jsonContent;
         try {
@@ -1633,7 +1648,7 @@ app.post('/api/transcripts/send-to-chat', authenticateJWT, async (req, res) => {
         // Step 4: Save message
         const insertMsgSql = isPostgres
             ? `INSERT INTO messages (room_id, sender_id, content, academy_id, read, created_at)
-               VALUES ($1, $2, $3, $4, 0, NOW())`
+               VALUES ($1, $2, $3, $4, FALSE, NOW())`
             : `INSERT INTO messages (room_id, sender_id, content, academy_id, read, created_at)
                VALUES ($1, $2, $3, $4, 0, datetime('now'))`;
 
