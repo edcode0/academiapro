@@ -358,6 +358,15 @@
             </div>
         </div>
 
+        <div class="settings-card" id="calendar-card">
+            <h3>📅 Google Calendar &amp; Meet</h3>
+            <p class="desc">Conecta tu Google Calendar para que las clases que programes en AcademiaPro aparezcan automáticamente con enlace de Google Meet.</p>
+            <div id="calendar-status-badge" style="margin-top:1rem;padding:0.6rem 1rem;border-radius:0.5rem;display:inline-block;font-weight:600;font-size:0.9rem;">Cargando...</div>
+            <div style="margin-top:1.5rem;">
+                <button class="btn btn-primary" id="calendar-connect-btn" onclick="connectCalendar()">📅 Conectar Google Calendar</button>
+            </div>
+        </div>
+
         <div class="settings-card" id="gmail-card">
             <h3>📧 Gmail &amp; Transcripciones Automáticas</h3>
             <p class="desc">Conecta tu Gmail para que AcademiaPro detecte automáticamente las transcripciones de Google Meet y las envíe al chat del alumno.</p>
@@ -509,6 +518,40 @@
 
         init();
 
+        // ── Google Calendar functions ────────────────────────────────────────
+        async function connectCalendar() {
+            const token = localStorage.getItem('token');
+            const res = await fetch('/api/calendar/connect', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            const data = await res.json();
+            if (data.authUrl) window.location.href = data.authUrl;
+        }
+
+        async function loadCalendarStatus() {
+            const token = localStorage.getItem('token');
+            try {
+                const res = await fetch('/api/gmail/status', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const data = await res.json();
+                const badge = document.getElementById('calendar-status-badge');
+                const btn = document.getElementById('calendar-connect-btn');
+                if (data.connected) {
+                    badge.textContent = '✅ Google Calendar conectado';
+                    badge.style.background = '#d1fae5';
+                    badge.style.color = '#065f46';
+                    btn.textContent = '🔄 Reconectar Calendar';
+                } else {
+                    badge.textContent = '❌ No conectado';
+                    badge.style.background = '#fee2e2';
+                    badge.style.color = '#991b1b';
+                }
+            } catch (e) {
+                console.error('Calendar status error:', e);
+            }
+        }
+
         // ── Gmail functions ──────────────────────────────────────────────────
         async function loadGmailStatus() {
             const token = localStorage.getItem('token');
@@ -594,6 +637,7 @@
             history.replaceState({}, '', '/teacher/settings');
         }
 
+        loadCalendarStatus();
         loadGmailStatus();
     </script>
 </body>

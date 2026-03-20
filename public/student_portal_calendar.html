@@ -444,7 +444,9 @@
                             teacher_name: s.teacher_name,
                             is_mine: isMine,
                             is_past: isPast,
-                            is_occupied: isBookedByOther
+                            is_occupied: isBookedByOther,
+                            meet_link: s.meet_link || null,
+                            start_datetime: s.start_datetime
                         }
                     };
                 });
@@ -483,12 +485,30 @@
                 if (props.is_mine) {
                     contentHtml += `<div class="detail-row"><strong>Estado:</strong> <span style="color:var(--booked)">Reservado por ti</span></div>`;
 
-                    if (hoursUntil > 24) {
+                    // Meet link: show join button if class is within 30 min or ongoing
+                    const minutesUntil = (start.getTime() - new Date().getTime()) / (1000 * 60);
+                    const isOngoing = start <= new Date() && end > new Date();
+                    if (props.meet_link && (minutesUntil <= 30 || isOngoing)) {
+                        const countdownText = isOngoing
+                            ? '¡La clase está en curso!'
+                            : `La clase empieza en ${Math.ceil(minutesUntil)} minutos`;
+                        contentHtml += `<div class="detail-row"><strong>🎥 Meet:</strong> <span style="color:#10b981">${countdownText}</span></div>`;
                         actionsHtml = `
+                            <a href="${props.meet_link}" target="_blank" class="btn btn-success" style="text-decoration:none;text-align:center;">🎥 Unirse a la clase</a>
+                        `;
+                    } else if (props.meet_link) {
+                        const h = Math.floor(minutesUntil / 60);
+                        const m = Math.round(minutesUntil % 60);
+                        const timeLeft = h > 0 ? `${h}h ${m}min` : `${Math.ceil(minutesUntil)} min`;
+                        contentHtml += `<div class="detail-row"><strong>🎥 Meet:</strong> <span style="color:var(--text-muted)">Disponible 30 min antes (en ${timeLeft})</span></div>`;
+                    }
+
+                    if (hoursUntil > 24 && !isOngoing) {
+                        actionsHtml += `
                             <div style="font-size: 0.8rem; color: var(--text-muted); text-align: center; margin-bottom: 0.5rem; margin-top: 1rem;">Puedes cancelar con ${Math.floor(hoursUntil)} hs de anticipación.</div>
                             <button class="btn btn-danger" onclick="cancelSlot()">Cancelar Reserva</button>
                         `;
-                    } else {
+                    } else if (!isOngoing && !props.meet_link) {
                         actionsHtml = `
                             <div style="font-size: 0.8rem; color: var(--danger); text-align: center; margin-top: 1rem;">No se puede cancelar (quedan menos de 24 hs).</div>
                         `;

@@ -144,6 +144,61 @@ function makeOAuth2Client() {
     );
 }
 
+// ─── Google Calendar helpers ──────────────────────────────────────────────────
+async function createCalendarEvent(teacher, slot) {
+    try {
+        if (!teacher.gmail_access_token) return null;
+        const auth = makeOAuth2Client();
+        auth.setCredentials({
+            access_token: teacher.gmail_access_token,
+            refresh_token: teacher.gmail_refresh_token,
+            expiry_date: teacher.gmail_token_expiry
+        });
+        const calendar = google.calendar({ version: 'v3', auth });
+        const event = {
+            summary: `Clase - ${slot.student_name || 'Alumno'}`,
+            description: 'Clase programada en AcademiaPro',
+            start: { dateTime: new Date(slot.start_datetime).toISOString(), timeZone: 'Europe/Madrid' },
+            end: { dateTime: new Date(slot.end_datetime).toISOString(), timeZone: 'Europe/Madrid' },
+            conferenceData: {
+                createRequest: {
+                    requestId: `academiapro-${Date.now()}`,
+                    conferenceSolutionKey: { type: 'hangoutsMeet' }
+                }
+            },
+            attendees: slot.student_email ? [{ email: slot.student_email }] : []
+        };
+        const response = await calendar.events.insert({
+            calendarId: 'primary',
+            resource: event,
+            conferenceDataVersion: 1,
+            sendUpdates: 'all'
+        });
+        const meetLink = response.data.conferenceData?.entryPoints?.find(e => e.entryPointType === 'video')?.uri;
+        console.log('[Calendar] Event created:', response.data.id, 'Meet:', meetLink);
+        return { google_event_id: response.data.id, meet_link: meetLink || null };
+    } catch (err) {
+        console.error('[Calendar] createCalendarEvent error:', err.message);
+        return null;
+    }
+}
+
+async function deleteCalendarEvent(teacher, googleEventId) {
+    try {
+        if (!teacher.gmail_access_token || !googleEventId) return;
+        const auth = makeOAuth2Client();
+        auth.setCredentials({
+            access_token: teacher.gmail_access_token,
+            refresh_token: teacher.gmail_refresh_token
+        });
+        const calendar = google.calendar({ version: 'v3', auth });
+        await calendar.events.delete({ calendarId: 'primary', eventId: googleEventId });
+        console.log('[Calendar] Event deleted:', googleEventId);
+    } catch (err) {
+        console.error('[Calendar] deleteCalendarEvent error:', err.message);
+    }
+}
+
 async function checkAndProcessTranscripts(teacher) {
     const oauth2Client = makeOAuth2Client();
     oauth2Client.setCredentials({
@@ -1104,26 +1159,57 @@ app.get('/api/calendar/slots', authenticateJWT, (req, res) => {
 });
 
 // Teacher creates slots
-app.post('/api/calendar/slots', authenticateJWT, requireTeacherOrAdmin, (req, res) => {
-    const { start_datetime, end_datetime, student_id, notes } = req.body;
-    const isBooked = student_id ? true : false;
-    db.query(
-        'INSERT INTO available_slots (teacher_id, academy_id, start_datetime, end_datetime, is_booked, student_id, notes) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-        [req.user.id, req.user.academy_id, start_datetime, end_datetime, isBooked, student_id || null, notes || null],
-        (err, result) => {
-            if (err) return res.status(500).json({ error: err.message });
-            res.json({ success: true, is_booked: isBooked });
+app.post('/api/calendar/slots', authenticateJWT, requireTeacherOrAdmin, async (req, res) => {
+    try {
+        const { start_datetime, end_datetime, student_id, notes } = req.body;
+        const isBooked = !!student_id;
+        const insertSql = isPostgres
+            ? 'INSERT INTO available_slots (teacher_id, academy_id, start_datetime, end_datetime, is_booked, student_id, notes) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id'
+            : 'INSERT INTO available_slots (teacher_id, academy_id, start_datetime, end_datetime, is_booked, student_id, notes) VALUES ($1, $2, $3, $4, $5, $6, $7)';
+        const result = await db.query(insertSql, [req.user.id, req.user.academy_id, start_datetime, end_datetime, isBooked, student_id || null, notes || null]);
+        const slotId = isPostgres ? result.rows[0].id : result.lastID;
+
+        // Create Google Calendar event if teacher has OAuth connected
+        try {
+            const teacherRes = await db.query('SELECT * FROM users WHERE id = $1', [req.user.id]);
+            const teacher = teacherRes.rows[0];
+            if (teacher?.gmail_access_token) {
+                const calResult = await createCalendarEvent(teacher, { start_datetime, end_datetime, student_name: null, student_email: null });
+                if (calResult) {
+                    await db.query(
+                        'UPDATE available_slots SET google_event_id = $1, meet_link = $2 WHERE id = $3',
+                        [calResult.google_event_id, calResult.meet_link, slotId]
+                    );
+                }
+            }
+        } catch (calErr) {
+            console.error('[Calendar] Slot create calendar error:', calErr.message);
         }
-    );
+
+        res.json({ success: true, is_booked: isBooked });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Teacher or Admin deletes slot
-app.delete('/api/calendar/slots/:id', authenticateJWT, (req, res) => {
+app.delete('/api/calendar/slots/:id', authenticateJWT, async (req, res) => {
     if (req.user.role === 'student') return res.status(403).json({ error: 'Access denied' });
-    db.query('DELETE FROM available_slots WHERE id = $1 AND is_booked = false', [req.params.id], (err) => {
-        if (err) return res.status(500).json({ error: err.message });
+    try {
+        const slotRes = await db.query('SELECT * FROM available_slots WHERE id = $1', [req.params.id]);
+        const slot = slotRes.rows[0];
+        await db.query('DELETE FROM available_slots WHERE id = $1 AND is_booked = false', [req.params.id]);
+        // Delete from Google Calendar (non-blocking)
+        if (slot?.google_event_id) {
+            const teacherRes = await db.query('SELECT * FROM users WHERE id = $1', [req.user.id]);
+            deleteCalendarEvent(teacherRes.rows[0], slot.google_event_id).catch(e =>
+                console.error('[Calendar] Delete event error:', e.message)
+            );
+        }
         res.json({ success: true });
-    });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Teacher assigns a student to a free slot
@@ -1141,27 +1227,60 @@ app.put('/api/calendar/slots/:id', authenticateJWT, requireTeacherOrAdmin, (req,
 
 
 // Student books a slot
-app.post('/api/calendar/slots/:id/book', authenticateJWT, requireStudent, (req, res) => {
-    db.query('SELECT id, name FROM students WHERE user_id = $1', [req.user.id], (err, r) => {
-        if (err || !r.rows[0]) return res.status(404).json({ error: 'Student not found' });
-        const studentId = r.rows[0].id;
+app.post('/api/calendar/slots/:id/book', authenticateJWT, requireStudent, async (req, res) => {
+    try {
+        const studentRes = await db.query('SELECT id, name FROM students WHERE user_id = $1', [req.user.id]);
+        if (!studentRes.rows[0]) return res.status(404).json({ error: 'Student not found' });
+        const studentId = studentRes.rows[0].id;
 
-        db.query('UPDATE available_slots SET is_booked = true, student_id = $1 WHERE id = $2 AND is_booked = false',
-            [studentId, req.params.id], (upErr, upRes) => {
-                if (upErr) return res.status(500).json({ error: upErr.message });
-                if (upRes.rowCount === 0) return res.status(400).json({ error: 'Slot ya reservado' });
+        const upRes = await db.query(
+            'UPDATE available_slots SET is_booked = true, student_id = $1 WHERE id = $2 AND is_booked = false',
+            [studentId, req.params.id]
+        );
+        if (upRes.rowCount === 0) return res.status(400).json({ error: 'Slot ya reservado' });
 
-                // Generate session record
-                db.query('SELECT start_datetime FROM available_slots WHERE id = $1', [req.params.id], (sErr, sRes) => {
-                    if (!sErr && sRes.rows[0]) {
-                        const dt = sRes.rows[0].start_datetime.split('T')[0];
-                        db.query('INSERT INTO sessions (student_id, date, duration_minutes, homework_done, slot_id) VALUES ($1, $2, 60, false, $3)',
-                            [studentId, dt, req.params.id]);
+        // Generate session record and get slot data
+        const slotRes = await db.query('SELECT * FROM available_slots WHERE id = $1', [req.params.id]);
+        if (slotRes.rows[0]) {
+            const slot = slotRes.rows[0];
+            const dt = slot.start_datetime.split('T')[0];
+            await db.query(
+                'INSERT INTO sessions (student_id, date, duration_minutes, homework_done, slot_id) VALUES ($1, $2, 60, false, $3)',
+                [studentId, dt, req.params.id]
+            );
+
+            // Update Google Calendar event with student as attendee (non-blocking)
+            if (slot.google_event_id) {
+                (async () => {
+                    try {
+                        const teacherRes = await db.query('SELECT * FROM users WHERE id = $1', [slot.teacher_id]);
+                        const studentUserRes = await db.query('SELECT email FROM users WHERE id = $1', [req.user.id]);
+                        const teacher = teacherRes.rows[0];
+                        const studentEmail = studentUserRes.rows[0]?.email;
+                        if (teacher?.gmail_access_token && studentEmail) {
+                            const auth = makeOAuth2Client();
+                            auth.setCredentials({ access_token: teacher.gmail_access_token, refresh_token: teacher.gmail_refresh_token });
+                            const gcal = google.calendar({ version: 'v3', auth });
+                            const existing = await gcal.events.get({ calendarId: 'primary', eventId: slot.google_event_id });
+                            const attendees = [...(existing.data.attendees || []), { email: studentEmail }];
+                            await gcal.events.patch({
+                                calendarId: 'primary',
+                                eventId: slot.google_event_id,
+                                resource: { attendees },
+                                sendUpdates: 'all'
+                            });
+                        }
+                    } catch (e) {
+                        console.error('[Calendar] Book update error:', e.message);
                     }
-                });
-                res.json({ success: true });
-            });
-    });
+                })();
+            }
+        }
+
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Student cancels slot booking
@@ -1361,7 +1480,24 @@ app.get('/api/gmail/connect', authenticateJWT, requireTeacherOrAdmin, (req, res)
         prompt: 'consent',
         scope: [
             'https://www.googleapis.com/auth/gmail.readonly',
-            'https://www.googleapis.com/auth/gmail.modify'
+            'https://www.googleapis.com/auth/gmail.modify',
+            'https://www.googleapis.com/auth/calendar',
+            'https://www.googleapis.com/auth/calendar.events'
+        ],
+        state: req.user.id.toString()
+    });
+    res.json({ authUrl });
+});
+
+// Calendar-only OAuth (for teachers who want Meet links without Gmail)
+app.get('/api/calendar/connect', authenticateJWT, requireTeacherOrAdmin, (req, res) => {
+    const oauth2Client = makeOAuth2Client();
+    const authUrl = oauth2Client.generateAuthUrl({
+        access_type: 'offline',
+        prompt: 'consent',
+        scope: [
+            'https://www.googleapis.com/auth/calendar',
+            'https://www.googleapis.com/auth/calendar.events'
         ],
         state: req.user.id.toString()
     });
@@ -3719,6 +3855,38 @@ db.initDb().then(async () => {
                 console.error('[Gmail] Auto-check interval error:', err.message);
             }
         }, 15 * 60 * 1000);
+
+        // Class reminder: notify students 15 minutes before class (check every minute)
+        setInterval(async () => {
+            try {
+                const now = new Date();
+                const in15 = new Date(now.getTime() + 15 * 60 * 1000);
+                const slots = await db.query(`
+                    SELECT s.id, s.meet_link, s.start_datetime,
+                           st.user_id as student_user_id, st.academy_id
+                    FROM available_slots s
+                    JOIN students st ON s.student_id = st.id
+                    WHERE s.is_booked = TRUE
+                      AND s.meet_link IS NOT NULL
+                      AND s.reminder_sent = FALSE
+                      AND s.start_datetime > $1
+                      AND s.start_datetime <= $2
+                `, [now.toISOString(), in15.toISOString()]);
+                for (const slot of (slots.rows || [])) {
+                    await createNotification(
+                        slot.student_user_id,
+                        slot.academy_id,
+                        'class_reminder',
+                        '🎥 Tu clase empieza en 15 minutos',
+                        'Haz clic para unirte a la videollamada',
+                        slot.meet_link
+                    );
+                    await db.query('UPDATE available_slots SET reminder_sent = TRUE WHERE id = $1', [slot.id]);
+                }
+            } catch (err) {
+                console.error('[Calendar] Class reminder error:', err.message);
+            }
+        }, 60 * 1000);
     });
 }).catch(err => {
     console.error('Failed to initialize database:', err);

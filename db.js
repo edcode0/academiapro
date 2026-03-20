@@ -494,7 +494,13 @@ async function initDb() {
       read BOOLEAN DEFAULT FALSE,
       link TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )`
+    )`,
+
+    // Google Calendar integration
+    "ALTER TABLE available_slots ADD COLUMN IF NOT EXISTS google_event_id TEXT",
+    "ALTER TABLE available_slots ADD COLUMN IF NOT EXISTS meet_link TEXT",
+    "ALTER TABLE available_slots ADD COLUMN IF NOT EXISTS reminder_sent BOOLEAN DEFAULT FALSE",
+    "ALTER TABLE sessions ADD COLUMN IF NOT EXISTS meet_link TEXT"
   ];
 
   for (const sql of migrations) {
