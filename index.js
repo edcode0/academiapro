@@ -2945,9 +2945,13 @@ app.get('/api/ai/conversations', authenticateJWT, async (req, res) => {
 // Create new conversation
 app.post('/api/ai/conversations', authenticateJWT, (req, res) => {
     const { title } = req.body;
-    db.query('INSERT INTO ai_conversations (user_id, title) VALUES ($1, $2)', [req.user.id, title || 'Nueva conversación'], (err, result) => {
+    const sql = isPostgres
+        ? 'INSERT INTO ai_conversations (user_id, title) VALUES ($1, $2) RETURNING id'
+        : 'INSERT INTO ai_conversations (user_id, title) VALUES ($1, $2)';
+    db.query(sql, [req.user.id, title || 'Nueva conversación'], (err, result) => {
         if (err) return res.status(500).json({ error: err.message });
-        res.json({ id: result.lastID });
+        const id = isPostgres ? result.rows[0].id : result.lastID;
+        res.json({ id });
     });
 });
 
