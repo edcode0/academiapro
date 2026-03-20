@@ -409,6 +409,10 @@ const requireRole = (role) => (req, res, next) => {
 const requireAdmin = requireRole('admin');
 const requireTeacher = requireRole('teacher');
 const requireStudent = requireRole('student');
+const requireTeacherOrAdmin = (req, res, next) => {
+    if (req.user && (req.user.role === 'teacher' || req.user.role === 'admin')) next();
+    else res.status(403).send('Forbidden');
+};
 
 app.get('/landing', (req, res) => res.sendFile(path.join(__dirname, 'public', 'landing.html')));
 
@@ -857,7 +861,7 @@ app.get('/student/:id', authenticateJWT, (req, res) => {
     }
 });
 
-app.get('/teacher/student/:id', authenticateJWT, requireTeacher, (req, res) => {
+app.get('/teacher/student/:id', authenticateJWT, requireTeacherOrAdmin, (req, res) => {
     db.query('SELECT id FROM students WHERE id = $1 AND assigned_teacher_id = $2', [req.params.id, req.user.id], (err, result) => {
         const row = result?.rows[0];
         if (row) res.sendFile(path.join(__dirname, 'public/teacher_student_profile.html'));
@@ -1100,7 +1104,7 @@ app.get('/api/calendar/slots', authenticateJWT, (req, res) => {
 });
 
 // Teacher creates slots
-app.post('/api/calendar/slots', authenticateJWT, requireTeacher, (req, res) => {
+app.post('/api/calendar/slots', authenticateJWT, requireTeacherOrAdmin, (req, res) => {
     const { start_datetime, end_datetime, student_id, notes } = req.body;
     const isBooked = student_id ? true : false;
     db.query(
@@ -1123,7 +1127,7 @@ app.delete('/api/calendar/slots/:id', authenticateJWT, (req, res) => {
 });
 
 // Teacher assigns a student to a free slot
-app.put('/api/calendar/slots/:id', authenticateJWT, requireTeacher, (req, res) => {
+app.put('/api/calendar/slots/:id', authenticateJWT, requireTeacherOrAdmin, (req, res) => {
     const { student_id, is_booked } = req.body;
     db.query(
         'UPDATE available_slots SET student_id = $1, is_booked = $2 WHERE id = $3 AND teacher_id = $4',
@@ -1350,7 +1354,7 @@ app.post('/api/exam-simulator/generate', authenticateJWT, requireStudent, async 
 
 
 // ─── Gmail OAuth endpoints ────────────────────────────────────────────────────
-app.get('/api/gmail/connect', authenticateJWT, requireTeacher, (req, res) => {
+app.get('/api/gmail/connect', authenticateJWT, requireTeacherOrAdmin, (req, res) => {
     const oauth2Client = makeOAuth2Client();
     const authUrl = oauth2Client.generateAuthUrl({
         access_type: 'offline',
@@ -1397,7 +1401,7 @@ app.get('/api/gmail/status', authenticateJWT, async (req, res) => {
     }
 });
 
-app.put('/api/gmail/transcript-email', authenticateJWT, requireTeacher, async (req, res) => {
+app.put('/api/gmail/transcript-email', authenticateJWT, requireTeacherOrAdmin, async (req, res) => {
     try {
         const { transcript_email } = req.body;
         await db.query('UPDATE users SET transcript_email=$1 WHERE id=$2', [transcript_email, req.user.id]);
@@ -1407,7 +1411,7 @@ app.put('/api/gmail/transcript-email', authenticateJWT, requireTeacher, async (r
     }
 });
 
-app.post('/api/gmail/check-transcripts', authenticateJWT, requireTeacher, async (req, res) => {
+app.post('/api/gmail/check-transcripts', authenticateJWT, requireTeacherOrAdmin, async (req, res) => {
     try {
         const result = await db.query('SELECT * FROM users WHERE id=$1', [req.user.id]);
         const teacher = result.rows[0];
@@ -1524,7 +1528,7 @@ ${transcriptForAI}`;
             ? 'INSERT INTO transcripts (academy_id, teacher_id, student_id, raw_text, processed_json) VALUES ($1, $2, $3, $4, $5)'
             : 'INSERT INTO transcripts (academy_id, teacher_id, student_id, raw_text, processed_json) VALUES ($1, $2, $3, $4, $5)';
 
-        db.query(insertSql, [req.user.academy_id, req.user.role === 'teacher' ? req.user.id : null, student_id, transcript_text.substring(0, 5000), JSON.stringify(jsonContent)]);
+        db.query(insertSql, [req.user.academy_id, ['teacher', 'admin'].includes(req.user.role) ? req.user.id : null, student_id, transcript_text.substring(0, 5000), JSON.stringify(jsonContent)]);
 
         res.json(jsonContent);
     } catch (err) {
@@ -2088,7 +2092,7 @@ app.get('/api/payments', authenticateJWT, (req, res) => {
     });
 });
 
-app.get('/api/teacher/students', authenticateJWT, requireTeacher, (req, res) => {
+app.get('/api/teacher/students', authenticateJWT, requireTeacherOrAdmin, (req, res) => {
     db.query(`SELECT s.*, 
             (SELECT MAX(date) FROM sessions WHERE student_id = s.id) as last_session 
             FROM students s 
@@ -2101,7 +2105,7 @@ app.get('/api/teacher/students', authenticateJWT, requireTeacher, (req, res) => 
 
 
 
-app.get('/api/teacher/dashboard-stats', authenticateJWT, requireTeacher, (req, res) => {
+app.get('/api/teacher/dashboard-stats', authenticateJWT, requireTeacherOrAdmin, (req, res) => {
     const teacherId = req.user.id;
     const academyId = req.user.academy_id;
     const now = new Date();
@@ -3048,7 +3052,7 @@ app.get('/api/simulator/results/:id', authenticateJWT, (req, res) => {
 });
 
 // Teacher grade simulator result
-app.put('/api/simulator/results/:id/grade', authenticateJWT, requireTeacher, (req, res) => {
+app.put('/api/simulator/results/:id/grade', authenticateJWT, requireTeacherOrAdmin, (req, res) => {
     const { teacher_grade, teacher_feedback } = req.body;
     const sql = 'UPDATE simulator_results SET teacher_grade = $1, teacher_feedback = $2, graded_at = CURRENT_TIMESTAMP WHERE id = $3';
     db.query(sql, [teacher_grade, teacher_feedback, req.params.id], (err) => {

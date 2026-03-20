@@ -554,16 +554,20 @@
             <span class="badge-admin">Admin</span>
         </div>
         <nav id="mainNav" style="flex:1;">
+            <div class="nav-section-title">Gestión de Academia</div>
             <a href="/">🏠 Dashboard</a>
             <a href="/students">👥 Estudiantes</a>
             <a href="/admin/teachers" class="active">👨‍🏫 Profesores</a>
-            <a href="/sessions">📅 Sesiones</a>
-            <a href="/calendar">🗓️ Calendario</a>
-            <a href="/exams">📝 Exámenes</a>
-            <a href="/admin/transcripts">📝 Transcripciones</a>
             <a href="/payments">💳 Pagos</a>
-            <a href="/chat">💬 Chat</a>
+            <a href="/chat">💬 Chat <span class="unread-badge-sidebar" id="global-unread"></span></a>
             <a href="/settings">⚙️ Configuración</a>
+            <div class="nav-section-title">Mi actividad docente</div>
+            <a href="/teacher/dashboard">👥 Mis Alumnos</a>
+            <a href="/teacher/sessions">📅 Sesiones</a>
+            <a href="/teacher/exams">📝 Exámenes</a>
+            <a href="/teacher/transcripts">📝 Transcripciones</a>
+            <a href="/teacher/calendar">🗓️ Calendario</a>
+            <a href="/ai-tutor">🤖 Asistente IA</a>
         </nav>
         <div style="margin-top: auto;">
             <button class="Btn" onclick="window.location.href='/auth/logout'">

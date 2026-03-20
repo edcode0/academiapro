@@ -466,7 +466,7 @@
 
             // Set name immediately from localStorage
             document.getElementById('teacher-name').textContent = user.name || 'Profesor';
-            document.getElementById('teacher-role-badge').textContent = 'PROFESOR';
+            document.getElementById('teacher-role-badge').textContent = user.role === 'admin' ? 'ADMIN' : 'PROFESOR';
 
             // Fetch full profile from API
             try {
