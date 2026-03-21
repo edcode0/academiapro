@@ -362,6 +362,7 @@
                 const res = await fetch('/auth/me');
                 if (res.ok) {
                     const user = await res.json();
+                    userData = user;
                     document.getElementById('sidebar-name').textContent = user.name;
                     document.getElementById('sidebar-code').textContent = user.user_code || '---';
                 }
@@ -400,7 +401,11 @@
 
         async function fetchSlots(info, successCallback, failureCallback) {
             try {
-                const res = await fetch('/api/calendar/slots');
+                if (!userData) { successCallback([]); return; }
+                const token = localStorage.getItem('token');
+                const res = await fetch('/api/calendar/slots', {
+                    headers: token ? { 'Authorization': 'Bearer ' + token } : {}
+                });
                 let slots = await res.json();
                 const now = new Date();
 
@@ -410,11 +415,12 @@
                     let title = `Disponible con ${s.teacher_name}`;
                     let isMine = false;
                     let isPast = new Date(s.end_datetime) < now;
-                    let isBookedByOther = s.is_booked && s.student_id !== userData.id;
+                    // student_user_id is the users.id of the booked student (from the API join)
+                    let isBookedByOther = s.is_booked && s.student_user_id !== userData.id;
 
                     if (isPast) {
                         color = 'var(--past)'; // gray
-                        if (s.is_booked && s.student_id === userData.id) {
+                        if (s.is_booked && s.student_user_id === userData.id) {
                             title = `Sesión completada con ${s.teacher_name}`;
                             isMine = true;
                         } else {
@@ -423,7 +429,7 @@
                     } else {
                         if (s.is_booked) {
                             // Is it mine or someone else's?
-                            if (s.student_id === userData?.id) {
+                            if (s.student_user_id === userData.id) {
                                 color = 'var(--booked)'; // blue
                                 title = `Mi Sesión - ${s.teacher_name}`;
                                 isMine = true;

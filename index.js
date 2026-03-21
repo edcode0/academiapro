@@ -1141,10 +1141,10 @@ app.post('/api/admin/teachers/:id/mark-paid', authenticateJWT, (req, res) => {
 // GET available slots depending on role
 app.get('/api/calendar/slots', authenticateJWT, (req, res) => {
     let sql = `
-        SELECT a.*, u.name as teacher_name, s.name as student_name 
-        FROM available_slots a 
-        JOIN users u ON a.teacher_id = u.id 
-        LEFT JOIN students s ON a.student_id = s.id 
+        SELECT a.*, u.name as teacher_name, s.name as student_name, s.user_id as student_user_id
+        FROM available_slots a
+        JOIN users u ON a.teacher_id = u.id
+        LEFT JOIN students s ON a.student_id = s.id
         WHERE a.academy_id = $1
     `;
     let params = [req.user.academy_id];
@@ -1153,11 +1153,12 @@ app.get('/api/calendar/slots', authenticateJWT, (req, res) => {
         sql += ` AND a.teacher_id = $2`;
         params.push(req.user.id);
     } else if (req.user.role === 'student') {
-        // Fetch slots only for their assigned teacher
-        db.query('SELECT assigned_teacher_id FROM students WHERE user_id = $1', [req.user.id], (err, r) => {
+        // Show slots from assigned teacher OR directly assigned to this student (e.g. admin-created)
+        db.query('SELECT id, assigned_teacher_id FROM students WHERE user_id = $1', [req.user.id], (err, r) => {
             if (err || !r.rows[0]) return res.json([]);
-            sql += ` AND a.teacher_id = $2`;
-            params.push(r.rows[0].assigned_teacher_id);
+            const { id: studentRecordId, assigned_teacher_id } = r.rows[0];
+            sql += ` AND (a.teacher_id = $2 OR a.student_id = $3)`;
+            params.push(assigned_teacher_id, studentRecordId);
             db.query(sql + ' ORDER BY a.start_datetime ASC', params, (err, result) => {
                 if (err) return res.status(500).json({ error: err.message });
                 res.json(result.rows);
@@ -2139,9 +2140,10 @@ app.post('/api/sessions', authenticateJWT, async (req, res) => {
 
         // Verify the student belongs to the caller's academy (and assigned to them if teacher)
         const ownershipQ = req.user.role === 'teacher'
-            ? await db.query('SELECT id FROM students WHERE id=$1 AND academy_id=$2 AND assigned_teacher_id=$3', [student_id, req.user.academy_id, req.user.id])
-            : await db.query('SELECT id FROM students WHERE id=$1 AND academy_id=$2', [student_id, req.user.academy_id]);
-        if (!ownershipQ.rows.length) return res.status(403).json({ error: 'Acceso denegado a este alumno' });
+            ? await db.query('SELECT id, assigned_teacher_id FROM students WHERE id=$1 AND academy_id=$2 AND assigned_teacher_id=$3', [student_id, req.user.academy_id, req.user.id])
+            : await db.query('SELECT id, assigned_teacher_id FROM students WHERE id=$1 AND academy_id=$2', [student_id, req.user.academy_id]);
+        const studentRecord = ownershipQ.rows[0];
+        if (!studentRecord) return res.status(403).json({ error: 'Acceso denegado a este alumno' });
 
         const result = await db.query(
             `INSERT INTO sessions (student_id, date, duration_minutes, homework_done, teacher_notes)
@@ -2152,15 +2154,23 @@ app.post('/api/sessions', authenticateJWT, async (req, res) => {
         if (session) {
             checkStudentRisk(student_id);
 
-            // Auto-create calendar slot so student sees this session in their calendar
+            // Auto-create calendar slot so student sees this session in their calendar.
+            // Use the student's assigned teacher as teacher_id so the slot appears under the
+            // right teacher filter; fall back to whoever created the session (admin, etc.).
+            const slotTeacherId = studentRecord.assigned_teacher_id || req.user.id;
             const slotStart = date || new Date().toISOString();
             const slotEnd = new Date(new Date(slotStart).getTime() + (duration_minutes || 60) * 60000).toISOString();
             db.query(
-                `INSERT INTO available_slots (teacher_id, academy_id, start_datetime, end_datetime, is_booked, student_id, notes)
-                 VALUES ($1, $2, $3, $4, TRUE, $5, $6)
-                 ON CONFLICT DO NOTHING`,
-                [req.user.id, req.user.academy_id, slotStart, slotEnd, student_id, teacher_notes || notes || '']
-            ).catch(e => console.error('[Sessions] Auto-slot error:', e.message));
+                `SELECT id FROM available_slots WHERE academy_id=$1 AND start_datetime=$2 AND student_id=$3`,
+                [req.user.academy_id, slotStart, student_id]
+            ).then(existing => {
+                if (existing.rows.length) return; // slot already exists, skip
+                return db.query(
+                    `INSERT INTO available_slots (teacher_id, academy_id, start_datetime, end_datetime, is_booked, student_id, notes)
+                     VALUES ($1, $2, $3, $4, TRUE, $5, $6)`,
+                    [slotTeacherId, req.user.academy_id, slotStart, slotEnd, student_id, teacher_notes || notes || '']
+                );
+            }).catch(e => console.error('[Sessions] Auto-slot error:', e.message));
 
             // Notify student if they have a user account
             db.query(`SELECT user_id, name, academy_id FROM students WHERE id = $1`, [student_id], (err, r) => {
