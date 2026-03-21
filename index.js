@@ -729,6 +729,20 @@ app.post('/api/auth/join', async (req, res) => {
 
         console.log('User joined: id=%d role=%s academy=%d', user.id, user.role, academy.id);
 
+        // If joining as student, ensure a students record exists
+        if (role === 'student') {
+            const existingStudent = await db.query(
+                'SELECT id FROM students WHERE user_id = $1 AND academy_id = $2',
+                [user.id, academy.id]
+            );
+            if (!(existingStudent.rows || []).length) {
+                await db.query(
+                    'INSERT INTO students (user_id, academy_id, name, status, join_date) VALUES ($1, $2, $3, $4, $5)',
+                    [user.id, academy.id, name, 'active', new Date().toISOString().split('T')[0]]
+                );
+            }
+        }
+
         // Send welcome email (non-blocking)
         sendJoinWelcomeEmail(user, academy.name, role);
 

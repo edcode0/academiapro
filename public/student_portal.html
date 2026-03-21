@@ -365,6 +365,7 @@
     </style>
     <link rel="stylesheet" href="/glassmorphism.css">
     <script src="/global.js"></script>
+    <script src="/notifications.js"></script>
 </head>
 
 <body>
@@ -579,7 +580,7 @@
 
                 const avg = parseFloat(stats.avgScore);
                 const avgEl = document.getElementById('avg-score-value');
-                avgEl.textContent = avg.toFixed(1);
+                avgEl.textContent = (!avg || isNaN(avg)) ? '0.0' : avg.toFixed(1);
                 if (avg >= 7) avgEl.style.color = 'var(--success)';
                 else if (avg >= 5) avgEl.style.color = 'var(--warning)';
                 else avgEl.style.color = 'var(--danger)';
@@ -634,7 +635,9 @@
                 }
 
                 // Load Reports
-                const reportsRes = await fetch('/api/student/reports');
+                const reportsRes = await fetch('/api/student/reports', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
                 const reports = await reportsRes.json();
                 if (reports.length > 0) {
                     document.getElementById('reports-list').innerHTML = reports.map(r => `
@@ -691,7 +694,6 @@
         loadProfile();
         initNotifications();
     </script>
-<script src="/notifications.js"></script>
 </body>
 
 </html>
