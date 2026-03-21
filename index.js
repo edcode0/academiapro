@@ -232,21 +232,31 @@ async function checkAndProcessTranscripts(teacher) {
     for (const msg of messages) {
         try {
             const email = await gmail.users.messages.get({ userId: 'me', id: msg.id, format: 'full' });
-            const parts = email.data.payload.parts || [email.data.payload];
-            let body = '';
-            for (const part of parts) {
-                if (part.mimeType === 'text/plain' && part.body?.data) {
-                    body += Buffer.from(part.body.data, 'base64').toString('utf-8');
+            function extractText(payload) {
+                if (payload.mimeType === 'text/plain' && payload.body?.data) {
+                    return Buffer.from(payload.body.data, 'base64').toString('utf-8');
                 }
+                if (payload.parts) {
+                    for (const part of payload.parts) {
+                        const text = extractText(part);
+                        if (text) return text;
+                    }
+                }
+                return '';
             }
+            const body = extractText(email.data.payload);
             if (!body || body.length < 100) continue;
 
             // Get teacher's students
-            const studentsResult = await db.query(
-                `SELECT s.id, s.name, s.user_id FROM students s
-                 WHERE s.academy_id = $1 AND s.assigned_teacher_id = $2`,
-                [teacher.academy_id, teacher.id]
-            );
+            const studentsResult = teacher.role === 'admin'
+                ? await db.query(
+                    'SELECT s.id, s.name, s.user_id FROM students s WHERE s.academy_id = $1',
+                    [teacher.academy_id]
+                  )
+                : await db.query(
+                    'SELECT s.id, s.name, s.user_id FROM students s WHERE s.academy_id = $1 AND s.assigned_teacher_id = $2',
+                    [teacher.academy_id, teacher.id]
+                  );
             const students = studentsResult.rows || [];
             if (!students.length) continue;
 
@@ -289,6 +299,7 @@ async function checkAndProcessTranscripts(teacher) {
                 studentUserId = (nameMatch.rows || [])[0]?.id;
                 if (studentUserId) {
                     await db.query('UPDATE students SET user_id=$1 WHERE id=$2', [studentUserId, student.id]).catch(err => console.error('[Transcript] Student user_id link failed:', err.message));
+                    student.user_id = studentUserId;
                 }
             }
             if (!studentUserId) {
@@ -3911,7 +3922,7 @@ db.initDb().then(async () => {
         setInterval(async () => {
             try {
                 const result = await db.query(
-                    "SELECT * FROM users WHERE role='teacher' AND gmail_access_token IS NOT NULL"
+                    "SELECT * FROM users WHERE role IN ('teacher', 'admin') AND gmail_access_token IS NOT NULL"
                 );
                 const teachers = result.rows || [];
                 for (const teacher of teachers) {
