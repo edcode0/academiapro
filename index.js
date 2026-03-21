@@ -2066,14 +2066,14 @@ app.get('/api/students-list', authenticateJWT, (req, res) => {
 });
 
 app.get('/api/teachers', authenticateJWT, requireAdmin, (req, res) => {
-    db.query(`SELECT id, name FROM users WHERE academy_id = $1 AND role = 'teacher'`, [req.user.academy_id], (err, result) => {
+    db.query(`SELECT id, name FROM users WHERE academy_id = $1 AND role IN ('teacher', 'admin')`, [req.user.academy_id], (err, result) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json(result.rows);
     });
 });
 
 app.get('/api/teachers/rates', authenticateJWT, requireAdmin, (req, res) => {
-    db.query(`SELECT id, name, hourly_rate FROM users WHERE academy_id = $1 AND role = 'teacher'`, [req.user.academy_id], (err, result) => {
+    db.query(`SELECT id, name, hourly_rate FROM users WHERE academy_id = $1 AND role IN ('teacher', 'admin')`, [req.user.academy_id], (err, result) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json(result.rows);
     });
