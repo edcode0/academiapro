@@ -2151,6 +2151,17 @@ app.post('/api/sessions', authenticateJWT, async (req, res) => {
         const session = result.rows[0];
         if (session) {
             checkStudentRisk(student_id);
+
+            // Auto-create calendar slot so student sees this session in their calendar
+            const slotStart = date || new Date().toISOString();
+            const slotEnd = new Date(new Date(slotStart).getTime() + (duration_minutes || 60) * 60000).toISOString();
+            db.query(
+                `INSERT INTO available_slots (teacher_id, academy_id, start_datetime, end_datetime, is_booked, student_id, notes)
+                 VALUES ($1, $2, $3, $4, TRUE, $5, $6)
+                 ON CONFLICT DO NOTHING`,
+                [req.user.id, req.user.academy_id, slotStart, slotEnd, student_id, teacher_notes || notes || '']
+            ).catch(e => console.error('[Sessions] Auto-slot error:', e.message));
+
             // Notify student if they have a user account
             db.query(`SELECT user_id, name, academy_id FROM students WHERE id = $1`, [student_id], (err, r) => {
                 const st = r?.rows?.[0];

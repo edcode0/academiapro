@@ -1,5 +1,21 @@
 // ─── In-App Notification System ───────────────────────────────────────────────
 (function () {
+    // Inject dropdown positioning once so all pages get consistent styling
+    const style = document.createElement('style');
+    style.textContent = `
+        .notif-dropdown {
+            position: fixed !important;
+            top: 70px !important;
+            right: 20px !important;
+            width: 380px !important;
+            max-height: 500px !important;
+            overflow-y: auto !important;
+            z-index: 9999 !important;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.15) !important;
+            border-radius: 16px !important;
+        }
+    `;
+    document.head.appendChild(style);
     const ICONS = {
         message: '💬',
         session: '📅',

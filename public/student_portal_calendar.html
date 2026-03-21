@@ -401,9 +401,10 @@
         async function fetchSlots(info, successCallback, failureCallback) {
             try {
                 const res = await fetch('/api/calendar/slots');
-                const slots = await res.json();
+                let slots = await res.json();
                 const now = new Date();
 
+                slots = slots.filter(s => s !== null && s.id !== undefined);
                 const events = slots.map(s => {
                     let color = 'var(--available)'; // Default green for available
                     let title = `Disponible con ${s.teacher_name}`;
