@@ -28,16 +28,21 @@ const BASE_URL   = (process.env.SMOKE_URL || 'https://web-production-d02f4.up.ra
 const TIMEOUT_MS = parseInt(process.env.SMOKE_TIMEOUT || '30000', 10);
 
 // Unique test identifiers so parallel runs never clash
-const TS            = Date.now();
-const OWNER_EMAIL   = `smoke_owner_${TS}@test.invalid`;
-const STUDENT_EMAIL = `smoke_student_${TS}@test.invalid`;
-const PASSWORD      = 'SmokeTest_123!';
+const TS              = Date.now();
+const OWNER_EMAIL     = `smoke_owner_${TS}@test.invalid`;
+const STUDENT_EMAIL   = `smoke_student_${TS}@test.invalid`;
+const TEACHER_EMAIL   = `smoke_teacher_${TS}@test.invalid`;
+const JOIN_STU_EMAIL  = `smoke_joinstu_${TS}@test.invalid`;
+const PASSWORD        = 'SmokeTest_123!';
 
 // ─── Shared state across tests ────────────────────────────────────────────────
 let ownerToken      = null;   // JWT for the test owner/admin
-let studentToken    = null;   // JWT for the test student
+let studentToken    = null;   // JWT for the test student (registered via /auth/register)
+let teacherToken    = null;   // JWT for the teacher joined via /api/auth/join
+let joinStuToken    = null;   // JWT for the student joined via /api/auth/join
 let studentRecordId = null;   // students.id (used in transcript tests)
 let conversationId  = null;   // ai_conversations.id
+let teacherCode     = null;   // teacher_code from academy registration
 
 // ─── Result tracking ──────────────────────────────────────────────────────────
 let passed   = 0;
@@ -158,6 +163,7 @@ async function runTests() {
         check('Response has student_code',  !!r.body?.student_code,  hint(r.body));
         check('Response has teacher_code',  !!r.body?.teacher_code,  hint(r.body));
         studentCode = r.body?.student_code ?? null;
+        teacherCode = r.body?.teacher_code ?? null;
     });
 
     // ── Auth: login owner ─────────────────────────────────────────────────────
@@ -389,6 +395,69 @@ async function runTests() {
         }
     });
 
+    // ── External-academy student portal (tests /api/auth/join bug regression) ─
+    //
+    // Covers the three bugs we fixed:
+    //   1. /api/auth/join must insert a row in the students table
+    //   2. GET /api/student/reports must not return 403 for a joined student
+    //   3. avgScore in portal-data must be a finite number, never NaN
+    //   4. The joined student must appear in the admin's /api/students list
+
+    await section('External join – teacher via /api/auth/join', async () => {
+        if (!teacherCode) { warn('No teacherCode — skipping teacher join'); return; }
+        const r = await request('POST', '/api/auth/join', {
+            body: { name: `Smoke Teacher ${TS}`, email: TEACHER_EMAIL, password: PASSWORD, role: 'teacher', academy_code: teacherCode },
+        });
+        check('POST /api/auth/join (teacher) → 200', r.status === 200, `status=${r.status} ${hint(r.body)}`);
+        check('Teacher join returns token', !!r.body?.token, hint(r.body));
+        teacherToken = r.body?.token ?? null;
+    });
+
+    await section('External join – student via /api/auth/join', async () => {
+        if (!studentCode) { warn('No studentCode — skipping student join'); return; }
+        const r = await request('POST', '/api/auth/join', {
+            body: { name: `Smoke Join Student ${TS}`, email: JOIN_STU_EMAIL, password: PASSWORD, role: 'student', academy_code: studentCode },
+        });
+        check('POST /api/auth/join (student) → 200', r.status === 200, `status=${r.status} ${hint(r.body)}`);
+        check('Student join returns token', !!r.body?.token, hint(r.body));
+        joinStuToken = r.body?.token ?? null;
+    });
+
+    await section('External join – student portal access', async () => {
+        if (!joinStuToken) { warn('No joinStuToken — skipping'); return; }
+
+        // Bug 2 regression: must be 200, not 403
+        const portal = await request('GET', '/api/student/portal-data', { token: joinStuToken });
+        check('GET /api/student/portal-data (joined student) → 200', portal.status === 200, `status=${portal.status} ${hint(portal.body)}`);
+
+        // Bug 3 regression: avgScore must never be NaN
+        if (portal.status === 200 && portal.body?.stats) {
+            const avg = parseFloat(portal.body.stats.avgScore);
+            check('avgScore is finite (not NaN)', isFinite(avg) || portal.body.stats.avgScore === null, `avgScore=${portal.body.stats.avgScore}`);
+        } else if (portal.status === 200) {
+            warn('portal-data returned 200 but stats object missing — avgScore check skipped');
+        }
+
+        // Bug 2 regression: must be 200, not 403
+        const reports = await request('GET', '/api/student/reports', { token: joinStuToken });
+        check('GET /api/student/reports (joined student) → 200', reports.status === 200, `status=${reports.status} ${hint(reports.body)}`);
+        check('Reports response is array', Array.isArray(reports.body), `type=${typeof reports.body}`);
+    });
+
+    await section('External join – student appears in admin list', async () => {
+        if (!joinStuToken) { warn('No joinStuToken — skipping'); return; }
+
+        // Bug 4 regression: /api/auth/join must insert into students table
+        const r = await request('GET', '/api/students', { token: ownerToken });
+        check('GET /api/students (admin) → 200', r.status === 200, `status=${r.status}`);
+        const rows = Array.isArray(r.body) ? r.body : (r.body?.rows ?? []);
+        const found = rows.some(s =>
+            s.name === `Smoke Join Student ${TS}` ||
+            (s.user_email && s.user_email === JOIN_STU_EMAIL)
+        );
+        check('Joined student appears in admin student list', found, `found=${found}, total_students=${rows.length}`);
+    });
+
     // ── Notifications ─────────────────────────────────────────────────────────
     await section('Notifications', async () => {
         const list = await request('GET', '/api/notifications', { token: ownerToken });
@@ -414,6 +483,14 @@ async function runTests() {
         if (studentToken) {
             const r = await request('DELETE', '/api/auth/delete-account', { token: studentToken });
             check('DELETE student test account → 200', r.status === 200, `status=${r.status}`);
+        }
+        if (teacherToken) {
+            const r = await request('DELETE', '/api/auth/delete-account', { token: teacherToken });
+            check('DELETE teacher test account → 200', r.status === 200, `status=${r.status}`);
+        }
+        if (joinStuToken) {
+            const r = await request('DELETE', '/api/auth/delete-account', { token: joinStuToken });
+            check('DELETE join-student test account → 200', r.status === 200, `status=${r.status}`);
         }
         if (ownerToken) {
             // Deleting the owner (role=admin) cascades to delete the entire academy
