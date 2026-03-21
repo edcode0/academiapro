@@ -212,7 +212,7 @@ async function checkAndProcessTranscripts(teacher) {
         await db.query(
             'UPDATE users SET gmail_access_token=$1, gmail_refresh_token=$2, gmail_token_expiry=$3 WHERE id=$4',
             [tokens.access_token, tokens.refresh_token || teacher.gmail_refresh_token, tokens.expiry_date, teacher.id]
-        ).catch(() => {});
+        ).catch(err => console.error('[OAuth] Gmail token persist failed:', err.message));
     });
 
     const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
@@ -288,7 +288,7 @@ async function checkAndProcessTranscripts(teacher) {
                 );
                 studentUserId = (nameMatch.rows || [])[0]?.id;
                 if (studentUserId) {
-                    await db.query('UPDATE students SET user_id=$1 WHERE id=$2', [studentUserId, student.id]).catch(() => {});
+                    await db.query('UPDATE students SET user_id=$1 WHERE id=$2', [studentUserId, student.id]).catch(err => console.error('[Transcript] Student user_id link failed:', err.message));
                 }
             }
             if (!studentUserId) {
@@ -374,7 +374,7 @@ async function checkAndProcessTranscripts(teacher) {
         }
     }
 
-    await db.query('UPDATE users SET gmail_last_check=NOW() WHERE id=$1', [teacher.id]).catch(() => {});
+    await db.query('UPDATE users SET gmail_last_check=NOW() WHERE id=$1', [teacher.id]).catch(err => console.error('[Gmail] Last check update failed:', err.message));
     return processed;
 }
 // ─────────────────────────────────────────────────────────────────────────────
@@ -746,6 +746,7 @@ app.post('/api/auth/join', async (req, res) => {
         // Send welcome email (non-blocking)
         sendJoinWelcomeEmail(user, academy.name, role);
 
+        res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'strict' });
         res.json({
             token,
             user: { id: user.id, name: user.name, email: user.email, role: user.role }
@@ -1157,8 +1158,13 @@ app.get('/api/calendar/slots', authenticateJWT, (req, res) => {
         db.query('SELECT id, assigned_teacher_id FROM students WHERE user_id = $1', [req.user.id], (err, r) => {
             if (err || !r.rows[0]) return res.json([]);
             const { id: studentRecordId, assigned_teacher_id } = r.rows[0];
-            sql += ` AND (a.teacher_id = $2 OR a.student_id = $3)`;
-            params.push(assigned_teacher_id, studentRecordId);
+            if (assigned_teacher_id) {
+                sql += ` AND (a.teacher_id = $2 OR a.student_id = $3)`;
+                params.push(assigned_teacher_id, studentRecordId);
+            } else {
+                sql += ` AND a.student_id = $2`;
+                params.push(studentRecordId);
+            }
             db.query(sql + ' ORDER BY a.start_datetime ASC', params, (err, result) => {
                 if (err) return res.status(500).json({ error: err.message });
                 res.json(result.rows);
@@ -1230,9 +1236,13 @@ app.delete('/api/calendar/slots/:id', authenticateJWT, async (req, res) => {
 // Teacher assigns a student to a free slot
 app.put('/api/calendar/slots/:id', authenticateJWT, requireTeacherOrAdmin, (req, res) => {
     const { student_id, is_booked } = req.body;
+    const slotWhere = req.user.role === 'admin'
+        ? 'WHERE id = $3 AND academy_id = $4'
+        : 'WHERE id = $3 AND teacher_id = $4';
+    const slotParam = req.user.role === 'admin' ? req.user.academy_id : req.user.id;
     db.query(
-        'UPDATE available_slots SET student_id = $1, is_booked = $2 WHERE id = $3 AND teacher_id = $4',
-        [student_id, is_booked, req.params.id, req.user.id],
+        `UPDATE available_slots SET student_id = $1, is_booked = $2 ${slotWhere}`,
+        [student_id, is_booked, req.params.id, slotParam],
         (err) => {
             if (err) return res.status(500).json({ error: err.message });
             res.json({ success: true });
@@ -1368,7 +1378,7 @@ app.post('/api/ai-tutor/chat', authenticateJWT, async (req, res) => {
           console.log('[ai-tutor/chat] created new conversation:', conversationId);
         } else {
           // Update updated_at on existing conversation
-          await db.query('UPDATE ai_conversations SET updated_at = NOW() WHERE id = $1', [conversationId]).catch(() => {});
+          await db.query('UPDATE ai_conversations SET updated_at = NOW() WHERE id = $1', [conversationId]).catch(err => console.error('[AI Tutor] Conversation timestamp update failed:', err.message));
           console.log('[ai-tutor/chat] using existing conversation:', conversationId);
         }
 
@@ -1990,7 +2000,7 @@ app.delete('/api/admin/students/:id', authenticateJWT, requireAdmin, (req, res) 
 
 // DELETE teacher from academy
 app.delete('/api/admin/teachers/:id', authenticateJWT, requireAdmin, (req, res) => {
-    db.query(`SELECT id FROM users WHERE id = $1 AND role = 'teacher' AND academy_id = $2`, [req.params.id, req.user.academy_id], (err, row) => {
+    db.query(`SELECT id FROM users WHERE id = $1 AND role IN ('teacher', 'admin') AND academy_id = $2`, [req.params.id, req.user.academy_id], (err, row) => {
         const teacher = row?.rows[0];
         if (!teacher) return res.status(404).json({ error: 'Teacher not found' });
 
@@ -3237,7 +3247,7 @@ app.put('/api/simulator/results/:id/grade', authenticateJWT, requireTeacherOrAdm
 // GET exams for current student
 app.get('/api/exams/student', authenticateJWT, async (req, res) => {
     try {
-        const sRes = await db.query('SELECT id FROM students WHERE user_id = $1', [req.user.id]);
+        const sRes = await db.query('SELECT id FROM students WHERE user_id = $1 AND academy_id = $2', [req.user.id, req.user.academy_id]);
         const student = sRes.rows?.[0];
         if (!student) return res.status(403).json({ error: 'Perfil de estudiante no encontrado' });
         const result = await db.query('SELECT * FROM exams WHERE student_id = $1 ORDER BY date DESC', [student.id]);
@@ -3422,14 +3432,34 @@ app.delete('/api/payments/:id', authenticateJWT, async (req, res) => {
     }
 });
 
-// Generic CRUD fallback (no academy scoping — specific routes above take precedence for exams/sessions/payments)
+// Generic CRUD fallback — academy-scoped and column-whitelisted to prevent cross-tenant tampering and SQL injection
+const CRUD_ALLOWED_COLUMNS = {
+    students: new Set(['name', 'course', 'subject', 'status', 'join_date', 'parent_email', 'parent_phone', 'assigned_teacher_id', 'monthly_fee', 'payment_day', 'payment_method', 'payment_notes', 'payment_start_date']),
+    sessions: new Set(['date', 'duration_minutes', 'homework_done', 'teacher_notes', 'slot_id', 'meet_link']),
+    exams:    new Set(['date', 'subject', 'score', 'notes']),
+    payments: new Set(['amount', 'due_date', 'paid_date', 'status'])
+};
+
 ['students', 'sessions', 'exams', 'payments'].forEach(tableName => {
     app.put(`/api/${tableName}/:id`, authenticateJWT, (req, res) => {
-        const keys = Object.keys(req.body);
-        const values = [...Object.values(req.body), req.params.id];
-        const setClause = keys.map((key, i) => `${key} = $${i + 1}`).join(',');
-        db.query(`UPDATE ${tableName} SET ${setClause} WHERE id = $${keys.length + 1}`, values, (err, result) => {
+        const allowed = CRUD_ALLOWED_COLUMNS[tableName];
+        const allKeys = Object.keys(req.body);
+        const badKeys = allKeys.filter(k => !allowed.has(k));
+        if (badKeys.length) return res.status(400).json({ error: `Invalid fields: ${badKeys.join(', ')}` });
+        const keys = allKeys.filter(k => allowed.has(k));
+        if (!keys.length) return res.status(400).json({ error: 'No valid fields to update' });
+
+        const setClause = keys.map((key, i) => `${key} = $${i + 1}`).join(', ');
+        const idParam = keys.length + 1;
+        const academyParam = keys.length + 2;
+        const academyFilter = tableName === 'students'
+            ? `AND academy_id = $${academyParam}`
+            : `AND student_id IN (SELECT id FROM students WHERE academy_id = $${academyParam})`;
+        const values = [...keys.map(k => req.body[k]), req.params.id, req.user.academy_id];
+
+        db.query(`UPDATE ${tableName} SET ${setClause} WHERE id = $${idParam} ${academyFilter}`, values, (err, result) => {
             if (err) return res.status(500).json({ error: err.message });
+            if (result.rowCount === 0) return res.status(404).json({ error: 'Record not found or access denied' });
             if (tableName === 'sessions' || tableName === 'exams') {
                 db.query(`SELECT student_id FROM ${tableName} WHERE id = $1`, [req.params.id], (err, resId) => {
                     const row = resId?.rows[0];
@@ -3440,8 +3470,12 @@ app.delete('/api/payments/:id', authenticateJWT, async (req, res) => {
         });
     });
     app.delete(`/api/${tableName}/:id`, authenticateJWT, (req, res) => {
-        db.query(`DELETE FROM ${tableName} WHERE id = $1`, [req.params.id], (err, result) => {
+        const academyFilter = tableName === 'students'
+            ? `AND academy_id = $2`
+            : `AND student_id IN (SELECT id FROM students WHERE academy_id = $2)`;
+        db.query(`DELETE FROM ${tableName} WHERE id = $1 ${academyFilter}`, [req.params.id, req.user.academy_id], (err, result) => {
             if (err) return res.status(500).json({ error: err.message });
+            if (result.rowCount === 0) return res.status(404).json({ error: 'Record not found or access denied' });
             res.json({ deleted: result.rowCount });
         });
     });
@@ -3602,7 +3636,7 @@ app.post('/api/generate-report', authenticateJWT, async (req, res) => {
         await db.query(
             'INSERT INTO reports (student_id, academy_id, month, year, file_url, created_at) VALUES ($1,$2,$3,$4,$5,NOW())',
             [sid, req.user.academy_id, monthNum, yearNum, fileUrl]
-        ).catch(() => {});
+        ).catch(err => console.error('[Report] DB record insert failed:', err.message));
 
         // Send email
         let emailSent = false;
@@ -3618,7 +3652,7 @@ app.post('/api/generate-report', authenticateJWT, async (req, res) => {
                     attachments: [{ filename: fileName, content: pdfBuffer.toString('base64') }]
                 });
                 emailSent = true;
-                await db.query('INSERT INTO sent_reports (academy_id, student_id, month, year) VALUES ($1,$2,$3,$4)', [req.user.academy_id, sid, monthNum, yearNum]).catch(() => {});
+                await db.query('INSERT INTO sent_reports (academy_id, student_id, month, year) VALUES ($1,$2,$3,$4)', [req.user.academy_id, sid, monthNum, yearNum]).catch(err => console.error('[Report] sent_reports insert failed:', err.message));
             } catch (emailErr) {
                 console.error('[Report] Email error:', emailErr.message);
             }
