@@ -639,7 +639,7 @@
 
                         <button type="submit" class="btn-gradient">Iniciar Sesión</button>
 
-                        <a href="/auth/google" class="google-btn">
+                        <a href="/auth/google" class="google-btn" id="google-btn">
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 48 48">
                                 <path fill="#EA4335"
                                     d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
@@ -657,8 +657,12 @@
                     <div class="auth-links" id="admin-links" style="display: none;">
                         ¿No tienes cuenta? <a href="/register">Crea tu academia</a>
                     </div>
-                    <div class="auth-links" id="other-links" style="display: none;">
-                        ¿No tienes cuenta? <a href="/join">Únete con un código</a>
+
+                    <div style="text-align:center; margin-top: 16px;">
+                        <p style="color:#64748b; font-size:14px; margin-bottom:8px;">¿Primera vez aquí?</p>
+                        <a href="/join" style="display:inline-block; width:100%; padding:12px; border:2px solid #e2e8f0; border-radius:10px; color:#6366f1; font-weight:600; text-decoration:none; text-align:center; transition: all 0.2s; box-sizing:border-box;">
+                            👋 Unirme a una academia con código
+                        </a>
                     </div>
                 </div>
 
@@ -761,6 +765,10 @@
             // Slide down form
             const formContainer = document.getElementById('login-form-container');
             formContainer.classList.add('show');
+
+            // Update Google OAuth URL with selected role
+            const googleBtn = document.getElementById('google-btn');
+            if (googleBtn) googleBtn.href = '/auth/google?role=' + role;
 
             // Focus email input
             setTimeout(() => document.getElementById('email').focus(), 400);

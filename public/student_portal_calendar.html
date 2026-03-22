@@ -356,6 +356,7 @@
         let calendar;
         let selectedSlotId = null;
         let userData = null;
+        let _deepLinkHandled = false;
 
         document.addEventListener('DOMContentLoaded', async () => {
             try {
@@ -394,7 +395,20 @@
                     right: 'dayGridMonth,timeGridWeek'
                 },
                 events: fetchSlots,
-                eventClick: (info) => showDetails(info.event)
+                eventClick: (info) => showDetails(info.event),
+                eventsSet: (events) => {
+                    // Auto-open session modal from URL param ?session=SLOT_ID (deep-link from notifications)
+                    if (_deepLinkHandled) return;
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const targetSlotId = urlParams.get('session');
+                    if (!targetSlotId) return;
+                    const targetEvent = events.find(e => String(e.id) === String(targetSlotId));
+                    if (targetEvent) {
+                        _deepLinkHandled = true;
+                        calendar.gotoDate(targetEvent.start);
+                        showDetails(targetEvent);
+                    }
+                }
             });
             calendar.render();
         });

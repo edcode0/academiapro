@@ -492,6 +492,7 @@
         let activeRoom = null;
         let currentRoomId = null;
         let allRooms = [];
+        const pendingTempIds = new Set();
 
         socket.on('connect', () => {
             console.log('Socket connected:', socket.id);
@@ -508,6 +509,16 @@
         socket.on('new_message', (message) => {
             console.log('New message received:', message);
             if (currentRoomId === message.room_id) {
+                // Deduplicate: if this is our own optimistic message echoed back, replace the temp element
+                if (message.tempId && pendingTempIds.has(message.tempId)) {
+                    pendingTempIds.delete(message.tempId);
+                    const tempEl = document.querySelector(`[data-temp-id="${message.tempId}"]`);
+                    if (tempEl) {
+                        tempEl.removeAttribute('data-temp-id');
+                        tempEl.dataset.id = message.id;
+                        return;
+                    }
+                }
                 appendMessage(message);
                 markRoomAsRead(message.room_id);
             }
@@ -622,6 +633,14 @@
             allRooms = await res.json();
             renderRooms(allRooms);
             socket.emit('join_rooms', allRooms.map(r => r.id));
+
+            // Auto-open room from URL param ?room=ROOM_ID (deep-link from notifications)
+            const urlParams = new URLSearchParams(window.location.search);
+            const targetRoomId = urlParams.get('room');
+            if (targetRoomId) {
+                const targetRoom = allRooms.find(r => String(r.id) === String(targetRoomId));
+                if (targetRoom) selectRoom(targetRoom);
+            }
         }
 
         function renderRooms(rooms) {
@@ -744,7 +763,11 @@
             const content = input.value.trim();
             if (!content || !currentRoomId) return;
 
-            // Optimistic UI update
+            // Generate a unique tempId for deduplication
+            const tempId = 'temp-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+            pendingTempIds.add(tempId);
+
+            // Optimistic UI update — append element with data-temp-id so we can match it later
             const tempMessage = {
                 id: 'temp_' + Date.now(),
                 room_id: currentRoomId,
@@ -754,11 +777,18 @@
                 content: content,
                 created_at: new Date().toISOString()
             };
-            appendMessage(tempMessage);
+            const area = document.getElementById('messages-area');
+            const tempHTML = renderMessage(tempMessage);
+            // Insert and immediately tag with data-temp-id
+            area.insertAdjacentHTML('beforeend', tempHTML);
+            const tempEl = area.lastElementChild;
+            tempEl.dataset.tempId = tempId;
+            area.scrollTop = area.scrollHeight;
+
             input.value = '';
 
-            // Send via socket
-            socket.emit('sendMessage', { roomId: currentRoomId, content });
+            // Send via socket, including tempId so the server echoes it back
+            socket.emit('sendMessage', { roomId: currentRoomId, content, tempId });
         }
 
         async function updateTotalUnread() {

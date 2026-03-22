@@ -318,6 +318,8 @@
             }
         }
         .academy-name { font-size: 1rem; color: #6366f1; font-weight: 600; margin-top: 4px; }
+        .academy-header { margin-bottom: 8px; }
+        .academy-header .greeting { font-size: 1.6rem; font-weight: 700; margin: 0; }
 
         /* Notification Bell */
         .notif-bell-wrap { position: relative; display: inline-flex; align-items: center; }
@@ -423,9 +425,9 @@
 
     <main>
         <header>
-            <div>
-                <h2 id="welcome-title">¡Hola!</h2>
-                <p style="color: #64748b">Esto es lo que está pasando hoy en la academia.</p>
+            <div class="academy-header">
+                <p class="academy-name">🏫 <span id="academyNameDisplay">...</span></p>
+                <h1 class="greeting" id="welcome-title">¡Hola!</h1>
             </div>
             <div style="display:flex;align-items:center;gap:12px;">
                 <div class="notif-bell-wrap" id="notifBellWrap">
@@ -570,8 +572,11 @@
                 if (userRes.ok) {
                     const user = await userRes.json();
                     document.getElementById('userName').textContent = user.name;
-                    document.getElementById('academyNameDisplay').textContent = user.academy_name || 'AcademiaPro';
-            document.getElementById('welcome-title').textContent = `¡Hola, ${user.name.split(' ')[0]}! 👋`;
+                    document.getElementById('welcome-title').textContent = `¡Hola, ${user.name.split(' ')[0]}! 👋`;
+
+                    fetch('/api/academy/info').then(r => r.ok ? r.json() : {}).then(info => {
+                        if (info.name) document.getElementById('academyNameDisplay').textContent = info.name;
+                    }).catch(() => {});
 
                     const urRes = await fetch('/api/chat/unread-count');
                     const urData = await urRes.json();

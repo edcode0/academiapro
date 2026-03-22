@@ -500,7 +500,12 @@ async function initDb() {
     "ALTER TABLE available_slots ADD COLUMN IF NOT EXISTS google_event_id TEXT",
     "ALTER TABLE available_slots ADD COLUMN IF NOT EXISTS meet_link TEXT",
     "ALTER TABLE available_slots ADD COLUMN IF NOT EXISTS reminder_sent BOOLEAN DEFAULT FALSE",
-    "ALTER TABLE sessions ADD COLUMN IF NOT EXISTS meet_link TEXT"
+    "ALTER TABLE sessions ADD COLUMN IF NOT EXISTS meet_link TEXT",
+
+    // Independent Google Calendar OAuth token columns (separate from Gmail)
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS calendar_access_token TEXT",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS calendar_refresh_token TEXT",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS calendar_token_expiry BIGINT"
   ];
 
   for (const sql of migrations) {

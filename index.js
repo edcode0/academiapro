@@ -147,12 +147,12 @@ function makeOAuth2Client() {
 // ─── Google Calendar helpers ──────────────────────────────────────────────────
 async function createCalendarEvent(teacher, slot) {
     try {
-        if (!teacher.gmail_access_token) return null;
+        if (!teacher.calendar_access_token) return null;
         const auth = makeOAuth2Client();
         auth.setCredentials({
-            access_token: teacher.gmail_access_token,
-            refresh_token: teacher.gmail_refresh_token,
-            expiry_date: teacher.gmail_token_expiry
+            access_token: teacher.calendar_access_token,
+            refresh_token: teacher.calendar_refresh_token,
+            expiry_date: teacher.calendar_token_expiry
         });
         const calendar = google.calendar({ version: 'v3', auth });
         const event = {
@@ -185,11 +185,11 @@ async function createCalendarEvent(teacher, slot) {
 
 async function deleteCalendarEvent(teacher, googleEventId) {
     try {
-        if (!teacher.gmail_access_token || !googleEventId) return;
+        if (!teacher.calendar_access_token || !googleEventId) return;
         const auth = makeOAuth2Client();
         auth.setCredentials({
-            access_token: teacher.gmail_access_token,
-            refresh_token: teacher.gmail_refresh_token
+            access_token: teacher.calendar_access_token,
+            refresh_token: teacher.calendar_refresh_token
         });
         const calendar = google.calendar({ version: 'v3', auth });
         await calendar.events.delete({ calendarId: 'primary', eventId: googleEventId });
@@ -437,8 +437,9 @@ passport.use(new GoogleStrategy({
     clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'dummy',
     callbackURL: process.env.NODE_ENV === 'production'
         ? 'https://web-production-d02f4.up.railway.app/auth/google/callback'
-        : 'http://localhost:3000/auth/google/callback'
-}, (accessToken, refreshToken, profile, cb) => cb(null, profile)));
+        : 'http://localhost:3000/auth/google/callback',
+    passReqToCallback: true
+}, (req, accessToken, refreshToken, profile, cb) => cb(null, profile)));
 
 passport.serializeUser((user, done) => done(null, user));
 passport.deserializeUser((user, done) => done(null, user));
@@ -772,6 +773,10 @@ app.post('/api/auth/join', async (req, res) => {
 
 app.get('/auth/google', (req, res, next) => {
     if (req.query.academy_code) res.cookie('pending_code', req.query.academy_code, { maxAge: 1000 * 60 * 15 });
+    const role = req.query.role;
+    if (role && ['admin', 'teacher', 'student'].includes(role)) {
+        res.cookie('pending_role', role, { maxAge: 1000 * 60 * 15 });
+    }
     passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
 });
 
@@ -798,10 +803,20 @@ app.get('/auth/google/callback', passport.authenticate('google', { failureRedire
             return res.redirect(`/auth-success?token=${token}&role=${existingUser.role}`);
         }
 
-        // New user — create with appropriate role
+        // New user — decide what to do based on selected role
         const pendingCode = req.cookies.pending_code;
+        const pendingRole = req.cookies.pending_role;
         res.clearCookie('pending_code');
+        res.clearCookie('pending_role');
 
+        // If role is teacher or student, redirect to /join to complete registration
+        if (pendingRole === 'teacher' || pendingRole === 'student') {
+            const joinUrl = `/join?role=${pendingRole}&email=${encodeURIComponent(email)}&google=true`;
+            console.log('Google Auth new %s → redirecting to join: %s', pendingRole, joinUrl);
+            return res.redirect(joinUrl);
+        }
+
+        // Role is admin (or no role specified) — create account as usual
         let role = 'admin';
         let academyId = null;
 
@@ -1205,7 +1220,7 @@ app.post('/api/calendar/slots', authenticateJWT, requireTeacherOrAdmin, async (r
         try {
             const teacherRes = await db.query('SELECT * FROM users WHERE id = $1', [req.user.id]);
             const teacher = teacherRes.rows[0];
-            if (teacher?.gmail_access_token) {
+            if (teacher?.calendar_access_token) {
                 const calResult = await createCalendarEvent(teacher, { start_datetime, end_datetime, student_name: null, student_email: null });
                 if (calResult) {
                     await db.query(
@@ -1293,9 +1308,9 @@ app.post('/api/calendar/slots/:id/book', authenticateJWT, requireStudent, async 
                         const studentUserRes = await db.query('SELECT email FROM users WHERE id = $1', [req.user.id]);
                         const teacher = teacherRes.rows[0];
                         const studentEmail = studentUserRes.rows[0]?.email;
-                        if (teacher?.gmail_access_token && studentEmail) {
+                        if (teacher?.calendar_access_token && studentEmail) {
                             const auth = makeOAuth2Client();
-                            auth.setCredentials({ access_token: teacher.gmail_access_token, refresh_token: teacher.gmail_refresh_token });
+                            auth.setCredentials({ access_token: teacher.calendar_access_token, refresh_token: teacher.calendar_refresh_token });
                             const gcal = google.calendar({ version: 'v3', auth });
                             const existing = await gcal.events.get({ calendarId: 'primary', eventId: slot.google_event_id });
                             const attendees = [...(existing.data.attendees || []), { email: studentEmail }];
@@ -1527,7 +1542,12 @@ app.get('/api/gmail/connect', authenticateJWT, requireTeacherOrAdmin, (req, res)
 
 // Calendar-only OAuth (for teachers who want Meet links without Gmail)
 app.get('/api/calendar/connect', authenticateJWT, requireTeacherOrAdmin, (req, res) => {
-    const oauth2Client = makeOAuth2Client();
+    const calendarRedirectUri = (process.env.BASE_URL || '') + '/api/calendar/callback';
+    const oauth2Client = new google.auth.OAuth2(
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_CLIENT_SECRET,
+        calendarRedirectUri
+    );
     const authUrl = oauth2Client.generateAuthUrl({
         access_type: 'offline',
         prompt: 'consent',
@@ -1538,6 +1558,41 @@ app.get('/api/calendar/connect', authenticateJWT, requireTeacherOrAdmin, (req, r
         state: req.user.id.toString()
     });
     res.json({ authUrl });
+});
+
+app.get('/api/calendar/callback', async (req, res) => {
+    try {
+        const { code, state: userId } = req.query;
+        const calendarRedirectUri = (process.env.BASE_URL || '') + '/api/calendar/callback';
+        const oauth2Client = new google.auth.OAuth2(
+            process.env.GOOGLE_CLIENT_ID,
+            process.env.GOOGLE_CLIENT_SECRET,
+            calendarRedirectUri
+        );
+        const { tokens } = await oauth2Client.getToken(code);
+        await db.query(
+            'UPDATE users SET calendar_access_token=$1, calendar_refresh_token=$2, calendar_token_expiry=$3 WHERE id=$4',
+            [tokens.access_token, tokens.refresh_token, tokens.expiry_date, userId]
+        );
+        console.log('[Calendar] Connected for user:', userId);
+        res.redirect('/teacher/settings?calendar=connected');
+    } catch (err) {
+        console.error('[Calendar] Callback error:', err.message);
+        res.redirect('/teacher/settings?calendar=error');
+    }
+});
+
+app.get('/api/calendar/status', authenticateJWT, async (req, res) => {
+    try {
+        const result = await db.query(
+            'SELECT calendar_access_token FROM users WHERE id=$1',
+            [req.user.id]
+        );
+        const user = result.rows[0];
+        res.json({ connected: !!user?.calendar_access_token });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 app.get('/api/gmail/callback', async (req, res) => {
@@ -2185,26 +2240,32 @@ app.post('/api/sessions', authenticateJWT, async (req, res) => {
                 `SELECT id FROM available_slots WHERE academy_id=$1 AND start_datetime=$2 AND student_id=$3`,
                 [req.user.academy_id, slotStart, student_id]
             ).then(existing => {
-                if (existing.rows.length) return; // slot already exists, skip
+                // Helper: notify student with a deep-link to the slot in their calendar
+                const notifyStudent = (slotId) => {
+                    db.query(`SELECT user_id, name, academy_id FROM students WHERE id = $1`, [student_id], (err, r) => {
+                        const st = r?.rows?.[0];
+                        if (!err && st?.user_id) {
+                            const dateStr = session.date ? new Date(session.date).toLocaleDateString('es-ES') : 'hoy';
+                            createNotification(st.user_id, st.academy_id, 'session',
+                                '📅 Nueva sesión registrada',
+                                `Se ha registrado una sesión el ${dateStr} (${session.duration_minutes} min).`,
+                                `/student-portal/calendar?session=${slotId}`
+                            );
+                        }
+                    });
+                };
+                if (existing.rows.length) {
+                    notifyStudent(existing.rows[0].id);
+                    return;
+                }
                 return db.query(
                     `INSERT INTO available_slots (teacher_id, academy_id, start_datetime, end_datetime, is_booked, student_id, notes)
-                     VALUES ($1, $2, $3, $4, TRUE, $5, $6)`,
+                     VALUES ($1, $2, $3, $4, TRUE, $5, $6) RETURNING id`,
                     [slotTeacherId, req.user.academy_id, slotStart, slotEnd, student_id, teacher_notes || notes || '']
-                );
+                ).then(slotResult => {
+                    if (slotResult.rows.length) notifyStudent(slotResult.rows[0].id);
+                });
             }).catch(e => console.error('[Sessions] Auto-slot error:', e.message));
-
-            // Notify student if they have a user account
-            db.query(`SELECT user_id, name, academy_id FROM students WHERE id = $1`, [student_id], (err, r) => {
-                const st = r?.rows?.[0];
-                if (!err && st?.user_id) {
-                    const dateStr = session.date ? new Date(session.date).toLocaleDateString('es-ES') : 'hoy';
-                    createNotification(st.user_id, st.academy_id, 'session',
-                        '📅 Nueva sesión registrada',
-                        `Se ha registrado una sesión el ${dateStr} (${session.duration_minutes} min).`,
-                        '/student-portal'
-                    );
-                }
-            });
         }
         res.json(session);
     } catch (err) {
@@ -3108,6 +3169,13 @@ app.post('/api/chat/upload-file', authenticateJWT, (req, res) => {
     });
 });
 
+app.get('/api/academy/info', authenticateJWT, (req, res) => {
+    db.query('SELECT name FROM academies WHERE id = $1', [req.user.academy_id], (err, result) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(result?.rows[0] || {});
+    });
+});
+
 app.get('/api/academy/codes', authenticateJWT, requireAdmin, (req, res) => {
     db.query('SELECT teacher_code, student_code FROM academies WHERE id = $1', [req.user.academy_id], (err, result) => {
         if (err) return res.status(500).json({ error: err.message });
@@ -3720,7 +3788,7 @@ io.on('connection', (socket) => {
         socket.join(`room_${roomId}`);
     });
 
-    socket.on('sendMessage', async ({ roomId, content }) => {
+    socket.on('sendMessage', async ({ roomId, content, tempId }) => {
         console.log('sendMessage from', user.id, 'to room', roomId, ':', content);
         try {
             if (!roomId || !content?.trim()) return;
@@ -3745,12 +3813,13 @@ io.on('connection', (socket) => {
             const message = result.rows[0];
             console.log('Message saved to DB, id:', message.id);
 
-            // Broadcast to room
+            // Broadcast to room (echo tempId so sender can deduplicate)
             io.to(`room_${roomId}`).emit('new_message', {
                 ...message,
                 sender_name: user.name,
                 sender_role: user.role,
-                sender_id: user.id
+                sender_id: user.id,
+                tempId: tempId || null
             });
 
             // Notify other room members
@@ -3763,7 +3832,7 @@ io.on('connection', (socket) => {
                 createNotification(m.user_id, user.academy_id, 'message',
                     `💬 Nuevo mensaje de ${user.name}`,
                     preview,
-                    '/chat'
+                    `/chat?room=${roomId}`
                 );
             }
         } catch (err) {

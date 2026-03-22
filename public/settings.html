@@ -756,7 +756,7 @@
         async function loadCalendarStatus() {
             const token = localStorage.getItem('token');
             try {
-                const res = await fetch('/api/gmail/status', { headers: { 'Authorization': 'Bearer ' + token } });
+                const res = await fetch('/api/calendar/status', { headers: { 'Authorization': 'Bearer ' + token } });
                 const data = await res.json();
                 const badge = document.getElementById('calendar-status-badge');
                 const btn = document.getElementById('calendar-connect-btn');
@@ -842,13 +842,19 @@
             }
         }
 
-        // Handle ?gmail=connected redirect from OAuth callback
+        // Handle OAuth callback redirects
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('gmail') === 'connected') {
             showToast('✅ Gmail conectado correctamente');
             history.replaceState({}, '', '/settings');
         } else if (urlParams.get('gmail') === 'error') {
             showToast('❌ Error al conectar Gmail. Inténtalo de nuevo.');
+            history.replaceState({}, '', '/settings');
+        } else if (urlParams.get('calendar') === 'connected') {
+            showToast('✅ Google Calendar conectado correctamente');
+            history.replaceState({}, '', '/settings');
+        } else if (urlParams.get('calendar') === 'error') {
+            showToast('❌ Error al conectar Google Calendar. Inténtalo de nuevo.');
             history.replaceState({}, '', '/settings');
         }
 

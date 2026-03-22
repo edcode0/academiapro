@@ -547,6 +547,15 @@
                     document.getElementById('sidebar-name').textContent = user.name || 'Alumno';
                 }
 
+                // Fetch academy name
+                fetch('/api/academy/info', { headers: { 'Authorization': 'Bearer ' + token } })
+                    .then(r => r.ok ? r.json() : {})
+                    .then(info => {
+                        if (info.name && document.getElementById('academyNameDisplay')) {
+                            document.getElementById('academyNameDisplay').textContent = info.name;
+                        }
+                    }).catch(() => {});
+
                 const res = await fetch('/api/student/portal-data', {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });

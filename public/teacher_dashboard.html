@@ -477,9 +477,24 @@
                     const data = await response.json();
                     document.getElementById('teacher-name').textContent = data.name;
                     document.getElementById('teacher-code').textContent = 'Código: ' + (data.code || 'N/A');
+                    const firstName = (data.name || user.name || 'Profesor').split(' ')[0];
+                    document.getElementById('welcomeText').textContent = `¡Hola, ${firstName}! 👋`;
                 }
             } catch (err) {
                 console.error('Profile load error:', err);
+            }
+
+            // Fetch academy name
+            try {
+                const acadRes = await fetch('/api/academy/info', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (acadRes.ok) {
+                    const acadData = await acadRes.json();
+                    if (acadData.name) document.getElementById('academyNameDisplay').textContent = acadData.name;
+                }
+            } catch (err) {
+                console.error('Academy info error:', err);
             }
         }
 

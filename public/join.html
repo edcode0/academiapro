@@ -616,6 +616,13 @@
                 <div class="auth-links">
                     ¿Ya tienes cuenta? <a href="/login">Inicia sesión</a>
                 </div>
+
+                <div style="text-align:center; margin-top:24px; padding-top:24px; border-top:1px solid #e2e8f0;">
+                    <p style="color:#64748b; font-size:14px; margin-bottom:8px;">¿Eres el dueño de una academia?</p>
+                    <a href="/register" style="color:#6366f1; font-weight:600; text-decoration:none;">
+                        🏫 Crear mi academia gratis →
+                    </a>
+                </div>
             </div>
         </div>
     </div>
@@ -652,6 +659,41 @@
 
         // Start auto-slide
         slideInterval = setInterval(nextSlide, 3000);
+
+        // Pre-fill from URL params (Google OAuth redirect: ?role=teacher&email=...&google=true)
+        (function prefillFromUrl() {
+            const params = new URLSearchParams(window.location.search);
+            const urlRole = params.get('role');
+            const urlEmail = params.get('email');
+            const isGoogle = params.get('google') === 'true';
+
+            if (urlRole && (urlRole === 'teacher' || urlRole === 'student')) {
+                const btn = document.getElementById('btn-role-' + urlRole);
+                if (btn) selectRole(urlRole, btn);
+            }
+
+            if (urlEmail) {
+                const emailField = document.getElementById('email');
+                if (emailField) {
+                    emailField.value = urlEmail;
+                    emailField.readOnly = true;
+                    emailField.style.background = '#f8fafc';
+                    emailField.style.color = '#64748b';
+                }
+            }
+
+            if (isGoogle) {
+                // Mark password as not required — they authenticated via Google
+                const passwordField = document.getElementById('password');
+                if (passwordField) {
+                    passwordField.removeAttribute('required');
+                    const label = passwordField.parentNode.querySelector('label');
+                    if (label) label.innerHTML = 'Contraseña (no requerida con Google)';
+                }
+                // Store a flag so submit handler skips password validation
+                window._googleOAuth = true;
+            }
+        })();
 
         // Role selection logic
         let selectedRole = '';
@@ -709,7 +751,7 @@
             if (!academy_code) { showFieldError('academy_code', 'Campo obligatorio'); return; }
             if (!name) { showFieldError('name', 'Campo obligatorio'); return; }
             if (!email) { showFieldError('email', 'Campo obligatorio'); return; }
-            if (!password) { showFieldError('password', 'Campo obligatorio'); return; }
+            if (!password && !window._googleOAuth) { showFieldError('password', 'Campo obligatorio'); return; }
 
             // Show loading
             const originalText = this.textContent;
