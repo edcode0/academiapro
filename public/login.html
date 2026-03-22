@@ -658,12 +658,13 @@
                         ¿No tienes cuenta? <a href="/register">Crea tu academia</a>
                     </div>
 
-                    <div style="text-align:center; margin-top: 16px;">
-                        <p style="color:#64748b; font-size:14px; margin-bottom:8px;">¿Primera vez aquí?</p>
-                        <a href="/join" style="display:inline-block; width:100%; padding:12px; border:2px solid #e2e8f0; border-radius:10px; color:#6366f1; font-weight:600; text-decoration:none; text-align:center; transition: all 0.2s; box-sizing:border-box;">
-                            👋 Unirme a una academia con código
-                        </a>
-                    </div>
+                </div>
+
+                <div style="text-align:center; margin-top: 16px;">
+                    <p style="color:#64748b; font-size:14px; margin-bottom:8px;">¿Primera vez aquí?</p>
+                    <a href="/join" style="display:inline-block; width:100%; padding:12px; border:2px solid #e2e8f0; border-radius:10px; color:#6366f1; font-weight:600; text-decoration:none; text-align:center; transition: all 0.2s; box-sizing:border-box;">
+                        👋 Unirme a una academia con código
+                    </a>
                 </div>
 
             </div>
@@ -750,16 +751,13 @@
             // Update form state based on role
             const codeGroup = document.getElementById('academy-code-group');
             const adminLinks = document.getElementById('admin-links');
-            const otherLinks = document.getElementById('other-links');
 
             if (role === 'admin') {
                 codeGroup.style.display = 'none';
                 adminLinks.style.display = 'block';
-                otherLinks.style.display = 'none';
             } else {
                 codeGroup.style.display = 'block';
                 adminLinks.style.display = 'none';
-                otherLinks.style.display = 'block';
             }
 
             // Slide down form
