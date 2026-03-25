@@ -353,6 +353,75 @@
             z-index: 2000;
             background: var(--success);
         }
+
+        /* Session type toggle pills */
+        .session-type-toggle {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.25rem;
+        }
+        .session-type-toggle button {
+            flex: 1;
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 9999px;
+            background: white;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .session-type-toggle button.active {
+            background: var(--secondary);
+            color: white;
+            border-color: var(--secondary);
+        }
+
+        /* Group students checkbox list */
+        #group-students-container {
+            max-height: 180px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+            display: none;
+        }
+        .group-student-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.35rem 0.5rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+        .group-student-item:hover {
+            background: #f1f5f9;
+        }
+        .group-student-item input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+            cursor: pointer;
+        }
+
+        /* Session type badges in table */
+        .badge-group {
+            padding: 0.25rem 0.6rem;
+            border-radius: 9999px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            background: #ede9fe;
+            color: #5b21b6;
+        }
+        .badge-individual {
+            padding: 0.25rem 0.6rem;
+            border-radius: 9999px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            background: #e0f2fe;
+            color: #0369a1;
+        }
     </style>
     <link rel="stylesheet" href="/glassmorphism.css">
     <script src="/global.js"></script>
@@ -466,6 +535,7 @@
                 <thead>
                     <tr>
                         <th>Alumno</th>
+                        <th>Tipo</th>
                         <th>Fecha</th>
                         <th>Duración</th>
                         <th>Tareas</th>
@@ -485,8 +555,19 @@
             <form id="sessionForm">
                 <input type="hidden" id="sessionIdField">
                 <div class="form-group">
+                    <label>Tipo de sesión</label>
+                    <div class="session-type-toggle">
+                        <button type="button" id="btn-type-individual" class="active" onclick="setSessionType('individual')">👤 Individual</button>
+                        <button type="button" id="btn-type-group" onclick="setSessionType('group')">👥 Grupal</button>
+                    </div>
+                </div>
+                <div class="form-group" id="individual-student-group">
                     <label>Alumno</label>
-                    <select id="m_student" required></select>
+                    <select id="m_student"></select>
+                </div>
+                <div class="form-group" id="group-student-group" style="display:none;">
+                    <label>Alumnos (selecciona uno o más)</label>
+                    <div id="group-students-container"></div>
                 </div>
                 <div class="form-group">
                     <label>Fecha</label>
@@ -520,6 +601,8 @@
     <script>
         let allSessions = [];
         let teacherUser = null;
+        let allStudents = [];
+        let currentSessionType = 'individual';
 
         const ADMIN_NAV_HTML = `
             <div class="nav-section-title">Gestión de Academia</div>
@@ -574,9 +657,29 @@
 
         async function loadTeacherStudents() {
             const res = await fetch('/api/teacher/students');
-            const students = await res.json();
+            allStudents = await res.json();
+            // Populate individual select
             const select = document.getElementById('m_student');
-            select.innerHTML = students.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+            select.innerHTML = allStudents.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+            // Populate group checkbox list
+            const container = document.getElementById('group-students-container');
+            container.innerHTML = allStudents.map(s => `
+                <label class="group-student-item">
+                    <input type="checkbox" name="group_student" value="${s.id}">
+                    ${s.name}
+                </label>
+            `).join('');
+        }
+
+        function setSessionType(type) {
+            currentSessionType = type;
+            document.getElementById('btn-type-individual').classList.toggle('active', type === 'individual');
+            document.getElementById('btn-type-group').classList.toggle('active', type === 'group');
+            document.getElementById('individual-student-group').style.display = type === 'individual' ? '' : 'none';
+            document.getElementById('group-student-group').style.display = type === 'group' ? '' : 'none';
+            document.getElementById('group-students-container').style.display = type === 'group' ? '' : 'none';
+            // individual select required only when individual
+            document.getElementById('m_student').required = (type === 'individual');
         }
 
         async function loadSessions() {
@@ -601,9 +704,14 @@
                 return s.student_name.toLowerCase().includes(search) && s.date.startsWith(month);
             });
 
-            tbody.innerHTML = filtered.map(s => `
+            tbody.innerHTML = filtered.map(s => {
+                const typeBadge = s.session_type === 'group'
+                    ? '<span class="badge-group">👥 Grupal</span>'
+                    : '<span class="badge-individual">👤 Individual</span>';
+                return `
                 <tr>
                     <td><a href="/student/${s.student_id}" style="color:var(--secondary); font-weight:600; text-decoration:none;">${s.student_name}</a></td>
+                    <td>${typeBadge}</td>
                     <td>${s.date}</td>
                     <td>${s.duration_minutes} min</td>
                     <td><span class="badge ${s.homework_done ? 'badge-yes' : 'badge-no'}">${s.homework_done ? 'Sí' : 'No'}</span></td>
@@ -611,8 +719,8 @@
                     <td>
                         <button style="border:none; background:none; cursor:pointer;" onclick="editSession(${s.id})">✏️</button>
                     </td>
-                </tr>
-            `).join('') || '<tr><td colspan="6" style="text-align:center; padding: 2rem; color:var(--text-muted);">Sin sesiones.</td></tr>';
+                </tr>`;
+            }).join('') || '<tr><td colspan="7" style="text-align:center; padding: 2rem; color:var(--text-muted);">Sin sesiones.</td></tr>';
         }
 
         function filterTable() { renderTable(); }
@@ -632,6 +740,7 @@
                 document.getElementById('sessionForm').reset();
                 document.getElementById('sessionIdField').value = '';
                 document.getElementById('m_date').value = new Date().toISOString().split('T')[0];
+                setSessionType('individual');
             }
         }
 
@@ -645,13 +754,22 @@
         document.getElementById('sessionForm').onsubmit = async (e) => {
             e.preventDefault();
             const id = document.getElementById('sessionIdField').value;
-            const data = {
-                student_id: document.getElementById('m_student').value,
+            const commonFields = {
                 date: document.getElementById('m_date').value,
                 duration_minutes: document.getElementById('m_duration').value,
                 homework_done: document.getElementById('m_homework').value === '1',
                 teacher_notes: document.getElementById('m_notes').value
             };
+
+            let data;
+            if (!id && currentSessionType === 'group') {
+                const checkedBoxes = document.querySelectorAll('#group-students-container input[type="checkbox"]:checked');
+                const studentIds = Array.from(checkedBoxes).map(cb => parseInt(cb.value));
+                if (studentIds.length === 0) { showToast('Selecciona al menos un alumno'); return; }
+                data = { ...commonFields, session_type: 'group', students: studentIds };
+            } else {
+                data = { ...commonFields, session_type: 'individual', student_id: document.getElementById('m_student').value };
+            }
 
             const res = await fetch(id ? `/api/sessions/${id}` : '/api/sessions', {
                 method: id ? 'PUT' : 'POST',
@@ -675,6 +793,7 @@
 
         init();
     </script>
+<script src="/help-assistant.js"></script>
 </body>
 
 </html>

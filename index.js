@@ -996,14 +996,15 @@ app.get('/api/admin/teachers', authenticateJWT, (req, res) => {
     console.log(`[/api/admin/teachers] academy_id=${req.user.academy_id}, user=${req.user.name}, role=${req.user.role}, month=${monthStart} to ${monthEnd}`);
 
     const sql = `
-        SELECT u.id, u.name, u.email, u.user_code, u.hourly_rate,
+        SELECT u.id, u.name, u.email, u.user_code, u.hourly_rate, u.group_hourly_rate,
                COUNT(DISTINCT s.id) as student_count,
-               COALESCE(SUM(CASE WHEN se.date >= $2 AND se.date <= $3 THEN se.duration_minutes ELSE 0 END), 0) / 60.0 as hours_this_month
+               COALESCE(SUM(CASE WHEN se.date >= $2 AND se.date <= $3 AND (se.session_type = 'individual' OR se.session_type IS NULL) THEN se.duration_minutes ELSE 0 END), 0) / 60.0 as individual_hours_this_month,
+               COALESCE(SUM(CASE WHEN se.date >= $2 AND se.date <= $3 AND se.session_type = 'group' THEN se.duration_minutes ELSE 0 END), 0) / 60.0 as group_hours_this_month
         FROM users u
         LEFT JOIN students s ON s.assigned_teacher_id = u.id AND s.academy_id = $1
         LEFT JOIN sessions se ON se.student_id = s.id
         WHERE u.role = 'teacher' AND u.academy_id = $1
-        GROUP BY u.id, u.name, u.email, u.user_code, u.hourly_rate
+        GROUP BY u.id, u.name, u.email, u.user_code, u.hourly_rate, u.group_hourly_rate
         ORDER BY u.name ASC
     `;
     db.query(sql, [req.user.academy_id, monthStart, monthEnd], (err, result) => {
@@ -1012,11 +1013,19 @@ app.get('/api/admin/teachers', authenticateJWT, (req, res) => {
             return res.status(500).json({ error: err.message });
         }
         console.log(`[/api/admin/teachers] Found ${result.rows.length} teachers`);
-        const teachers = result.rows.map(t => ({
-            ...t,
-            hours_this_month: parseFloat(t.hours_this_month || 0).toFixed(1),
-            amount_this_month: (parseFloat(t.hours_this_month || 0) * parseFloat(t.hourly_rate || 0)).toFixed(2)
-        }));
+        const teachers = result.rows.map(t => {
+            const indivHours = parseFloat(t.individual_hours_this_month || 0);
+            const groupHours = parseFloat(t.group_hours_this_month || 0);
+            const indivAmount = indivHours * parseFloat(t.hourly_rate || 0);
+            const groupAmount = groupHours * parseFloat(t.group_hourly_rate || 0);
+            return {
+                ...t,
+                hours_this_month: (indivHours + groupHours).toFixed(1),
+                individual_hours_this_month: indivHours.toFixed(1),
+                group_hours_this_month: groupHours.toFixed(1),
+                amount_this_month: (indivAmount + groupAmount).toFixed(2)
+            };
+        });
         res.json(teachers);
     });
 });
@@ -1027,14 +1036,14 @@ app.get('/api/admin/teachers/:id', authenticateJWT, (req, res) => {
     const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
     const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
 
-    db.query('SELECT id, name, email, user_code, hourly_rate FROM users WHERE id = $1 AND academy_id = $2 AND role = \'teacher\'',
+    db.query('SELECT id, name, email, user_code, hourly_rate, group_hourly_rate FROM users WHERE id = $1 AND academy_id = $2 AND role = \'teacher\'',
         [req.params.id, req.user.academy_id], (err, tRes) => {
             if (err || !tRes.rows[0]) return res.status(404).json({ error: 'Teacher not found' });
             const teacher = tRes.rows[0];
 
             // Get assigned students with last session
             const studentsSQL = `
-            SELECT s.*, 
+            SELECT s.*,
                    MAX(se.date) as last_session_date,
                    COUNT(se.id) as total_sessions
             FROM students s
@@ -1056,9 +1065,14 @@ app.get('/api/admin/teachers/:id', authenticateJWT, (req, res) => {
             `;
                 db.query(sessionsSQL, [req.params.id, req.user.academy_id, monthStart, monthEnd], (err, seRes) => {
                     const sessions = seRes?.rows || [];
-                    const totalMinutes = sessions.reduce((acc, s) => acc + (s.duration_minutes || 0), 0);
-                    const hoursThisMonth = (totalMinutes / 60).toFixed(1);
-                    const amountThisMonth = (parseFloat(hoursThisMonth) * parseFloat(teacher.hourly_rate || 0)).toFixed(2);
+                    const indivMinutes = sessions.filter(s => !s.session_type || s.session_type === 'individual').reduce((acc, s) => acc + (s.duration_minutes || 0), 0);
+                    const groupMinutes = sessions.filter(s => s.session_type === 'group').reduce((acc, s) => acc + (s.duration_minutes || 0), 0);
+                    const indivHours = parseFloat((indivMinutes / 60).toFixed(1));
+                    const groupHours = parseFloat((groupMinutes / 60).toFixed(1));
+                    const hoursThisMonth = (indivHours + groupHours).toFixed(1);
+                    const indivAmount = indivHours * parseFloat(teacher.hourly_rate || 0);
+                    const groupAmount = groupHours * parseFloat(teacher.group_hourly_rate || 0);
+                    const amountThisMonth = (indivAmount + groupAmount).toFixed(2);
 
                     // Avg score of students
                     const avgScoreSQL = `
@@ -1079,6 +1093,10 @@ app.get('/api/admin/teachers/:id', authenticateJWT, (req, res) => {
                                 stats: {
                                     studentCount: students.length,
                                     hoursThisMonth,
+                                    indivHours: indivHours.toFixed(1),
+                                    groupHours: groupHours.toFixed(1),
+                                    indivAmount: indivAmount.toFixed(2),
+                                    groupAmount: groupAmount.toFixed(2),
                                     amountThisMonth,
                                     avgScore
                                 },
@@ -1112,11 +1130,11 @@ app.get('/api/admin/teachers/:id/sessions', authenticateJWT, (req, res) => {
     });
 });
 
-// PUT update teacher hourly rate
+// PUT update teacher hourly rate (individual and group)
 app.put('/api/admin/teachers/:id/rate', authenticateJWT, (req, res) => {
-    const { hourly_rate } = req.body;
-    db.query('UPDATE users SET hourly_rate = $1 WHERE id = $2 AND academy_id = $3 AND role = \'teacher\'',
-        [hourly_rate, req.params.id, req.user.academy_id], (err) => {
+    const { hourly_rate, group_hourly_rate } = req.body;
+    db.query('UPDATE users SET hourly_rate = $1, group_hourly_rate = $2 WHERE id = $3 AND academy_id = $4 AND role = \'teacher\'',
+        [hourly_rate, group_hourly_rate ?? 0, req.params.id, req.user.academy_id], (err) => {
             if (err) return res.status(500).json({ error: err.message });
             res.json({ success: true });
         });
@@ -2150,15 +2168,15 @@ app.get('/api/teachers', authenticateJWT, requireAdmin, (req, res) => {
 });
 
 app.get('/api/teachers/rates', authenticateJWT, requireAdmin, (req, res) => {
-    db.query(`SELECT id, name, hourly_rate FROM users WHERE academy_id = $1 AND role IN ('teacher', 'admin')`, [req.user.academy_id], (err, result) => {
+    db.query(`SELECT id, name, hourly_rate, group_hourly_rate FROM users WHERE academy_id = $1 AND role IN ('teacher', 'admin')`, [req.user.academy_id], (err, result) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json(result.rows);
     });
 });
 
 app.put('/api/teachers/:id/rate', authenticateJWT, requireAdmin, (req, res) => {
-    db.query(`UPDATE users SET hourly_rate = $1 WHERE id = $2 AND academy_id = $3 AND role = 'teacher'`,
-        [req.body.hourly_rate || 0, req.params.id, req.user.academy_id], (err, result) => {
+    db.query(`UPDATE users SET hourly_rate = $1, group_hourly_rate = $2 WHERE id = $3 AND academy_id = $4 AND role = 'teacher'`,
+        [req.body.hourly_rate || 0, req.body.group_hourly_rate || 0, req.params.id, req.user.academy_id], (err, result) => {
             if (err) return res.status(500).json({ error: err.message });
             res.json({ success: true });
         });
@@ -2212,61 +2230,80 @@ app.put('/api/students/:id', authenticateJWT, requireAdmin, (req, res) => {
 
 app.post('/api/sessions', authenticateJWT, async (req, res) => {
     try {
-        const { student_id, date, duration_minutes, homework_done, teacher_notes, notes, homework } = req.body;
+        const { student_id, date, duration_minutes, homework_done, teacher_notes, notes, homework, session_type, students } = req.body;
 
-        // Verify the student belongs to the caller's academy (and assigned to them if teacher)
+        const sessionTypeVal = session_type || 'individual';
+        const notesVal = teacher_notes || notes || '';
+        const durationVal = duration_minutes || 60;
+        const dateVal = date || new Date();
+        const homeworkVal = homework_done || false;
+
+        // Helper: insert one session row for a given student record and return the session
+        const insertSession = async (sid, studentRecord) => {
+            const result = await db.query(
+                `INSERT INTO sessions (student_id, date, duration_minutes, homework_done, teacher_notes, session_type)
+                 VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+                [sid, dateVal, durationVal, homeworkVal, notesVal, sessionTypeVal]
+            );
+            const session = result.rows[0];
+            if (session) {
+                checkStudentRisk(sid);
+                const slotTeacherId = studentRecord.assigned_teacher_id || req.user.id;
+                const slotStart = date || new Date().toISOString();
+                const slotEnd = new Date(new Date(slotStart).getTime() + durationVal * 60000).toISOString();
+                db.query(
+                    `SELECT id FROM available_slots WHERE academy_id=$1 AND start_datetime=$2 AND student_id=$3`,
+                    [req.user.academy_id, slotStart, sid]
+                ).then(existing => {
+                    const notifyStudent = (slotId) => {
+                        db.query(`SELECT user_id, name, academy_id FROM students WHERE id = $1`, [sid], (err, r) => {
+                            const st = r?.rows?.[0];
+                            if (!err && st?.user_id) {
+                                const dateStr = session.date ? new Date(session.date).toLocaleDateString('es-ES') : 'hoy';
+                                createNotification(st.user_id, st.academy_id, 'session',
+                                    '📅 Nueva sesión registrada',
+                                    `Se ha registrado una sesión el ${dateStr} (${session.duration_minutes} min).`,
+                                    `/student-portal/calendar?session=${slotId}`
+                                );
+                            }
+                        });
+                    };
+                    if (existing.rows.length) { notifyStudent(existing.rows[0].id); return; }
+                    return db.query(
+                        `INSERT INTO available_slots (teacher_id, academy_id, start_datetime, end_datetime, is_booked, student_id, notes)
+                         VALUES ($1, $2, $3, $4, TRUE, $5, $6) RETURNING id`,
+                        [slotTeacherId, req.user.academy_id, slotStart, slotEnd, sid, notesVal]
+                    ).then(slotResult => {
+                        if (slotResult.rows.length) notifyStudent(slotResult.rows[0].id);
+                    });
+                }).catch(e => console.error('[Sessions] Auto-slot error:', e.message));
+            }
+            return session;
+        };
+
+        // Group session: insert one row per student in the array
+        if (sessionTypeVal === 'group' && Array.isArray(students) && students.length > 0) {
+            const createdSessions = [];
+            for (const sid of students) {
+                const ownershipQ = req.user.role === 'teacher'
+                    ? await db.query('SELECT id, assigned_teacher_id FROM students WHERE id=$1 AND academy_id=$2 AND assigned_teacher_id=$3', [sid, req.user.academy_id, req.user.id])
+                    : await db.query('SELECT id, assigned_teacher_id FROM students WHERE id=$1 AND academy_id=$2', [sid, req.user.academy_id]);
+                const studentRecord = ownershipQ.rows[0];
+                if (!studentRecord) continue; // skip students teacher doesn't own
+                const session = await insertSession(sid, studentRecord);
+                if (session) createdSessions.push(session);
+            }
+            return res.json(createdSessions);
+        }
+
+        // Individual session: existing behavior
         const ownershipQ = req.user.role === 'teacher'
             ? await db.query('SELECT id, assigned_teacher_id FROM students WHERE id=$1 AND academy_id=$2 AND assigned_teacher_id=$3', [student_id, req.user.academy_id, req.user.id])
             : await db.query('SELECT id, assigned_teacher_id FROM students WHERE id=$1 AND academy_id=$2', [student_id, req.user.academy_id]);
         const studentRecord = ownershipQ.rows[0];
         if (!studentRecord) return res.status(403).json({ error: 'Acceso denegado a este alumno' });
 
-        const result = await db.query(
-            `INSERT INTO sessions (student_id, date, duration_minutes, homework_done, teacher_notes)
-             VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-            [student_id, date || new Date(), duration_minutes || 60, homework_done || false, teacher_notes || notes || '']
-        );
-        const session = result.rows[0];
-        if (session) {
-            checkStudentRisk(student_id);
-
-            // Auto-create calendar slot so student sees this session in their calendar.
-            // Use the student's assigned teacher as teacher_id so the slot appears under the
-            // right teacher filter; fall back to whoever created the session (admin, etc.).
-            const slotTeacherId = studentRecord.assigned_teacher_id || req.user.id;
-            const slotStart = date || new Date().toISOString();
-            const slotEnd = new Date(new Date(slotStart).getTime() + (duration_minutes || 60) * 60000).toISOString();
-            db.query(
-                `SELECT id FROM available_slots WHERE academy_id=$1 AND start_datetime=$2 AND student_id=$3`,
-                [req.user.academy_id, slotStart, student_id]
-            ).then(existing => {
-                // Helper: notify student with a deep-link to the slot in their calendar
-                const notifyStudent = (slotId) => {
-                    db.query(`SELECT user_id, name, academy_id FROM students WHERE id = $1`, [student_id], (err, r) => {
-                        const st = r?.rows?.[0];
-                        if (!err && st?.user_id) {
-                            const dateStr = session.date ? new Date(session.date).toLocaleDateString('es-ES') : 'hoy';
-                            createNotification(st.user_id, st.academy_id, 'session',
-                                '📅 Nueva sesión registrada',
-                                `Se ha registrado una sesión el ${dateStr} (${session.duration_minutes} min).`,
-                                `/student-portal/calendar?session=${slotId}`
-                            );
-                        }
-                    });
-                };
-                if (existing.rows.length) {
-                    notifyStudent(existing.rows[0].id);
-                    return;
-                }
-                return db.query(
-                    `INSERT INTO available_slots (teacher_id, academy_id, start_datetime, end_datetime, is_booked, student_id, notes)
-                     VALUES ($1, $2, $3, $4, TRUE, $5, $6) RETURNING id`,
-                    [slotTeacherId, req.user.academy_id, slotStart, slotEnd, student_id, teacher_notes || notes || '']
-                ).then(slotResult => {
-                    if (slotResult.rows.length) notifyStudent(slotResult.rows[0].id);
-                });
-            }).catch(e => console.error('[Sessions] Auto-slot error:', e.message));
-        }
+        const session = await insertSession(student_id, studentRecord);
         res.json(session);
     } catch (err) {
         console.error('Session error:', err.message);
@@ -2580,7 +2617,7 @@ app.get('/api/teacher-payments', authenticateJWT, requireAdmin, (req, res) => {
     const year = now.getFullYear();
     const likePattern = `${year}-${String(month).padStart(2, '0')}%`;
 
-    db.query(`SELECT id, name, hourly_rate FROM users WHERE role = 'teacher' AND academy_id = $1`, [acadId], (err, tRes) => {
+    db.query(`SELECT id, name, hourly_rate, group_hourly_rate FROM users WHERE role = 'teacher' AND academy_id = $1`, [acadId], (err, tRes) => {
         if (err) return res.status(500).json({ error: err.message });
         const teachers = tRes.rows || [];
 
@@ -2588,11 +2625,18 @@ app.get('/api/teacher-payments', authenticateJWT, requireAdmin, (req, res) => {
         if (teachers.length === 0) return res.json([]);
 
         teachers.forEach(teacher => {
-            db.query(`SELECT sum(s.duration_minutes) as ms FROM sessions s JOIN students st ON s.student_id = st.id WHERE st.assigned_teacher_id = $1 AND s.date LIKE $2`,
+            db.query(`SELECT
+                        sum(CASE WHEN (s.session_type = 'individual' OR s.session_type IS NULL) THEN s.duration_minutes ELSE 0 END) as indiv_ms,
+                        sum(CASE WHEN s.session_type = 'group' THEN s.duration_minutes ELSE 0 END) as group_ms
+                      FROM sessions s JOIN students st ON s.student_id = st.id
+                      WHERE st.assigned_teacher_id = $1 AND s.date LIKE $2`,
                 [teacher.id, likePattern], (err, sRes) => {
-                    const totalMinutes = sRes && sRes.rows && sRes.rows[0] && sRes.rows[0].ms ? parseFloat(sRes.rows[0].ms) : 0;
-                    const hours = totalMinutes / 60;
-                    const totalAmount = parseFloat((hours * (teacher.hourly_rate || 0)).toFixed(2));
+                    const indivMinutes = sRes?.rows?.[0]?.indiv_ms ? parseFloat(sRes.rows[0].indiv_ms) : 0;
+                    const groupMinutes = sRes?.rows?.[0]?.group_ms ? parseFloat(sRes.rows[0].group_ms) : 0;
+                    const indivHours = indivMinutes / 60;
+                    const groupHours = groupMinutes / 60;
+                    const hours = indivHours + groupHours;
+                    const totalAmount = parseFloat(((indivHours * (teacher.hourly_rate || 0)) + (groupHours * (teacher.group_hourly_rate || 0))).toFixed(2));
 
                     db.query('SELECT id, status FROM teacher_payments WHERE teacher_id = $1 AND month = $2 AND year = $3',
                         [teacher.id, month, year], (err, pRes) => {
@@ -2609,9 +2653,9 @@ app.get('/api/teacher-payments', authenticateJWT, requireAdmin, (req, res) => {
 
                             processed++;
                             if (processed === teachers.length) {
-                                db.query(`SELECT p.*, u.name as teacher_name 
-                                  FROM teacher_payments p 
-                                  JOIN users u ON p.teacher_id = u.id 
+                                db.query(`SELECT p.*, u.name as teacher_name
+                                  FROM teacher_payments p
+                                  JOIN users u ON p.teacher_id = u.id
                                   WHERE u.academy_id = $1 AND month = $2 AND year = $3`, [acadId, month, year], (err, finalRes) => {
                                     if (err) return res.status(500).json({ error: err.message });
                                     res.json(finalRes.rows || []);
@@ -3184,12 +3228,7 @@ app.get('/api/academy/codes', authenticateJWT, requireAdmin, (req, res) => {
 });
 
 app.post('/api/academy/regenerate', authenticateJWT, requireAdmin, (req, res) => {
-    const tCode = generateCode();
-    const sCode = generateCode();
-    db.query('UPDATE academies SET teacher_code = $1, student_code = $2 WHERE id = $3', [tCode, sCode, req.user.academy_id], (err) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json({ teacher_code: tCode, student_code: sCode });
-    });
+    return res.status(403).json({ error: 'Los códigos de academia son permanentes y no se pueden regenerar.' });
 });
 
 // Generic CRUD PUT / DELETE
@@ -3951,6 +3990,54 @@ app.delete('/api/auth/delete-account', authenticateJWT, async (req, res) => {
         console.error('Delete error:', err.message);
         res.status(500).json({ error: 'Error al eliminar: ' + err.message });
     }
+});
+
+app.post('/api/help-assistant/chat', authenticateJWT, async (req, res) => {
+  try {
+    const { message, conversationHistory = [] } = req.body;
+    const role = req.user.role;
+
+    const systemPrompts = {
+      admin: `Eres el asistente de ayuda de AcademiaPro. Ayudas al administrador a usar la plataforma.
+Puedes explicar cómo: gestionar estudiantes, añadir y gestionar profesores, ver y crear sesiones,
+registrar pagos, generar informes PDF con IA, usar el chat, ver transcripciones de Google Meet,
+configurar la academia, conectar Google Calendar y Gmail, usar el tutor IA, gestionar el calendario,
+ver exámenes y rankings. Responde siempre en español, de forma clara y concisa.`,
+      teacher: `Eres el asistente de ayuda de AcademiaPro. Ayudas al profesor a usar la plataforma.
+Puedes explicar cómo: ver y gestionar sus alumnos asignados, registrar sesiones individuales y grupales,
+registrar exámenes, usar el calendario y crear slots con Google Meet, procesar transcripciones de
+Google Meet automáticamente, usar el chat con alumnos y el grupo de profesores, generar informes PDF,
+usar el asistente IA, ver su configuración y conectar Gmail y Google Calendar.
+Responde siempre en español, de forma clara y concisa.`,
+      student: `Eres el asistente de ayuda de AcademiaPro. Ayudas al alumno a usar la plataforma.
+Puedes explicar cómo: ver su panel principal con próximas sesiones y notas, usar el calendario
+para ver sus clases y unirse a videollamadas de Google Meet, ver sus notas y exámenes,
+ver sus pagos pendientes, hacer simulacros de examen con IA, usar el Tutor IA para resolver dudas,
+chatear con su profesor, ver sus informes mensuales.
+Responde siempre en español, de forma clara y concisa.`
+    };
+
+    const systemPrompt = systemPrompts[role] || systemPrompts.student;
+
+    const messages = [
+      { role: 'system', content: systemPrompt },
+      ...conversationHistory.slice(-10),
+      { role: 'user', content: message }
+    ];
+
+    const completion = await groqClient.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages,
+      max_tokens: 500,
+      temperature: 0.7
+    });
+
+    const response = completion.choices[0]?.message?.content || 'No pude generar una respuesta.';
+    res.json({ response });
+  } catch (err) {
+    console.error('Help assistant error:', err);
+    res.status(500).json({ error: 'Error del asistente', response: 'Lo siento, ocurrió un error. Inténtalo de nuevo.' });
+  }
 });
 
 db.initDb().then(async () => {

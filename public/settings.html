@@ -363,8 +363,7 @@
                     </div>
                 </div>
             </div>
-            <button type="button" class="btn" style="background:var(--danger); color:white; margin-top:1rem;"
-                onclick="regenerateCodes()">Regenerar Códigos (Invalida los anteriores)</button>
+            <p style="font-size:0.8rem; color:var(--text-muted); margin-top:0.5rem;">Los códigos de academia son permanentes. Compártelos con profesores y alumnos para que se unan a tu academia.</p>
         </div>
 
         <!-- Section 1 -->
@@ -574,22 +573,15 @@
             loadTeachersConfig();
         }
 
-        async function regenerateCodes() {
-            if (!confirm('¿Estás seguro de regenerar los códigos?')) return;
-            const res = await fetch('/api/academy/regenerate', { method: 'POST' });
-            if (res.ok) {
-                const data = await res.json();
-                document.getElementById('teacher_code').value = data.teacher_code;
-                document.getElementById('student_code').value = data.student_code;
-                showToast('Códigos regenerados exitosamente');
-            }
-        }
-
         function copyCode(id) {
             const el = document.getElementById(id);
-            el.select();
-            document.execCommand('copy');
-            showToast('Código copiado al portapapeles');
+            navigator.clipboard.writeText(el.value).then(() => {
+                showToast('Código copiado al portapapeles');
+            }).catch(() => {
+                el.select();
+                document.execCommand('copy');
+                showToast('Código copiado al portapapeles');
+            });
         }
 
         async function loadTeachersConfig() {
@@ -863,6 +855,7 @@
         loadCalendarStatus();
         loadGmailStatus();
     </script>
+<script src="/help-assistant.js"></script>
 </body>
 
 </html>

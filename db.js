@@ -505,7 +505,13 @@ async function initDb() {
     // Independent Google Calendar OAuth token columns (separate from Gmail)
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS calendar_access_token TEXT",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS calendar_refresh_token TEXT",
-    "ALTER TABLE users ADD COLUMN IF NOT EXISTS calendar_token_expiry BIGINT"
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS calendar_token_expiry BIGINT",
+
+    // Group sessions support
+    "ALTER TABLE sessions ADD COLUMN IF NOT EXISTS session_type VARCHAR(20) DEFAULT 'individual'",
+
+    // Group hourly rate per teacher
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS group_hourly_rate NUMERIC DEFAULT 0"
   ];
 
   for (const sql of migrations) {

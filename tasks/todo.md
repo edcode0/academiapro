@@ -1,46 +1,34 @@
-# Session Plan — 2026-03-22
+# Session Plan — 2026-03-25
 
-## 6-Subagent Feature Sprint
+## 4-Subagent Feature Sprint
 
-### SA1 — Google OAuth role-aware + redirect to /join
-- [ ] Pass selected role as `state` param in OAuth URL (login.html)
-- [ ] In Google callback: if new user + student/teacher → redirect to /join?role=&email=&google=true
-- [ ] If new user + admin → create account normally
-- [ ] If existing user → login normally
-- [ ] In join.html: read URL params on load, pre-fill role and email
+### SA1 — Group Sessions
+- [x] DB migration: ADD session_type VARCHAR(20) DEFAULT 'individual' to sessions
+- [x] Backend: POST /api/sessions accepts session_type + students[] for group sessions
+- [x] Frontend teacher_sessions.html: Individual/Grupal toggle, multi-select checkboxes, badge display
+- [x] Frontend teacher_dashboard.html: same toggle + badge support
 
-### SA2 — Academy name in all dashboards
-- [ ] Fetch academy name from GET /api/settings or /api/academy/info
-- [ ] Display academy-header block in index.html (admin)
-- [ ] Display in teacher_dashboard.html
-- [ ] Display in student_portal.html
-- [ ] Style: academy-name (1.1rem, #6366f1, 600) + greeting (1.6rem, 700)
+### SA2 — Group Hourly Rate per Teacher
+- [x] DB migration: ADD group_hourly_rate NUMERIC DEFAULT 0 to users
+- [x] Backend: teacher payment calculation uses individual × hourly_rate + group × group_hourly_rate
+- [x] Frontend admin professors panel: two labeled rate fields, save independently
+- [x] Frontend payment summary: breakdown (individual subtotal + group subtotal + total)
 
-### SA3 — Fix Google Calendar/Gmail independent status
-- [ ] Add calendar_access_token, calendar_refresh_token, calendar_token_expiry columns to users
-- [ ] /api/calendar/connect + callback → save to calendar_* columns
-- [ ] /api/gmail/status → checks gmail_access_token only
-- [ ] /api/calendar/status → checks calendar_access_token only
-- [ ] createCalendarEvent() → use calendar_* tokens
-- [ ] Settings UI shows correct independent status
+### SA3 — Fixed Academy Codes
+- [ ] POST /auth/register: generate codes ONCE on academy creation, never change
+- [ ] settings.html: remove "Regenerar Códigos" button, replace with read-only + copy button
+- [ ] teacher_settings.html: same treatment
+- [ ] Remove or protect PUT /api/academy/regenerate-codes endpoint
+- [ ] Verify existing Railway academies already have codes (don't overwrite)
 
-### SA4 — Fix chat duplicate message on send
-- [ ] Add tempId to optimistic message on send (chat.html)
-- [ ] On socket new_message: check pendingTempIds
-- [ ] If match → replace temp message with real one
-- [ ] If no match → append normally
-
-### SA5 — Clickable notifications
-- [ ] On notification click: mark read then navigate to link
-- [ ] New session notifications → link: /student-portal/calendar?session=ID
-- [ ] New message notifications → link: /chat?room=ROOM_ID
-- [ ] student_portal_calendar.html: read ?session= param, auto-open modal
-- [ ] chat.html: read ?room= param, auto-open that room
-
-### SA6 — Better join CTA in login.html / join.html
-- [ ] Replace small text link in login.html with styled button block
-- [ ] Add "¿Eres el dueño?" section at bottom of join.html
+### SA4 — Help Assistant Floating Button
+- [ ] Create public/help-assistant.js with floating button + chat panel
+- [ ] POST /api/help-assistant/chat endpoint with role-based system prompts (Groq)
+- [ ] Add <script src="/help-assistant.js"> to all main HTML pages
 
 ## Status
-- [ ] All subagents complete
-- [ ] git add . && commit && push
+- [x] SA1 complete
+- [x] SA2 complete
+- [ ] SA3 complete
+- [ ] SA4 complete
+- [ ] git commit + push
