@@ -675,9 +675,9 @@
             currentSessionType = type;
             document.getElementById('btn-type-individual').classList.toggle('active', type === 'individual');
             document.getElementById('btn-type-group').classList.toggle('active', type === 'group');
-            document.getElementById('individual-student-group').style.display = type === 'individual' ? '' : 'none';
-            document.getElementById('group-student-group').style.display = type === 'group' ? '' : 'none';
-            document.getElementById('group-students-container').style.display = type === 'group' ? '' : 'none';
+            document.getElementById('individual-student-group').style.display = type === 'individual' ? 'block' : 'none';
+            document.getElementById('group-student-group').style.display = type === 'group' ? 'block' : 'none';
+            document.getElementById('group-students-container').style.display = type === 'group' ? 'block' : 'none';
             // individual select required only when individual
             document.getElementById('m_student').required = (type === 'individual');
         }

@@ -741,16 +741,16 @@
                         </div>
                     </div>
 
-                    <div class="rate-row">
-                        <label>💰 Tarifa clase individual (€/hora):</label>
-                        <input class="rate-input" type="number" id="rate-${t.id}" value="${t.hourly_rate || 0}" min="0" step="0.5">
-                        <span style="color:#0369a1; font-size:0.8rem;">€/h</span>
-                    </div>
-                    <div class="rate-row">
-                        <label>👥 Tarifa clase grupal (€/hora):</label>
-                        <input class="rate-input" type="number" id="group-rate-${t.id}" value="${t.group_hourly_rate || 0}" min="0" step="0.5">
-                        <span style="color:#0369a1; font-size:0.8rem;">€/h</span>
-                        <button class="rate-save-btn" onclick="saveRate(${t.id})">Guardar</button>
+                    <div style="background:#f0f9ff; border:1px solid #bae6fd; border-radius:0.5rem; padding:0.75rem; margin-bottom:1.25rem;">
+                        <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem;">
+                            <label style="font-size:0.78rem; font-weight:600; color:#0369a1; width:130px; flex-shrink:0;">💰 Individual (€/h)</label>
+                            <input class="rate-input" type="number" id="rate-${t.id}" value="${t.hourly_rate || 0}" min="0" step="0.5" style="flex:1;">
+                        </div>
+                        <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem;">
+                            <label style="font-size:0.78rem; font-weight:600; color:#7c3aed; width:130px; flex-shrink:0;">👥 Grupal (€/h)</label>
+                            <input class="rate-input" type="number" id="group-rate-${t.id}" value="${t.group_hourly_rate || 0}" min="0" step="0.5" style="flex:1; border-color:#c4b5fd;">
+                        </div>
+                        <button class="rate-save-btn" style="width:100%; margin-top:0.25rem;" onclick="saveRate(${t.id})">💾 Guardar tarifas</button>
                     </div>
 
                     <div class="teacher-actions">
