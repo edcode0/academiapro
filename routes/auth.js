@@ -179,7 +179,7 @@ router.post('/auth/login', async (req, res) => {
 
         // Find user
         const result = await db.query(
-            'SELECT id, name, email, role, academy_id, user_code, password_hash, password FROM users WHERE email = $1', [email]
+            'SELECT id, name, email, role, academy_id, user_code, password_hash FROM users WHERE email = $1', [email]
         );
         const user = result.rows?.[0] || result[0];
 
@@ -195,7 +195,7 @@ router.post('/auth/login', async (req, res) => {
         }
 
         // Validate password
-        const hash = user.password_hash || user.password;
+        const hash = user.password_hash;
         if (!hash || typeof hash !== 'string') {
             return res.status(500).json({ error: 'Error de configuración de cuenta (no password hash)' });
         }
