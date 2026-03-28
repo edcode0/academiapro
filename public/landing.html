@@ -521,6 +521,74 @@
     }
     .footer-right { font-size: 13px; color: #94a3b8; }
 
+    /* ─── CURSOR GLOW ─── */
+    #cursor-glow {
+      position: fixed;
+      width: 600px; height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(37,99,235,0.07) 0%, transparent 70%);
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0;
+      transition: left 0.15s ease, top 0.15s ease, opacity 0.4s ease;
+    }
+
+    /* ─── HERO SECTION ATMOSPHERE ─── */
+    .hero-section {
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-dot-grid {
+      position: absolute; inset: 0;
+      background-image: radial-gradient(circle, #c7c4bc 1px, transparent 1px);
+      background-size: 24px 24px;
+      opacity: 0.5;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .hero-orb-1 {
+      position: absolute;
+      width: 500px; height: 500px;
+      background: rgba(37,99,235,0.05);
+      border-radius: 50%;
+      filter: blur(80px);
+      top: -200px; right: -100px;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .hero-orb-2 {
+      position: absolute;
+      width: 400px; height: 400px;
+      background: rgba(99,102,241,0.04);
+      border-radius: 50%;
+      filter: blur(60px);
+      bottom: -100px; left: -100px;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .hero-wrap { position: relative; z-index: 1; }
+
+    /* ─── HERO H1 REVEAL ─── */
+    @keyframes heroReveal {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .hero-h1 { animation: heroReveal 0.6s ease-out both; }
+    .hero-h1 em { animation: heroReveal 0.6s ease-out 0.1s both; }
+
+    /* ─── NAV SCROLL BEHAVIOR ─── */
+    .nav {
+      background: transparent;
+      border-bottom-color: transparent;
+      transition: background 0.3s ease, box-shadow 0.3s ease, border-bottom-color 0.3s ease;
+    }
+    .nav.scrolled {
+      background: rgba(248,247,244,0.95);
+      box-shadow: 0 1px 0 #e2e0d8;
+      border-bottom-color: var(--border);
+    }
+
     /* ─── RESPONSIVE ─── */
     @media (max-width: 768px) {
       .nav { padding: 0 24px; }
@@ -553,6 +621,8 @@
 </head>
 <body>
 
+<div id="cursor-glow"></div>
+
 <!-- ═══ NAV ═══ -->
 <nav class="nav">
   <a href="/landing" class="nav-logo">Academi<span>a</span>Pro</a>
@@ -568,6 +638,10 @@
 </nav>
 
 <!-- ═══ HERO ═══ -->
+<div class="hero-section">
+  <div class="hero-dot-grid"></div>
+  <div class="hero-orb-1"></div>
+  <div class="hero-orb-2"></div>
 <div class="hero-wrap">
   <div class="hero-grid">
 
@@ -690,6 +764,7 @@
     </div>
 
   </div>
+</div>
 </div>
 
 <!-- ═══ LOGOS STRIP ═══ -->
@@ -885,6 +960,62 @@
 </footer>
 
 <script>
+  // ─── CURSOR GLOW ───
+  (function() {
+    const glow = document.getElementById('cursor-glow');
+    const heroSection = document.querySelector('.hero-section');
+    let glowVisible = false;
+    document.addEventListener('mousemove', function(e) {
+      glow.style.left = e.clientX + 'px';
+      glow.style.top  = e.clientY + 'px';
+      const rect = heroSection.getBoundingClientRect();
+      const inside = e.clientX >= rect.left && e.clientX <= rect.right &&
+                     e.clientY >= rect.top  && e.clientY <= rect.bottom;
+      if (inside && !glowVisible)  { glow.style.opacity = '1'; glowVisible = true; }
+      if (!inside && glowVisible)  { glow.style.opacity = '0'; glowVisible = false; }
+    });
+  })();
+
+  // ─── NAV SCROLL ───
+  (function() {
+    const nav = document.querySelector('.nav');
+    window.addEventListener('scroll', function() {
+      nav.classList.toggle('scrolled', window.scrollY > 60);
+    }, { passive: true });
+  })();
+
+  // ─── STATS COUNT-UP ───
+  (function() {
+    function animateCount(el, target, suffix, delay) {
+      setTimeout(function() {
+        var start = performance.now();
+        var duration = 1200;
+        function tick(now) {
+          var progress = Math.min((now - start) / duration, 1);
+          var eased = 1 - Math.pow(1 - progress, 2);
+          el.textContent = Math.floor(eased * target) + suffix;
+          if (progress < 1) requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+      }, delay);
+    }
+    var statsRow = document.querySelector('.hero-stats');
+    if (!statsRow) return;
+    var configs = [{ val: 50, suffix: '+' }, { val: 3, suffix: 'h' }, null];
+    var observed = false;
+    var observer = new IntersectionObserver(function(entries) {
+      if (entries[0].isIntersecting && !observed) {
+        observed = true;
+        var nums = statsRow.querySelectorAll('.stat-num');
+        nums.forEach(function(el, i) {
+          if (configs[i]) animateCount(el, configs[i].val, configs[i].suffix, i * 150);
+        });
+        observer.disconnect();
+      }
+    }, { threshold: 0.5 });
+    observer.observe(statsRow);
+  })();
+
   let isAnnual = false;
 
   function toggleBilling() {
