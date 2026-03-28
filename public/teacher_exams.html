@@ -1,11 +1,11 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ExÃ¡menes - AcademiaPro</title>
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+    <title>Exámenes - AcademiaPro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary: #1e293b;
@@ -226,7 +226,8 @@
             border-radius: 0.5rem;
         }
     </style>
-    <link rel="stylesheet" href="/design-system.css">
+    <link rel="stylesheet" href="/glassmorphism.css">
+    <link rel="stylesheet" href="/shared-dashboard.css">
     <script src="/global.js"></script>
 </head>
 
@@ -281,24 +282,24 @@
                 style="display:block;color:white;font-size:0.95rem;margin-bottom:0.4rem;">Cargando...</strong>
             <span class="role-tag">PROFESOR</span>
             <div style="margin-top:0.5rem;font-size:0.8rem;color:#94a3b8;">
-                CÃ³digo: <b id="sidebar-code" style="color:white;">---</b>
+                Código: <b id="sidebar-code" style="color:white;">---</b>
             </div>
         </div>
         <nav id="mainNav">
-            <a href="/teacher/dashboard">ðŸ‘¥ Mis Alumnos</a>
-            <a href="/teacher/sessions">ðŸ“… Sesiones</a>
-            <a href="/teacher/exams">ðŸ“ ExÃ¡menes</a>
-            <a href="/teacher/transcripts">ðŸ“ Transcripciones</a>
-            <a href="/teacher/calendar">ðŸ—“ï¸ Calendario</a>
-            <a href="/ai-tutor">ðŸ¤– Asistente IA</a>
-            <a href="/chat">ðŸ’¬ Chat <span class="unread-badge-sidebar" id="global-unread"
+            <a href="/teacher/dashboard">👥 Mis Alumnos</a>
+            <a href="/teacher/sessions">📅 Sesiones</a>
+            <a href="/teacher/exams">📝 Exámenes</a>
+            <a href="/teacher/transcripts">📝 Transcripciones</a>
+            <a href="/teacher/calendar">🗓️ Calendario</a>
+            <a href="/ai-tutor">🤖 Asistente IA</a>
+            <a href="/chat">💬 Chat <span class="unread-badge-sidebar" id="global-unread"
                     style="display:none;"></span></a>
-            <a href="/teacher/settings">âš™ï¸ ConfiguraciÃ³n</a>
+            <a href="/teacher/settings">⚙️ Configuración</a>
         </nav>
         <div style="margin-top:auto;">
             <a href="/auth/logout"
-                style="color:#fca5a5;text-decoration:none;padding:0.75rem 1rem;display:block;border-radius:0.5rem;">ðŸšª
-                Cerrar SesiÃ³n</a>
+                style="color:#fca5a5;text-decoration:none;padding:0.75rem 1rem;display:block;border-radius:0.5rem;">🚪
+                Cerrar Sesión</a>
         </div>
     </aside>
 
@@ -306,13 +307,13 @@
         <div class="header">
                 <button class="hamburger-btn" onclick="toggleMobileNav()">&#9776;</button>
                 
-            <h2>GestiÃ³n de ExÃ¡menes</h2>
+            <h2>Gestión de Exámenes</h2>
             <button class="btn btn-primary" onclick="openModal()">+ Registrar Examen</button>
         </div>
 
         <div class="stats-grid">
             <div class="stat-card">
-                <h3>Total ExÃ¡menes</h3>
+                <h3>Total Exámenes</h3>
                 <div class="value" id="stat-total">0</div>
             </div>
             <div class="stat-card">
@@ -349,7 +350,7 @@
                 <div class="form-group"><label>Alumno</label><select id="m_student" required></select></div>
                 <div class="form-group"><label>Fecha</label><input type="date" id="m_date" required></div>
                 <div class="form-group"><label>Asignatura</label><input type="text" id="m_subject"
-                        placeholder="Ej: MatemÃ¡ticas" required></div>
+                        placeholder="Ej: Matemáticas" required></div>
                 <div class="form-group"><label>Nota</label><input type="number" step="0.1" id="m_score" required></div>
                 <div style="display:flex; justify-content:flex-end; gap:1rem; margin-top:1.5rem;">
                     <button type="button" class="btn" style="background:transparent; border:1px solid var(--border)"
@@ -364,20 +365,20 @@
         let allExams = [];
 
         const ADMIN_NAV_HTML = `
-            <div class="nav-section-title">GestiÃ³n de Academia</div>
-            <a href="/">ðŸ  Dashboard</a>
-            <a href="/students">ðŸ‘¥ Estudiantes</a>
-            <a href="/admin/teachers">ðŸ‘¨â€ðŸ« Profesores</a>
-            <a href="/payments">ðŸ’³ Pagos</a>
-            <a href="/chat">ðŸ’¬ Chat <span class="unread-badge-sidebar" id="global-unread"></span></a>
-            <a href="/settings">âš™ï¸ ConfiguraciÃ³n</a>
+            <div class="nav-section-title">Gestión de Academia</div>
+            <a href="/">🏠 Dashboard</a>
+            <a href="/students">👥 Estudiantes</a>
+            <a href="/admin/teachers">👨‍🏫 Profesores</a>
+            <a href="/payments">💳 Pagos</a>
+            <a href="/chat">💬 Chat <span class="unread-badge-sidebar" id="global-unread"></span></a>
+            <a href="/settings">⚙️ Configuración</a>
             <div class="nav-section-title">Mi actividad docente</div>
-            <a href="/teacher/dashboard">ðŸ‘¥ Mis Alumnos</a>
-            <a href="/teacher/sessions">ðŸ“… Sesiones</a>
-            <a href="/teacher/exams">ðŸ“ ExÃ¡menes</a>
-            <a href="/teacher/transcripts">ðŸ“ Transcripciones</a>
-            <a href="/teacher/calendar">ðŸ—“ï¸ Calendario</a>
-            <a href="/ai-tutor">ðŸ¤– Asistente IA</a>
+            <a href="/teacher/dashboard">👥 Mis Alumnos</a>
+            <a href="/teacher/sessions">📅 Sesiones</a>
+            <a href="/teacher/exams">📝 Exámenes</a>
+            <a href="/teacher/transcripts">📝 Transcripciones</a>
+            <a href="/teacher/calendar">🗓️ Calendario</a>
+            <a href="/ai-tutor">🤖 Asistente IA</a>
         `;
 
         async function init() {
@@ -435,9 +436,9 @@
                     <td>${e.date}</td>
                     <td>${e.subject}</td>
                     <td><span class="score-badge ${e.score >= 5 ? 'score-good' : 'score-bad'}">${e.score}</span></td>
-                    <td><button style="border:none; cursor:pointer; background:none;" onclick="deleteExam(${e.id})">ðŸ—‘ï¸</button></td>
+                    <td><button style="border:none; cursor:pointer; background:none;" onclick="deleteExam(${e.id})">🗑️</button></td>
                 </tr>
-            `).join('') || '<tr><td colspan="5" style="text-align:center">No hay exÃ¡menes registrados.</td></tr>';
+            `).join('') || '<tr><td colspan="5" style="text-align:center">No hay exámenes registrados.</td></tr>';
         }
 
         function openModal() { document.getElementById('examModal').style.display = 'flex'; }
@@ -460,7 +461,7 @@
         };
 
         async function deleteExam(id) {
-            if (confirm('Â¿Seguro?')) {
+            if (confirm('¿Seguro?')) {
                 await fetch(`/api/exams/${id}`, { method: 'DELETE' });
                 loadExams();
             }

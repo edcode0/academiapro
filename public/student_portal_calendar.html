@@ -1,11 +1,11 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mi Calendario - AcademiaPro</title>
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
     <style>
         :root {
@@ -243,7 +243,8 @@
             }
         }
     </style>
-    <link rel="stylesheet" href="/design-system.css">
+    <link rel="stylesheet" href="/glassmorphism.css">
+    <link rel="stylesheet" href="/shared-dashboard.css">
     <script src="/global.js"></script>
 </head>
 
@@ -297,17 +298,17 @@
             <strong id="sidebar-name">Cargando...</strong>
             <span class="badge-student">ALUMNO</span>
             <div style="margin-top:0.5rem;font-size:0.8rem;color:#94a3b8;">
-                CÃ³digo: <b id="sidebar-code" style="color:white;">---</b>
+                Código: <b id="sidebar-code" style="color:white;">---</b>
             </div>
         </div>
         <nav id="mainNav">
-            <a href="/student-portal">ðŸ  Mi Panel</a>
-            <a href="/student-portal/calendar">ðŸ“… Mi Calendario</a>
-            <a href="/student-portal/exams">ðŸ“ Mis Notas</a>
-            <a href="/student-portal/payments">ðŸ’³ Mis Pagos</a>
-            <a href="/exam-simulator">ðŸ“‹ Simulacro</a>
-            <a href="/ai-tutor">ðŸ¤– Tutor IA</a>
-            <a href="/chat">ðŸ’¬ Chat</a>
+            <a href="/student-portal">🏠 Mi Panel</a>
+            <a href="/student-portal/calendar">📅 Mi Calendario</a>
+            <a href="/student-portal/exams">📝 Mis Notas</a>
+            <a href="/student-portal/payments">💳 Mis Pagos</a>
+            <a href="/exam-simulator">📋 Simulacro</a>
+            <a href="/ai-tutor">🤖 Tutor IA</a>
+            <a href="/chat">💬 Chat</a>
         </nav>
         <div style="margin-top:auto;">
             <button class="Btn" onclick="window.location.href='/auth/logout'">
@@ -325,7 +326,7 @@
                 
             <h2>Mi Calendario</h2>
             <p style="color: var(--text-muted);">Reserva tus sesiones con tu profesor o cancela con al menos 24 hs de
-                anticipaciÃ³n.</p>
+                anticipación.</p>
             <div style="display:flex; gap: 1rem; font-size: 0.875rem; margin-top: 1rem;">
                 <span style="display:flex; align-items:center; gap:0.5rem;">
                     <div style="width:12px;height:12px;background:var(--available);border-radius:2px;"></div> Disponible
@@ -380,7 +381,7 @@
 
             const calendarEl = document.getElementById('calendar');
             if (typeof FullCalendar === 'undefined') {
-                calendarEl.innerHTML = '<p style="color:red;text-align:center;padding:2rem;">Error: No se pudo cargar el calendario. Por favor recarga la pÃ¡gina o revisa tu conexiÃ³n.</p>';
+                calendarEl.innerHTML = '<p style="color:red;text-align:center;padding:2rem;">Error: No se pudo cargar el calendario. Por favor recarga la página o revisa tu conexión.</p>';
                 return;
             }
 
@@ -437,7 +438,7 @@
                     if (isPast) {
                         color = 'var(--past)'; // gray
                         if (s.is_booked && s.student_user_id === userData.id) {
-                            title = `SesiÃ³n completada con ${s.teacher_name}`;
+                            title = `Sesión completada con ${s.teacher_name}`;
                             isMine = true;
                         } else {
                             title = 'No disponible';
@@ -447,7 +448,7 @@
                             // Is it mine or someone else's?
                             if (s.student_user_id === userData.id) {
                                 color = 'var(--booked)'; // blue
-                                title = `Mi SesiÃ³n - ${s.teacher_name}`;
+                                title = `Mi Sesión - ${s.teacher_name}`;
                                 isMine = true;
                             } else {
                                 color = 'var(--past)'; // gray, occupied by someone else
@@ -498,7 +499,7 @@
 
             if (props.is_past) {
                 if (props.is_mine) {
-                    contentHtml += `<div class="detail-row"><strong>Estado:</strong> <span style="color:var(--text-muted)">SesiÃ³n Completada</span></div>`;
+                    contentHtml += `<div class="detail-row"><strong>Estado:</strong> <span style="color:var(--text-muted)">Sesión Completada</span></div>`;
                 } else {
                     contentHtml += `<div class="detail-row"><strong>Estado:</strong> <span style="color:var(--text-muted)">Pasado/No disponible</span></div>`;
                 }
@@ -513,22 +514,22 @@
                     const isOngoing = start <= new Date() && end > new Date();
                     if (props.meet_link && (minutesUntil <= 30 || isOngoing)) {
                         const countdownText = isOngoing
-                            ? 'Â¡La clase estÃ¡ en curso!'
+                            ? '¡La clase está en curso!'
                             : `La clase empieza en ${Math.ceil(minutesUntil)} minutos`;
-                        contentHtml += `<div class="detail-row"><strong>ðŸŽ¥ Meet:</strong> <span style="color:#10b981">${countdownText}</span></div>`;
+                        contentHtml += `<div class="detail-row"><strong>🎥 Meet:</strong> <span style="color:#10b981">${countdownText}</span></div>`;
                         actionsHtml = `
-                            <a href="${props.meet_link}" target="_blank" class="btn btn-success" style="text-decoration:none;text-align:center;">ðŸŽ¥ Unirse a la clase</a>
+                            <a href="${props.meet_link}" target="_blank" class="btn btn-success" style="text-decoration:none;text-align:center;">🎥 Unirse a la clase</a>
                         `;
                     } else if (props.meet_link) {
                         const h = Math.floor(minutesUntil / 60);
                         const m = Math.round(minutesUntil % 60);
                         const timeLeft = h > 0 ? `${h}h ${m}min` : `${Math.ceil(minutesUntil)} min`;
-                        contentHtml += `<div class="detail-row"><strong>ðŸŽ¥ Meet:</strong> <span style="color:var(--text-muted)">Disponible 30 min antes (en ${timeLeft})</span></div>`;
+                        contentHtml += `<div class="detail-row"><strong>🎥 Meet:</strong> <span style="color:var(--text-muted)">Disponible 30 min antes (en ${timeLeft})</span></div>`;
                     }
 
                     if (hoursUntil > 24 && !isOngoing) {
                         actionsHtml += `
-                            <div style="font-size: 0.8rem; color: var(--text-muted); text-align: center; margin-bottom: 0.5rem; margin-top: 1rem;">Puedes cancelar con ${Math.floor(hoursUntil)} hs de anticipaciÃ³n.</div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted); text-align: center; margin-bottom: 0.5rem; margin-top: 1rem;">Puedes cancelar con ${Math.floor(hoursUntil)} hs de anticipación.</div>
                             <button class="btn btn-danger" onclick="cancelSlot()">Cancelar Reserva</button>
                         `;
                     } else if (!isOngoing && !props.meet_link) {
@@ -538,7 +539,7 @@
                     }
                 } else if (!props.is_booked) {
                     contentHtml += `<div class="detail-row"><strong>Estado:</strong> <span style="color:var(--success)">Disponible para reservar</span></div>`;
-                    actionsHtml = `<button class="btn btn-success" onclick="bookSlot()">Reservar SesiÃ³n</button>`;
+                    actionsHtml = `<button class="btn btn-success" onclick="bookSlot()">Reservar Sesión</button>`;
                 }
             }
 
@@ -550,22 +551,22 @@
         function closeModal() { document.getElementById('slotModal').style.display = 'none'; selectedSlotId = null; }
 
         async function bookSlot() {
-            if (!confirm('Â¿Confirmar la reserva de este horario con tu profesor?')) return;
+            if (!confirm('¿Confirmar la reserva de este horario con tu profesor?')) return;
             try {
                 const res = await fetch(`/api/calendar/slots/${selectedSlotId}/book`, { method: 'POST' });
                 if (res.ok) {
-                    showToast('Â¡Reserva completada!', 'success');
+                    showToast('¡Reserva completada!', 'success');
                     calendar.refetchEvents();
                     closeModal();
                 } else {
                     const data = await res.json();
-                    showToast(data.error || 'Error al reservar. Puede que alguien mÃ¡s ya lo haya tomado.', 'error');
+                    showToast(data.error || 'Error al reservar. Puede que alguien más ya lo haya tomado.', 'error');
                 }
             } catch (e) { showToast('Error de red', 'error'); }
         }
 
         async function cancelSlot() {
-            if (!confirm('Â¿EstÃ¡s seguro de que deseas cancelar la reserva?')) return;
+            if (!confirm('¿Estás seguro de que deseas cancelar la reserva?')) return;
             try {
                 const res = await fetch(`/api/calendar/slots/${selectedSlotId}/cancel`, { method: 'POST' });
                 if (res.ok) {

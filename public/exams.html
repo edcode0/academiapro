@@ -1,11 +1,11 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ExÃ¡menes - AcademiaPro</title>
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+    <title>Exámenes - AcademiaPro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary: #1e293b;
@@ -177,7 +177,7 @@
         }
 
         .search-container::before {
-            content: 'ðŸ”';
+            content: '🔍';
             position: absolute;
             left: 0.875rem;
             top: 50%;
@@ -349,7 +349,8 @@
             z-index: 2000;
         }
     </style>
-    <link rel="stylesheet" href="/design-system.css">
+    <link rel="stylesheet" href="/glassmorphism.css">
+    <link rel="stylesheet" href="/shared-dashboard.css">
     <script src="/global.js"></script>
 </head>
 
@@ -400,25 +401,25 @@
     <aside>
         <h1>AcademiaPro</h1>
         <nav id="mainNav" style="flex:1;">
-            <div class="nav-section-title">GestiÃ³n de Academia</div>
-            <a href="/">ðŸ  Dashboard</a>
-            <a href="/students">ðŸ‘¥ Estudiantes</a>
-            <a href="/admin/teachers">ðŸ‘¨â€ðŸ« Profesores</a>
-            <a href="/payments">ðŸ’³ Pagos</a>
-            <a href="/chat">ðŸ’¬ Chat <span class="unread-badge-sidebar" id="global-unread"></span></a>
-            <a href="/settings">âš™ï¸ ConfiguraciÃ³n</a>
+            <div class="nav-section-title">Gestión de Academia</div>
+            <a href="/">🏠 Dashboard</a>
+            <a href="/students">👥 Estudiantes</a>
+            <a href="/admin/teachers">👨‍🏫 Profesores</a>
+            <a href="/payments">💳 Pagos</a>
+            <a href="/chat">💬 Chat <span class="unread-badge-sidebar" id="global-unread"></span></a>
+            <a href="/settings">⚙️ Configuración</a>
             <div class="nav-section-title">Mi actividad docente</div>
-            <a href="/teacher/dashboard">ðŸ‘¥ Mis Alumnos</a>
-            <a href="/teacher/sessions">ðŸ“… Sesiones</a>
-            <a href="/teacher/exams" class="active">ðŸ“ ExÃ¡menes</a>
-            <a href="/teacher/transcripts">ðŸ“ Transcripciones</a>
-            <a href="/teacher/calendar">ðŸ—“ï¸ Calendario</a>
-            <a href="/ai-tutor">ðŸ¤– Asistente IA</a>
+            <a href="/teacher/dashboard">👥 Mis Alumnos</a>
+            <a href="/teacher/sessions">📅 Sesiones</a>
+            <a href="/teacher/exams" class="active">📝 Exámenes</a>
+            <a href="/teacher/transcripts">📝 Transcripciones</a>
+            <a href="/teacher/calendar">🗓️ Calendario</a>
+            <a href="/ai-tutor">🤖 Asistente IA</a>
         </nav>
         <div style="margin-top: auto;">
             <a href="/auth/logout"
                 style="color: #fca5a5; text-decoration: none; padding: 0.75rem 1rem; display: block; border-radius: 0.5rem; transition: background 0.2s;">Cerrar
-                SesiÃ³n</a>
+                Sesión</a>
         </div>
     </aside>
 
@@ -426,8 +427,8 @@
         <div class="header">
                 <button class="hamburger-btn" onclick="toggleMobileNav()">&#9776;</button>
                 
-            <h2>ExÃ¡menes</h2>
-            <button class="btn btn-primary" onclick="openModal('examModal')">+ AÃ±adir Examen</button>
+            <h2>Exámenes</h2>
+            <button class="btn btn-primary" onclick="openModal('examModal')">+ Añadir Examen</button>
         </div>
 
         <div class="stats-grid">
@@ -440,7 +441,7 @@
                 <div class="value" id="stat-failing">0</div>
             </div>
             <div class="stat-card">
-                <h3>ExÃ¡menes este mes</h3>
+                <h3>Exámenes este mes</h3>
                 <div class="value" id="stat-month">0</div>
             </div>
             <div class="stat-card">
@@ -449,7 +450,7 @@
             </div>
         </div>
 
-        <div class="section-title">ðŸ† Ranking de Rendimiento</div>
+        <div class="section-title">🏆 Ranking de Rendimiento</div>
         <div class="card">
             <table>
                 <thead>
@@ -458,7 +459,7 @@
                         <th>Estudiante</th>
                         <th>Asignatura</th>
                         <th>Media</th>
-                        <th>Total ExÃ¡menes</th>
+                        <th>Total Exámenes</th>
                         <th>Tendencia</th>
                     </tr>
                 </thead>
@@ -466,7 +467,7 @@
             </table>
         </div>
 
-        <div class="section-title">ðŸ“œ Historial de ExÃ¡menes</div>
+        <div class="section-title">📜 Historial de Exámenes</div>
         <div class="controls">
             <div class="search-container">
                 <input type="text" id="searchInput" placeholder="Buscar por alumno..." onkeyup="filterHistory()">
@@ -508,7 +509,7 @@
                 </div>
                 <div class="form-group">
                     <label>Asignatura</label>
-                    <input type="text" id="m_subject" placeholder="Ej: Ãlgebra" required>
+                    <input type="text" id="m_subject" placeholder="Ej: Álgebra" required>
                 </div>
                 <div class="form-group">
                     <label>Nota (0-10)</label>
@@ -564,7 +565,7 @@
             const tbody = document.getElementById('rankingTableBody');
             tbody.innerHTML = rankingData.map((r, i) => {
                 const pos = i + 1;
-                const medal = pos === 1 ? 'ðŸ¥‡' : (pos === 2 ? 'ðŸ¥ˆ' : (pos === 3 ? 'ðŸ¥‰' : `${pos}Âº`));
+                const medal = pos === 1 ? '🥇' : (pos === 2 ? '🥈' : (pos === 3 ? '🥉' : `${pos}º`));
                 const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
                 const avatarColor = colors[r.student_id % colors.length];
 
@@ -572,7 +573,7 @@
                 if (r.avg_score < 5) scoreClass = 'score-low';
                 else if (r.avg_score < 7) scoreClass = 'score-mid';
 
-                const trendClass = r.trend === 'â†‘' ? 'trend-up' : (r.trend === 'â†“' ? 'trend-down' : 'trend-stable');
+                const trendClass = r.trend === '↑' ? 'trend-up' : (r.trend === '↓' ? 'trend-down' : 'trend-stable');
 
                 return `
                 <tr>
@@ -614,7 +615,7 @@
                     <td>${e.date}</td>
                     <td>${e.subject}</td>
                     <td><span class="score-badge ${scoreClass}">${e.score}</span></td>
-                    <td><button onclick="deleteExam(${e.id})" style="border:none; background:none; cursor:pointer;">ðŸ—‘ï¸</button></td>
+                    <td><button onclick="deleteExam(${e.id})" style="border:none; background:none; cursor:pointer;">🗑️</button></td>
                 </tr>
                 `;
             }).join('');
@@ -630,7 +631,7 @@
         function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
         async function deleteExam(id) {
-            if (confirm('Â¿Eliminar esta nota? Se recalcularÃ¡ la tendencia del alumno.')) {
+            if (confirm('¿Eliminar esta nota? Se recalculará la tendencia del alumno.')) {
                 await fetch(`/api/exams/${id}`, { method: 'DELETE' });
                 showToast('Nota eliminada');
                 loadExamsData();

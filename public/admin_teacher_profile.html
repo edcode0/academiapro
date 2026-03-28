@@ -1,11 +1,11 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Perfil Profesor - AcademiaPro</title>
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
     <style>
         :root {
@@ -594,7 +594,8 @@
             }
         }
     </style>
-    <link rel="stylesheet" href="/design-system.css">
+    <link rel="stylesheet" href="/glassmorphism.css">
+    <link rel="stylesheet" href="/shared-dashboard.css">
     <script src="/global.js"></script>
 </head>
 
@@ -649,20 +650,20 @@
             <span class="badge-admin">Admin</span>
         </div>
         <nav id="mainNav" style="flex:1;">
-            <div class="nav-section-title">GestiÃ³n de Academia</div>
-            <a href="/">ðŸ  Dashboard</a>
-            <a href="/students">ðŸ‘¥ Estudiantes</a>
-            <a href="/admin/teachers" class="active">ðŸ‘¨â€ðŸ« Profesores</a>
-            <a href="/payments">ðŸ’³ Pagos</a>
-            <a href="/chat">ðŸ’¬ Chat <span class="unread-badge-sidebar" id="global-unread"></span></a>
-            <a href="/settings">âš™ï¸ ConfiguraciÃ³n</a>
+            <div class="nav-section-title">Gestión de Academia</div>
+            <a href="/">🏠 Dashboard</a>
+            <a href="/students">👥 Estudiantes</a>
+            <a href="/admin/teachers" class="active">👨‍🏫 Profesores</a>
+            <a href="/payments">💳 Pagos</a>
+            <a href="/chat">💬 Chat <span class="unread-badge-sidebar" id="global-unread"></span></a>
+            <a href="/settings">⚙️ Configuración</a>
             <div class="nav-section-title">Mi actividad docente</div>
-            <a href="/teacher/dashboard">ðŸ‘¥ Mis Alumnos</a>
-            <a href="/teacher/sessions">ðŸ“… Sesiones</a>
-            <a href="/teacher/exams">ðŸ“ ExÃ¡menes</a>
-            <a href="/teacher/transcripts">ðŸ“ Transcripciones</a>
-            <a href="/teacher/calendar">ðŸ—“ï¸ Calendario</a>
-            <a href="/ai-tutor">ðŸ¤– Asistente IA</a>
+            <a href="/teacher/dashboard">👥 Mis Alumnos</a>
+            <a href="/teacher/sessions">📅 Sesiones</a>
+            <a href="/teacher/exams">📝 Exámenes</a>
+            <a href="/teacher/transcripts">📝 Transcripciones</a>
+            <a href="/teacher/calendar">🗓️ Calendario</a>
+            <a href="/ai-tutor">🤖 Asistente IA</a>
         </nav>
         <div style="margin-top: auto;">
             <button class="Btn" onclick="window.location.href='/auth/logout'">
@@ -676,7 +677,7 @@
 
     <main>
         <button class="hamburger-btn" onclick="toggleMobileNav()">&#9776;</button>
-        <a href="/admin/teachers" class="back-link">â† Volver a Profesores</a>
+        <a href="/admin/teachers" class="back-link">← Volver a Profesores</a>
 
         <!-- Profile Header -->
         <div class="profile-header">
@@ -685,14 +686,14 @@
                 <h2 id="teacherName">Cargando...</h2>
                 <div class="profile-meta">
                     <span class="badge-teacher">Profesor</span>
-                    <span class="badge-code" id="teacherCode">CÃ³digo: ---</span>
+                    <span class="badge-code" id="teacherCode">Código: ---</span>
                     <span class="badge-active" id="teacherStatus">Activo</span>
                     <span style="font-size:0.85rem; color:var(--text-muted);" id="teacherEmail"></span>
                 </div>
             </div>
             <div>
                 <button class="btn btn-ghost" style="color: var(--danger); border: 1px solid var(--danger);"
-                    onclick="confirmDeleteTeacher()">ðŸ—‘ï¸ Eliminar profesor</button>
+                    onclick="confirmDeleteTeacher()">🗑️ Eliminar profesor</button>
             </div>
         </div>
 
@@ -708,7 +709,7 @@
             </div>
             <div class="stat-card border-orange">
                 <h3>Total a Pagar</h3>
-                <div class="value" id="stat-amount">0 â‚¬</div>
+                <div class="value" id="stat-amount">0 €</div>
             </div>
             <div class="stat-card border-purple">
                 <h3>Nota Media Alumnos</h3>
@@ -718,10 +719,10 @@
 
         <!-- Tabs -->
         <div class="tabs">
-            <div class="tab active" onclick="switchTab('tab-alumnos')">ðŸ‘¥ Alumnos</div>
-            <div class="tab" onclick="switchTab('tab-sesiones')">ðŸ“… Sesiones del Mes</div>
-            <div class="tab" onclick="switchTab('tab-calendario')">ðŸ—“ï¸ Calendario</div>
-            <div class="tab" onclick="switchTab('tab-pagos')">ðŸ’¶ Pagos</div>
+            <div class="tab active" onclick="switchTab('tab-alumnos')">👥 Alumnos</div>
+            <div class="tab" onclick="switchTab('tab-sesiones')">📅 Sesiones del Mes</div>
+            <div class="tab" onclick="switchTab('tab-calendario')">🗓️ Calendario</div>
+            <div class="tab" onclick="switchTab('tab-pagos')">💶 Pagos</div>
         </div>
 
         <!-- Tab: Alumnos -->
@@ -738,9 +739,9 @@
                             <th>Curso</th>
                             <th>Asignatura</th>
                             <th>Estado</th>
-                            <th>Ãšltima SesiÃ³n</th>
+                            <th>Última Sesión</th>
                             <th>Sesiones</th>
-                            <th>AcciÃ³n</th>
+                            <th>Acción</th>
                         </tr>
                     </thead>
                     <tbody id="studentsTable">
@@ -765,7 +766,7 @@
                         <tr>
                             <th>Alumno</th>
                             <th>Fecha</th>
-                            <th>DuraciÃ³n</th>
+                            <th>Duración</th>
                             <th>Tareas</th>
                             <th>Notas</th>
                         </tr>
@@ -797,22 +798,22 @@
         <div id="tab-pagos" class="tab-content">
             <div class="pay-header">
                 <div class="rate-editor">
-                    <label>ðŸ’° Tarifa clase individual:</label>
+                    <label>💰 Tarifa clase individual:</label>
                     <input type="number" id="rateInput" min="0" step="0.5" value="0">
-                    <span style="color:#0369a1; font-weight:600;">â‚¬/h</span>
+                    <span style="color:#0369a1; font-weight:600;">€/h</span>
                     <br>
-                    <label>ðŸ‘¥ Tarifa clase grupal:</label>
+                    <label>👥 Tarifa clase grupal:</label>
                     <input type="number" id="groupRateInput" min="0" step="0.5" value="0">
-                    <span style="color:#0369a1; font-weight:600;">â‚¬/h</span>
+                    <span style="color:#0369a1; font-weight:600;">€/h</span>
                     <button onclick="saveRate()">Guardar</button>
                 </div>
                 <div class="this-month-pay">
                     <div class="label">Total a pagar este mes</div>
-                    <div class="amount" id="payAmountDisplay">0 â‚¬</div>
-                    <div style="font-size:0.8rem; opacity:0.85; margin-top:0.25rem;" id="payBreakdown">0h Ã— 0â‚¬/h</div>
+                    <div class="amount" id="payAmountDisplay">0 €</div>
+                    <div style="font-size:0.8rem; opacity:0.85; margin-top:0.25rem;" id="payBreakdown">0h × 0€/h</div>
                     <div style="font-size:0.75rem; opacity:0.7; margin-top:0.15rem;" id="payBreakdownDetail"></div>
                 </div>
-                <button class="btn btn-success" onclick="markAsPaid()">âœ“ Marcar mes como pagado</button>
+                <button class="btn btn-success" onclick="markAsPaid()">✓ Marcar mes como pagado</button>
             </div>
 
             <div class="card">
@@ -822,7 +823,7 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Mes / AÃ±o</th>
+                            <th>Mes / Año</th>
                             <th>Horas</th>
                             <th>Tarifa</th>
                             <th>Total</th>
@@ -860,14 +861,14 @@
         <div class="modal">
             <h3 style="color: var(--danger);">Eliminar Profesor</h3>
             <p style="margin-bottom: 1.5rem; color: var(--text-muted);">
-                Â¿Seguro que quieres eliminar a <strong id="deleteTeacherName">este profesor</strong> de la
+                ¿Seguro que quieres eliminar a <strong id="deleteTeacherName">este profesor</strong> de la
                 academia?<br><br>
                 <span id="deleteTeacherWarning" style="color: var(--danger); font-weight: 600;"></span>
             </p>
             <div class="modal-actions">
                 <button class="btn btn-ghost" onclick="closeModal('deleteTeacherModal')">Cancelar</button>
                 <button class="btn btn-primary" style="background: var(--danger);" onclick="executeDeleteTeacher()"
-                    id="btnConfirmDeleteTeacher">SÃ­, eliminar</button>
+                    id="btnConfirmDeleteTeacher">Sí, eliminar</button>
             </div>
         </div>
     </div>
@@ -918,13 +919,13 @@
             document.getElementById('teacherAvatar').textContent = t.name.charAt(0).toUpperCase();
             document.getElementById('teacherAvatar').style.background = color;
             document.getElementById('teacherName').textContent = t.name;
-            document.getElementById('teacherCode').textContent = `CÃ³digo: ${t.user_code || 'N/A'}`;
+            document.getElementById('teacherCode').textContent = `Código: ${t.user_code || 'N/A'}`;
             document.getElementById('teacherEmail').textContent = t.email || '';
             document.getElementById('teacherStatus').textContent = s.studentCount > 0 ? 'Activo' : 'Sin alumnos';
 
             document.getElementById('stat-students').textContent = s.studentCount;
             document.getElementById('stat-hours').textContent = s.hoursThisMonth + 'h';
-            document.getElementById('stat-amount').textContent = s.amountThisMonth + ' â‚¬';
+            document.getElementById('stat-amount').textContent = s.amountThisMonth + ' €';
             document.getElementById('stat-avg').textContent = s.avgScore;
 
             // Payments tab rates
@@ -942,13 +943,13 @@
             const groupAmount = groupHours * groupRate;
             const total = (indivAmount + groupAmount).toFixed(2);
             const totalHours = (indivHours + groupHours).toFixed(1);
-            document.getElementById('payAmountDisplay').textContent = total + ' â‚¬';
+            document.getElementById('payAmountDisplay').textContent = total + ' €';
             document.getElementById('payBreakdown').textContent = `${totalHours}h totales`;
             const detail = document.getElementById('payBreakdownDetail');
             if (detail) {
-                detail.innerHTML = `Individual: ${indivHours.toFixed(1)}h Ã— ${indivRate}â‚¬/h = ${indivAmount.toFixed(2)}â‚¬<br>Grupal: ${groupHours.toFixed(1)}h Ã— ${groupRate}â‚¬/h = ${groupAmount.toFixed(2)}â‚¬`;
+                detail.innerHTML = `Individual: ${indivHours.toFixed(1)}h × ${indivRate}€/h = ${indivAmount.toFixed(2)}€<br>Grupal: ${groupHours.toFixed(1)}h × ${groupRate}€/h = ${groupAmount.toFixed(2)}€`;
             }
-            document.getElementById('stat-amount').textContent = total + ' â‚¬';
+            document.getElementById('stat-amount').textContent = total + ' €';
         }
 
         function renderStudents() {
@@ -1001,7 +1002,7 @@
                     </td>
                     <td>${s.date}</td>
                     <td>${s.duration_minutes} min</td>
-                    <td><span class="badge ${s.homework_done ? 'badge-success' : 'badge-danger'}">${s.homework_done ? 'SÃ­' : 'No'}</span></td>
+                    <td><span class="badge ${s.homework_done ? 'badge-success' : 'badge-danger'}">${s.homework_done ? 'Sí' : 'No'}</span></td>
                     <td style="color:var(--text-muted); max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${s.teacher_notes || ''}">${s.teacher_notes || '-'}</td>
                 </tr>`;
             }).join('');
@@ -1017,9 +1018,9 @@
             tbody.innerHTML = payments.map(p => `<tr>
                 <td>${MONTH_NAMES[(p.month || 1) - 1]} ${p.year}</td>
                 <td>${parseFloat(p.hours).toFixed(1)}h</td>
-                <td>${p.hourly_rate}â‚¬/h</td>
-                <td><strong>${parseFloat(p.total).toFixed(2)}â‚¬</strong></td>
-                <td><span class="badge ${p.status === 'paid' ? 'badge-paid' : 'badge-pending'}">${p.status === 'paid' ? 'âœ“ Pagado' : 'Pendiente'}</span></td>
+                <td>${p.hourly_rate}€/h</td>
+                <td><strong>${parseFloat(p.total).toFixed(2)}€</strong></td>
+                <td><span class="badge ${p.status === 'paid' ? 'badge-paid' : 'badge-pending'}">${p.status === 'paid' ? '✓ Pagado' : 'Pendiente'}</span></td>
                 <td>${p.paid_date || '-'}</td>
             </tr>`).join('');
         }
@@ -1059,7 +1060,7 @@
                         const slots = await res.json();
                         successCallback(slots.map(s => ({
                             id: s.id,
-                            title: s.student_name ? `ðŸ“Œ ${s.student_name}` : 'ðŸŸ¢ Disponible',
+                            title: s.student_name ? `📌 ${s.student_name}` : '🟢 Disponible',
                             start: s.start_datetime,
                             end: s.end_datetime,
                             backgroundColor: s.is_booked ? '#3b82f6' : '#10b981',
@@ -1081,7 +1082,7 @@
                 body: JSON.stringify({ hourly_rate: rate, group_hourly_rate: groupRate })
             });
             if (res.ok) {
-                showToast('Tarifas guardadas âœ“');
+                showToast('Tarifas guardadas ✓');
                 const s = teacherData.stats;
                 updatePayDisplay(s.indivHours || s.hoursThisMonth, rate, s.groupHours || 0, groupRate);
             }
@@ -1105,7 +1106,7 @@
                     hours, hourly_rate: rate, total
                 })
             });
-            if (res.ok) { showToast('Â¡Mes marcado como pagado!'); loadTeacherData(); }
+            if (res.ok) { showToast('¡Mes marcado como pagado!'); loadTeacherData(); }
         }
 
         async function openAssignModal() {
@@ -1113,7 +1114,7 @@
             const students = await res.json();
             const assigned = new Set(teacherData.students.map(s => s.id));
             const unassigned = students.filter(s => !assigned.has(s.id));
-            if (!unassigned.length) { showToast('Todos los alumnos ya estÃ¡n asignados'); return; }
+            if (!unassigned.length) { showToast('Todos los alumnos ya están asignados'); return; }
             document.getElementById('assignStudentSelect').innerHTML = unassigned.map(s => `<option value="${s.id}">${s.name} (${s.course})</option>`).join('');
             document.getElementById('assignModal').style.display = 'flex';
         }
@@ -1127,11 +1128,11 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ student_id: studentId })
             });
-            if (res.ok) { closeAssignModal(); showToast('Alumno asignado âœ“'); loadTeacherData(); }
+            if (res.ok) { closeAssignModal(); showToast('Alumno asignado ✓'); loadTeacherData(); }
         }
 
         async function unassignStudent(studentId, name) {
-            if (!confirm(`Â¿Desasignar a ${name} de este profesor?`)) return;
+            if (!confirm(`¿Desasignar a ${name} de este profesor?`)) return;
             const res = await fetch(`/api/admin/teachers/${teacherId}/unassign-student/${studentId}`, { method: 'DELETE' });
             if (res.ok) { showToast('Alumno desasignado'); loadTeacherData(); }
         }
@@ -1145,7 +1146,7 @@
             document.getElementById('deleteTeacherName').textContent = teacherData.teacher.name;
             const warningEl = document.getElementById('deleteTeacherWarning');
             if (teacherData.stats && teacherData.stats.studentCount > 0) {
-                warningEl.textContent = `Este profesor tiene ${teacherData.stats.studentCount} alumnos asignados. QuedarÃ¡n sin profesor asignado.`;
+                warningEl.textContent = `Este profesor tiene ${teacherData.stats.studentCount} alumnos asignados. Quedarán sin profesor asignado.`;
             } else {
                 warningEl.textContent = '';
             }
@@ -1167,7 +1168,7 @@
                 console.error(err);
             } finally {
                 btn.disabled = false;
-                btn.textContent = 'SÃ­, eliminar';
+                btn.textContent = 'Sí, eliminar';
             }
         }
 
