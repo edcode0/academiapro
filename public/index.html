@@ -53,13 +53,19 @@
             left: 0;
             display: flex;
             flex-direction: column;
-            overflow: hidden;
+            overflow-y: auto;
+            overflow-x: hidden;
             z-index: 100;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
         }
+        aside::-webkit-scrollbar { display: none; }
 
         .sidebar-top {
-            padding: 24px 20px 16px;
+            padding: 24px 20px 20px;
             flex-shrink: 0;
+            border-bottom: 0.5px solid rgba(255,255,255,0.06);
+            margin-bottom: 8px;
         }
 
         .sidebar-logo {
@@ -83,11 +89,12 @@
         }
 
         .sidebar-avatar {
-            width: 40px;
-            height: 40px;
-            background: rgba(255, 255, 255, 0.1);
+            width: 36px;
+            height: 36px;
+            background: rgba(255,255,255,0.1);
+            border: 1.5px solid rgba(255,255,255,0.15);
             color: white;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 500;
             border-radius: 50%;
             display: flex;
@@ -113,54 +120,60 @@
 
         .sidebar-role-badge {
             display: inline-block;
-            background: #1e3a5f;
+            background: rgba(37,99,235,0.3);
             color: #93c5fd;
             font-size: 10px;
-            padding: 2px 8px;
-            border-radius: 100px;
+            padding: 2px 7px;
+            border-radius: 4px;
             margin-top: 3px;
         }
 
         /* Nav */
         .sidebar-nav {
             flex: 1;
-            padding: 16px 12px;
+            padding: 4px 12px 4px 0;
             overflow-y: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
         }
+        .sidebar-nav::-webkit-scrollbar { display: none; }
 
         nav a {
             display: flex;
             align-items: center;
             gap: 10px;
-            padding: 9px 10px;
+            padding: 9px 10px 9px 16px;
             border-radius: var(--border-radius-sm);
             font-size: 14px;
-            color: var(--sidebar-text);
+            color: #64748b;
             text-decoration: none;
             cursor: pointer;
             transition: background 0.15s, color 0.15s;
             margin-bottom: 2px;
             position: relative;
+            border-left: 2px solid transparent;
         }
 
         nav a:hover {
-            background: var(--sidebar-hover-bg);
-            color: white;
+            background: rgba(255,255,255,0.05);
+            color: #94a3b8;
         }
 
         nav a.active {
-            background: var(--sidebar-active-bg);
-            color: var(--sidebar-active-text);
+            background: rgba(255,255,255,0.08);
+            border-left: 2px solid #3b82f6;
+            color: white;
+            border-radius: 0 8px 8px 0;
+            padding-left: 14px;
         }
 
         .nav-section-title {
             font-size: 10px;
             font-weight: 500;
-            color: #475569;
-            letter-spacing: 1px;
+            color: rgba(255,255,255,0.25);
+            letter-spacing: 1.5px;
             text-transform: uppercase;
-            padding: 8px 8px 4px;
-            margin-top: 8px;
+            padding: 16px 16px 4px;
             display: block;
         }
 
@@ -318,30 +331,30 @@
 
         .stat-card {
             background: var(--bg-surface);
-            border: 0.5px solid var(--border);
+            border: 0.5px solid #e2e0d8;
             border-radius: var(--border-radius-card);
-            padding: 20px 22px;
+            padding: 20px;
             position: relative;
-            overflow: hidden;
         }
 
         .stat-card-top {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
+            margin-bottom: 8px;
         }
 
         .stat-label {
             font-size: 11px;
             font-weight: 500;
-            color: var(--text-muted);
+            color: #94a3b8;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
 
         .stat-icon-box {
-            width: 32px;
-            height: 32px;
+            width: 34px;
+            height: 34px;
             border-radius: 8px;
             display: flex;
             align-items: center;
@@ -356,23 +369,15 @@
 
         .stat-value {
             font-family: var(--font-display);
-            font-size: 32px;
+            font-size: 36px;
             font-weight: 600;
-            color: var(--text-primary);
-            margin-top: 10px;
+            color: #0f172a;
+            margin-top: 12px;
             line-height: 1;
+            display: block;
         }
 
-        .stat-deco-circle {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            position: absolute;
-            bottom: -20px;
-            right: -20px;
-            opacity: 0.06;
-            pointer-events: none;
-        }
+        .stat-deco-circle { display: none; }
 
         /* ── CONTENT CARDS ─────────────────────────────────────────── */
         .content-grid {
