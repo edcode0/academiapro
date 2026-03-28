@@ -1,11 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tutor IA - AcademiaPro</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary: #1e293b;
@@ -582,8 +582,7 @@
             border: 2px solid var(--background);
         }
     </style>
-    <link rel="stylesheet" href="/glassmorphism.css">
-    <link rel="stylesheet" href="/shared-dashboard.css">
+    <link rel="stylesheet" href="/design-system.css">
     <script src="/global.js"></script>
 </head>
 
@@ -654,7 +653,7 @@
             </div>
 
             <div class="aside-bottom">
-                <button class="btn btn-new" onclick="startNewConversation()">＋ Nueva conversación</button>
+                <button class="btn btn-new" onclick="startNewConversation()">ï¼‹ Nueva conversaciÃ³n</button>
                 <div class="divider"></div>
                 <div class="user-info">
                     <div class="user-details">
@@ -669,7 +668,7 @@
                         <polyline points="16 17 21 12 16 7"></polyline>
                         <line x1="21" y1="12" x2="9" y2="12"></line>
                     </svg>
-                    Cerrar Sesión
+                    Cerrar SesiÃ³n
                 </a>
             </div>
         </aside>
@@ -678,15 +677,15 @@
             <div class="header">
                 <button class="hamburger-btn" onclick="toggleMobileNav()">&#9776;</button>
                 
-                <div class="header-title">🤖 Asistente IA</div>
-                <div id="current-chat-title" class="header-subtitle">Nueva sesión</div>
+                <div class="header-title">ðŸ¤– Asistente IA</div>
+                <div id="current-chat-title" class="header-subtitle">Nueva sesiÃ³n</div>
             </div>
 
             <div class="chat-messages" id="chatMessages"></div>
 
             <div class="chat-input-area">
                 <div class="typing-indicator" id="typingIndicator">
-                    El tutor está pensando <div style="display:flex;gap:4px;margin-left:4px;">
+                    El tutor estÃ¡ pensando <div style="display:flex;gap:4px;margin-left:4px;">
                         <div class="dot"></div>
                         <div class="dot"></div>
                         <div class="dot"></div>
@@ -696,9 +695,9 @@
                 <div class="suggestions" id="suggestionsBox"></div>
 
                 <div class="pdf-preview" id="pdfAttachmentPreview">
-                    📎 <span id="pdfAttachmentName"
+                    ðŸ“Ž <span id="pdfAttachmentName"
                         style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">documento.pdf</span>
-                    <span class="close-btn" onclick="clearPdfAttachment()">✕</span>
+                    <span class="close-btn" onclick="clearPdfAttachment()">âœ•</span>
                 </div>
 
                 <div class="input-wrapper">
@@ -707,10 +706,10 @@
 
                     <button class="action-btn" onclick="document.getElementById('pdfInput').click()"
                         title="Adjuntar PDF (Max 5MB)">
-                        📎
+                        ðŸ“Ž
                     </button>
 
-                    <textarea id="messageInput" class="chat-input" placeholder="Escribe tu mensaje aquí..."
+                    <textarea id="messageInput" class="chat-input" placeholder="Escribe tu mensaje aquÃ­..."
                         rows="1"></textarea>
 
                     <button id="sendBtn" class="action-btn send-btn" onclick="sendMessage()">
@@ -789,7 +788,7 @@
                 document.getElementById('userRoleDisplay').textContent = 'Estudiante';
             } else if (user.role === 'teacher') {
                 document.getElementById('userRoleDisplay').textContent = 'Profesor';
-                document.querySelector('.header-title').innerHTML = '🤖 Asistente IA';
+                document.querySelector('.header-title').innerHTML = 'ðŸ¤– Asistente IA';
             } else {
                 document.getElementById('userRoleDisplay').textContent = 'Admin';
             }
@@ -818,7 +817,7 @@
                 return `hace ${diffHours} h`;
             }
             if (diffDays === 1) return 'ayer';
-            return `hace ${diffDays} días`;
+            return `hace ${diffDays} dÃ­as`;
         }
 
         function formatTime(dateString) {
@@ -843,10 +842,10 @@
                          onclick="selectConversation(${c.id})" 
                          oncontextmenu="event.preventDefault(); togglePin(${c.id}, ${c.is_pinned === 1 || c.is_pinned === true})">
                         <div class="conv-content">
-                            <div class="conv-title">${c.is_pinned ? '📌 ' : ''}${c.title}</div>
+                            <div class="conv-title">${c.is_pinned ? 'ðŸ“Œ ' : ''}${c.title}</div>
                             <div class="conv-date">${formatRelativeDate(c.updated_at || c.created_at)}</div>
                         </div>
-                        <span class="delete-btn" onclick="event.stopPropagation(); deleteConversation(${c.id})">✕</span>
+                        <span class="delete-btn" onclick="event.stopPropagation(); deleteConversation(${c.id})">âœ•</span>
                     </div>
                 `).join('');
             }
@@ -855,12 +854,12 @@
         async function startNewConversation() {
             currentConversationId = null;
             messagesContext = [];
-            document.getElementById('current-chat-title').textContent = 'Nueva sesión';
+            document.getElementById('current-chat-title').textContent = 'Nueva sesiÃ³n';
             document.querySelectorAll('.conv-item').forEach(i => i.classList.remove('active'));
 
             const initialPrompt = userData?.role === 'teacher'
-                ? '¡Hola! Soy tu asistente pedagógico inteligente de AcademiaPro. Puedo ayudarte a preparar clases, crear ejercicios o sugerir metodologías didácticas. ¿En qué te ayudo hoy?'
-                : '¡Hola! Soy tu asistente educativo inteligente de AcademiaPro. Puedes hacerme preguntas sobre cualquier materia o subir un PDF usando el icono 📎 para que lo analice. ¿Qué estudiamos hoy?';
+                ? 'Â¡Hola! Soy tu asistente pedagÃ³gico inteligente de AcademiaPro. Puedo ayudarte a preparar clases, crear ejercicios o sugerir metodologÃ­as didÃ¡cticas. Â¿En quÃ© te ayudo hoy?'
+                : 'Â¡Hola! Soy tu asistente educativo inteligente de AcademiaPro. Puedes hacerme preguntas sobre cualquier materia o subir un PDF usando el icono ðŸ“Ž para que lo analice. Â¿QuÃ© estudiamos hoy?';
 
             messagesContext.push({ role: 'assistant', content: initialPrompt, timestamp: new Date().toISOString() });
 
@@ -916,7 +915,7 @@
                     const textItem = m.content.find(i => i.type === 'text');
                     const docItem = m.content.find(i => i.type === 'document');
                     if (textItem) actualText = textItem.text;
-                    if (docItem) pdfBadge = `<div class="pdf-attached-badge">📎 Documento PDF enviado</div>`;
+                    if (docItem) pdfBadge = `<div class="pdf-attached-badge">ðŸ“Ž Documento PDF enviado</div>`;
                 }
 
                 if (typeof actualText !== 'string') actualText = JSON.stringify(actualText);
@@ -925,7 +924,7 @@
                 formattedText = formattedText.replace(/\n/g, '<br>');
 
                 const sender = m.role === 'user' ? 'user' : 'ai';
-                const avatar = m.role === 'user' ? '👤' : '🤖';
+                const avatar = m.role === 'user' ? 'ðŸ‘¤' : 'ðŸ¤–';
 
                 let downloadPdfBtn = '';
                 if (m.role === 'assistant' && index > 0) {
@@ -1025,7 +1024,7 @@
         }
 
         async function deleteConversation(id) {
-            if (!confirm('¿Seguro que quieres borrar este historial?')) return;
+            if (!confirm('Â¿Seguro que quieres borrar este historial?')) return;
             const token = localStorage.getItem('token');
             const res = await fetch(`/api/ai/conversations/${id}`, {
                 method: 'DELETE',
@@ -1062,23 +1061,23 @@
                 
                 if (!extractRes.ok) {
                     hideTypingIndicator();
-                    messagesContext.push({ role: 'assistant', content: '❌ ' + (extractData.error || 'Error al leer el PDF'), timestamp: new Date().toISOString() });
+                    messagesContext.push({ role: 'assistant', content: 'âŒ ' + (extractData.error || 'Error al leer el PDF'), timestamp: new Date().toISOString() });
                     renderMessages();
                     return;
                 }
                 
-                const pdfContext = `El usuario ha compartido un PDF llamado "${file.name}" (${extractData.pages} páginas).\n\nContenido del PDF:\n${extractData.text}`;
+                const pdfContext = `El usuario ha compartido un PDF llamado "${file.name}" (${extractData.pages} pÃ¡ginas).\n\nContenido del PDF:\n${extractData.text}`;
                 const fullMessage = userMessage 
                     ? `${pdfContext}\n\nPregunta del usuario: ${userMessage}`
                     : `${pdfContext}\n\nPor favor, resume el contenido de este documento.`;
                 
-                const displayMessage = `📄 ${file.name}${userMessage ? '\n' + userMessage : ''}`;
+                const displayMessage = `ðŸ“„ ${file.name}${userMessage ? '\n' + userMessage : ''}`;
                 
                 await sendToGroq(fullMessage, displayMessage);
                 
             } catch (err) {
                 hideTypingIndicator();
-                messagesContext.push({ role: 'assistant', content: '❌ Error al procesar el PDF. Inténtalo de nuevo.', timestamp: new Date().toISOString() });
+                messagesContext.push({ role: 'assistant', content: 'âŒ Error al procesar el PDF. IntÃ©ntalo de nuevo.', timestamp: new Date().toISOString() });
                 renderMessages();
                 console.error('PDF error:', err);
             }
@@ -1118,13 +1117,13 @@
                 } else {
                     const errData = await res.json().catch(() => ({}));
                     console.error('Chat error:', res.status, errData);
-                    const errorMsg = "❌ Error al procesar el mensaje. Inténtalo de nuevo.";
+                    const errorMsg = "âŒ Error al procesar el mensaje. IntÃ©ntalo de nuevo.";
                     messagesContext.push({ role: 'assistant', content: errorMsg, timestamp: new Date().toISOString(), isError: true });
                     renderMessages();
                 }
             } catch (err) {
                 console.error(err);
-                messagesContext.push({ role: 'assistant', content: "❌ Error grave de conexión. Verifica tu internet y vuelve a intentarlo.", timestamp: new Date().toISOString(), isError: true });
+                messagesContext.push({ role: 'assistant', content: "âŒ Error grave de conexiÃ³n. Verifica tu internet y vuelve a intentarlo.", timestamp: new Date().toISOString(), isError: true });
                 renderMessages();
             } finally {
                 hideTypingIndicator();
@@ -1155,9 +1154,9 @@
             const box = document.getElementById('suggestionsBox');
             let suggestions = [];
             if (user?.role === 'teacher') {
-                suggestions = ["Ayúdame a planificar una clase", "Dame ideas para un examen", "¿Cómo motivo a mis alumnos?"];
+                suggestions = ["AyÃºdame a planificar una clase", "Dame ideas para un examen", "Â¿CÃ³mo motivo a mis alumnos?"];
             } else {
-                suggestions = ["Explícame las células", "Ayuda con sintaxis", "¿Cómo resolver ecuaciones?"];
+                suggestions = ["ExplÃ­came las cÃ©lulas", "Ayuda con sintaxis", "Â¿CÃ³mo resolver ecuaciones?"];
             }
             box.innerHTML = suggestions.map(s => `<button class="suggestion-chip" onclick="useSuggestion('${s}')">${s}</button>`).join('');
         }

@@ -1,11 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Simulacro - AcademiaPro</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
         :root {
@@ -351,8 +351,7 @@
             }
         }
     </style>
-    <link rel="stylesheet" href="/glassmorphism.css">
-    <link rel="stylesheet" href="/shared-dashboard.css">
+    <link rel="stylesheet" href="/design-system.css">
     <script src="/global.js"></script>
 </head>
 
@@ -409,22 +408,22 @@
             <span
                 style="background:#f59e0b;color:white;font-size:0.7rem;padding:2px 8px;border-radius:12px;font-weight:700;">ALUMNO</span>
             <div style="margin-top:0.5rem;font-size:0.8rem;color:#94a3b8;">
-                Código: <b id="sidebar-code" style="color:white;">---</b>
+                CÃ³digo: <b id="sidebar-code" style="color:white;">---</b>
             </div>
         </div>
         <nav id="mainNav" style="flex:1;">
-            <a href="/student-portal">🏠 Mi Panel</a>
-            <a href="/student-portal/calendar">📅 Mi Calendario</a>
-            <a href="/student-portal/exams">📝 Mis Notas</a>
-            <a href="/student-portal/payments">💳 Mis Pagos</a>
-            <a href="/exam-simulator">📋 Simulacro</a>
-            <a href="/ai-tutor">🤖 Tutor IA</a>
-            <a href="/chat">💬 Chat</a>
+            <a href="/student-portal">ðŸ  Mi Panel</a>
+            <a href="/student-portal/calendar">ðŸ“… Mi Calendario</a>
+            <a href="/student-portal/exams">ðŸ“ Mis Notas</a>
+            <a href="/student-portal/payments">ðŸ’³ Mis Pagos</a>
+            <a href="/exam-simulator">ðŸ“‹ Simulacro</a>
+            <a href="/ai-tutor">ðŸ¤– Tutor IA</a>
+            <a href="/chat">ðŸ’¬ Chat</a>
         </nav>
         <div style="margin-top: auto;">
             <a href="/auth/logout"
-                style="color: #fca5a5; text-decoration: none; padding: 0.75rem 1rem; display: block; border-radius: 0.5rem; font-weight:600;">🚪
-                Cerrar Sesión</a>
+                style="color: #fca5a5; text-decoration: none; padding: 0.75rem 1rem; display: block; border-radius: 0.5rem; font-weight:600;">ðŸšª
+                Cerrar SesiÃ³n</a>
         </div>
     </aside>
 
@@ -432,34 +431,34 @@
         <div class="header">
                 <button class="hamburger-btn" onclick="toggleMobileNav()">&#9776;</button>
                 
-            <h2>📝 Simulacro de Examen</h2>
+            <h2>ðŸ“ Simulacro de Examen</h2>
             <div id="timerDisplay" class="timer" style="display:none;">00:00</div>
         </div>
 
         <!-- Step 1: Configuration -->
         <div id="step-1" class="step active">
             <div class="card" style="max-width: 600px; margin: 0 auto;">
-                <h3 style="margin-bottom: 1.5rem;">Configuración del Simulacro</h3>
+                <h3 style="margin-bottom: 1.5rem;">ConfiguraciÃ³n del Simulacro</h3>
 
                 <div class="form-group">
                     <label>Tema a evaluar</label>
                     <input type="text" id="configTopic"
-                        placeholder="Escribe el tema (ej: Leyes de Newton, Tabla periódica, Ondas...)">
+                        placeholder="Escribe el tema (ej: Leyes de Newton, Tabla periÃ³dica, Ondas...)">
                     <div style="margin-top: 0.75rem;">
                         <span
                             style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 0.5rem;">Sugerencias
                             ESO:</span>
                         <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.75rem;">
                             <span class="chip"
-                                onclick="document.getElementById('configTopic').value=this.innerText">Cinemática</span>
+                                onclick="document.getElementById('configTopic').value=this.innerText">CinemÃ¡tica</span>
                             <span class="chip"
                                 onclick="document.getElementById('configTopic').value=this.innerText">Fuerzas</span>
                             <span class="chip"
-                                onclick="document.getElementById('configTopic').value=this.innerText">Energía</span>
+                                onclick="document.getElementById('configTopic').value=this.innerText">EnergÃ­a</span>
                             <span class="chip"
                                 onclick="document.getElementById('configTopic').value=this.innerText">Electricidad</span>
                             <span class="chip"
-                                onclick="document.getElementById('configTopic').value=this.innerText">Átomo</span>
+                                onclick="document.getElementById('configTopic').value=this.innerText">Ãtomo</span>
                             <span class="chip"
                                 onclick="document.getElementById('configTopic').value=this.innerText">Mezclas</span>
                         </div>
@@ -468,34 +467,34 @@
                             Bachillerato:</span>
                         <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
                             <span class="chip"
-                                onclick="document.getElementById('configTopic').value=this.innerText">Termodinámica</span>
+                                onclick="document.getElementById('configTopic').value=this.innerText">TermodinÃ¡mica</span>
                             <span class="chip"
                                 onclick="document.getElementById('configTopic').value=this.innerText">Campo
-                                eléctrico</span>
+                                elÃ©ctrico</span>
                             <span class="chip"
-                                onclick="document.getElementById('configTopic').value=this.innerText">Estequiometría</span>
+                                onclick="document.getElementById('configTopic').value=this.innerText">EstequiometrÃ­a</span>
                             <span class="chip"
                                 onclick="document.getElementById('configTopic').value=this.innerText">Enlace
-                                químico</span>
+                                quÃ­mico</span>
                             <span class="chip"
                                 onclick="document.getElementById('configTopic').value=this.innerText">Movimiento
-                                armónico</span>
+                                armÃ³nico</span>
                         </div>
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label>Curso / Nivel</label>
-                    <input type="text" id="configCourse" value="3º ESO" readonly
+                    <input type="text" id="configCourse" value="3Âº ESO" readonly
                         style="background: whitesmoke; color: var(--text-muted); cursor: not-allowed;">
                 </div>
 
                 <div class="form-group">
                     <label>Dificultad</label>
                     <select id="configDifficulty">
-                        <option value="fácil">Fácil (Conceptos básicos)</option>
-                        <option value="normal" selected>Normal (Nivel de examen estándar)</option>
-                        <option value="difícil">Difícil (Reto avanzado)</option>
+                        <option value="fÃ¡cil">FÃ¡cil (Conceptos bÃ¡sicos)</option>
+                        <option value="normal" selected>Normal (Nivel de examen estÃ¡ndar)</option>
+                        <option value="difÃ­cil">DifÃ­cil (Reto avanzado)</option>
                     </select>
                 </div>
 
@@ -510,7 +509,7 @@
 
                 <button class="btn btn-primary" style="width:100%; justify-content: center; margin-top: 1rem;"
                     onclick="generateExam()">
-                    ⚡ Mente brillante, ¡Generar Examen!
+                    âš¡ Mente brillante, Â¡Generar Examen!
                 </button>
             </div>
         </div>
@@ -551,7 +550,7 @@
 
     <div id="loadingOverlay">
         <div class="spinner"></div>
-        <h3 style="color:var(--text-main);">La IA está generando tu simulacro...</h3>
+        <h3 style="color:var(--text-main);">La IA estÃ¡ generando tu simulacro...</h3>
         <p style="color:var(--text-muted); margin-top: 0.5rem;">Esto puede tomar unos segundos.</p>
     </div>
 
@@ -613,7 +612,7 @@
                     showToast('Error generando simulacro. Intenta de nuevo.', 'error');
                 }
             } catch (err) {
-                showToast('No se pudo conectar a la IA. Revisa tu conexión.', 'error');
+                showToast('No se pudo conectar a la IA. Revisa tu conexiÃ³n.', 'error');
             } finally {
                 hideLoading(); //
             }
@@ -656,7 +655,7 @@
         }
 
         function cancelExam() {
-            if (confirm("¿Estás seguro que quieres abandonar este simulacro? Tus respuestas se perderán.")) {
+            if (confirm("Â¿EstÃ¡s seguro que quieres abandonar este simulacro? Tus respuestas se perderÃ¡n.")) {
                 stopTimer();
                 switchStep(1);
             }
@@ -671,9 +670,9 @@
                 const percentUnanswered = (unansweredCount / total) * 100;
                 let msg = `Tienes ${unansweredCount} preguntas sin responder.`;
                 if (percentUnanswered > 50) {
-                    msg += ` ⚠️ ¡Eso es más de la mitad del examen!`;
+                    msg += ` âš ï¸ Â¡Eso es mÃ¡s de la mitad del examen!`;
                 }
-                msg += ` ¿Seguro que quieres finalizar el simulacro?`;
+                msg += ` Â¿Seguro que quieres finalizar el simulacro?`;
 
                 if (!confirm(msg)) return;
             }
@@ -686,7 +685,7 @@
         function gradeExam() {
             let correctCount = 0;
             const corrections = document.getElementById('correctionsArea');
-            corrections.innerHTML = '<h3>Corrección Detallada</h3><hr style="margin: 1rem 0; border:none; border-top: 1px solid var(--border);">';
+            corrections.innerHTML = '<h3>CorrecciÃ³n Detallada</h3><hr style="margin: 1rem 0; border:none; border-top: 1px solid var(--border);">';
 
             currentExam.questions.forEach((q, idx) => {
                 const uAnsRaw = userAnswers[idx];
@@ -716,11 +715,11 @@
                     </div>
                     <div>
                         <span style="color: ${isCorrect ? 'var(--success)' : 'var(--danger)'}; font-weight:600;">Tu respuesta:</span> ${displayAns}
-                        <span style="margin-left: 1rem;">${isCorrect ? '✅' : '❌'}</span>
+                        <span style="margin-left: 1rem;">${isCorrect ? 'âœ…' : 'âŒ'}</span>
                     </div>
                     ${!isCorrect ? `<div style="margin-top:0.5rem; font-weight:600;">La respuesta correcta era: ${q.correct_answer}</div>` : ''}
                     <div class="explanation">
-                        <strong>💡 Explicación del tutor:</strong><br>
+                        <strong>ðŸ’¡ ExplicaciÃ³n del tutor:</strong><br>
                         ${q.explanation}
                     </div>
                 `;
@@ -775,8 +774,8 @@
                 });
 
                 if (res.ok) {
-                    showToast(`¡Resultado (${percentage}%) guardado con éxito! Tu profesor podrá revisarlo.`, 'success');
-                    btn.textContent = '✅ Guardado';
+                    showToast(`Â¡Resultado (${percentage}%) guardado con Ã©xito! Tu profesor podrÃ¡ revisarlo.`, 'success');
+                    btn.textContent = 'âœ… Guardado';
                 } else {
                     const error = await res.json();
                     showToast('Error: ' + (error.error || 'No se pudo guardar'), 'error');

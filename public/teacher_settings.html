@@ -1,11 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configuración Profesor - AcademiaPro</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>ConfiguraciÃ³n Profesor - AcademiaPro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary: #1e293b;
@@ -229,8 +229,7 @@
             line-height: 1.5;
         }
     </style>
-    <link rel="stylesheet" href="/glassmorphism.css">
-    <link rel="stylesheet" href="/shared-dashboard.css">
+    <link rel="stylesheet" href="/design-system.css">
     <script src="/global.js"></script>
 </head>
 
@@ -290,23 +289,23 @@
                 style="display:block;color:white;font-size:0.95rem;margin-bottom:0.4rem;">Cargando...</strong>
             <span class="role-tag">PROFESOR</span>
             <div style="margin-top:0.5rem;font-size:0.8rem;color:#94a3b8;">
-                Código: <b id="sidebar-code" style="color:white;">---</b>
+                CÃ³digo: <b id="sidebar-code" style="color:white;">---</b>
             </div>
         </div>
         <nav id="mainNav" style="flex:1;">
-            <a href="/teacher/dashboard">👥 Mis Alumnos</a>
-            <a href="/teacher/sessions">📅 Sesiones</a>
-            <a href="/teacher/exams">📝 Exámenes</a>
-            <a href="/teacher/transcripts">📝 Transcripciones</a>
-            <a href="/teacher/calendar">🗓️ Calendario</a>
-            <a href="/ai-tutor">🤖 Asistente IA</a>
-            <a href="/chat">💬 Chat</a>
-            <a href="/teacher/settings">⚙️ Configuración</a>
+            <a href="/teacher/dashboard">ðŸ‘¥ Mis Alumnos</a>
+            <a href="/teacher/sessions">ðŸ“… Sesiones</a>
+            <a href="/teacher/exams">ðŸ“ ExÃ¡menes</a>
+            <a href="/teacher/transcripts">ðŸ“ Transcripciones</a>
+            <a href="/teacher/calendar">ðŸ—“ï¸ Calendario</a>
+            <a href="/ai-tutor">ðŸ¤– Asistente IA</a>
+            <a href="/chat">ðŸ’¬ Chat</a>
+            <a href="/teacher/settings">âš™ï¸ ConfiguraciÃ³n</a>
         </nav>
         <div style="margin-top:auto;">
             <a href="/auth/logout"
-                style="color:#fca5a5;text-decoration:none;padding:0.75rem 1rem;display:block;border-radius:0.5rem;">🚪
-                Cerrar Sesión</a>
+                style="color:#fca5a5;text-decoration:none;padding:0.75rem 1rem;display:block;border-radius:0.5rem;">ðŸšª
+                Cerrar SesiÃ³n</a>
         </div>
     </aside>
 
@@ -314,19 +313,19 @@
         <div class="page-header">
                 <button class="hamburger-btn" onclick="toggleMobileNav()">&#9776;</button>
                 
-            <h2>⚙️ Mi Configuración</h2>
-            <p>Gestiona tu perfil y código personal de usuario.</p>
+            <h2>âš™ï¸ Mi ConfiguraciÃ³n</h2>
+            <p>Gestiona tu perfil y cÃ³digo personal de usuario.</p>
         </div>
 
         <div class="settings-card">
-            <h3>👤 Mi Perfil</h3>
+            <h3>ðŸ‘¤ Mi Perfil</h3>
             <div class="info-row">
                 <span class="info-label">Nombre</span>
-                <span class="info-value" id="profile-name">—</span>
+                <span class="info-value" id="profile-name">â€”</span>
             </div>
             <div class="info-row">
                 <span class="info-label">Email</span>
-                <span class="info-value" id="profile-email">—</span>
+                <span class="info-value" id="profile-email">â€”</span>
             </div>
             <div class="info-row">
                 <span class="info-label">Rol</span>
@@ -335,44 +334,44 @@
         </div>
 
         <div class="settings-card">
-            <h3>🪪 Mi Código Personal</h3>
-            <p class="desc">Tu código único te identifica en AcademiaPro. Compártelo con el administrador de tu academia
-                para que pueda añadirte.</p>
+            <h3>ðŸªª Mi CÃ³digo Personal</h3>
+            <p class="desc">Tu cÃ³digo Ãºnico te identifica en AcademiaPro. CompÃ¡rtelo con el administrador de tu academia
+                para que pueda aÃ±adirte.</p>
             <div class="code-box" style="margin-top:1.25rem;">
                 <span class="code-value" id="my-code">---</span>
-                <button class="btn btn-ghost" onclick="copyCode()">📋 Copiar</button>
-                <button class="btn btn-primary" onclick="generateCode()">🔄 Regenerar</button>
+                <button class="btn btn-ghost" onclick="copyCode()">ðŸ“‹ Copiar</button>
+                <button class="btn btn-primary" onclick="generateCode()">ðŸ”„ Regenerar</button>
             </div>
         </div>
 
         <div class="settings-card">
-            <h3>📊 Mis Estadísticas</h3>
+            <h3>ðŸ“Š Mis EstadÃ­sticas</h3>
             <div class="info-row">
                 <span class="info-label">Alumnos asignados</span>
-                <span class="info-value" id="stat-students">—</span>
+                <span class="info-value" id="stat-students">â€”</span>
             </div>
             <div class="info-row">
                 <span class="info-label">Sesiones este mes</span>
-                <span class="info-value" id="stat-sessions">—</span>
+                <span class="info-value" id="stat-sessions">â€”</span>
             </div>
             <div class="info-row">
                 <span class="info-label">Nota media de alumnos</span>
-                <span class="info-value" id="stat-avg">—</span>
+                <span class="info-value" id="stat-avg">â€”</span>
             </div>
         </div>
 
         <div class="settings-card" id="calendar-card">
-            <h3>📅 Google Calendar &amp; Meet</h3>
-            <p class="desc">Conecta tu Google Calendar para que las clases que programes en AcademiaPro aparezcan automáticamente con enlace de Google Meet.</p>
+            <h3>ðŸ“… Google Calendar &amp; Meet</h3>
+            <p class="desc">Conecta tu Google Calendar para que las clases que programes en AcademiaPro aparezcan automÃ¡ticamente con enlace de Google Meet.</p>
             <div id="calendar-status-badge" style="margin-top:1rem;padding:0.6rem 1rem;border-radius:0.5rem;display:inline-block;font-weight:600;font-size:0.9rem;">Cargando...</div>
             <div style="margin-top:1.5rem;">
-                <button class="btn btn-primary" id="calendar-connect-btn" onclick="connectCalendar()">📅 Conectar Google Calendar</button>
+                <button class="btn btn-primary" id="calendar-connect-btn" onclick="connectCalendar()">ðŸ“… Conectar Google Calendar</button>
             </div>
         </div>
 
         <div class="settings-card" id="gmail-card">
-            <h3>📧 Gmail &amp; Transcripciones Automáticas</h3>
-            <p class="desc">Conecta tu Gmail para que AcademiaPro detecte automáticamente las transcripciones de Google Meet y las envíe al chat del alumno.</p>
+            <h3>ðŸ“§ Gmail &amp; Transcripciones AutomÃ¡ticas</h3>
+            <p class="desc">Conecta tu Gmail para que AcademiaPro detecte automÃ¡ticamente las transcripciones de Google Meet y las envÃ­e al chat del alumno.</p>
 
             <div id="gmail-status-badge" style="margin-top:1rem;padding:0.6rem 1rem;border-radius:0.5rem;display:inline-block;font-weight:600;font-size:0.9rem;">Cargando...</div>
 
@@ -386,20 +385,20 @@
             </div>
 
             <div style="margin-top:1.5rem;display:flex;gap:0.75rem;flex-wrap:wrap;">
-                <button class="btn btn-primary" id="gmail-connect-btn" onclick="connectGmail()">🔗 Conectar Gmail</button>
-                <button class="btn btn-ghost" onclick="checkTranscriptsNow(event)">🔄 Buscar transcripciones ahora</button>
+                <button class="btn btn-primary" id="gmail-connect-btn" onclick="connectGmail()">ðŸ”— Conectar Gmail</button>
+                <button class="btn btn-ghost" onclick="checkTranscriptsNow(event)">ðŸ”„ Buscar transcripciones ahora</button>
             </div>
         </div>
 
         <div class="danger-zone"
             style="margin-top: 2rem; border: 1px solid #fee2e2; border-radius: 12px; padding: 1.5rem; background: #fff5f5;">
-            <h3 style="color: #dc2626; margin-bottom: 0.5rem;">⚠️ Zona de peligro</h3>
+            <h3 style="color: #dc2626; margin-bottom: 0.5rem;">âš ï¸ Zona de peligro</h3>
             <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 1rem;">
-                Esta acción es irreversible. Se eliminarán todos tus datos.
+                Esta acciÃ³n es irreversible. Se eliminarÃ¡n todos tus datos.
             </p>
             <button id="delete-account-btn"
                 style="background: #dc2626; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer; font-weight: 600;">
-                🗑️ Eliminar mi cuenta
+                ðŸ—‘ï¸ Eliminar mi cuenta
             </button>
         </div>
 
@@ -409,20 +408,20 @@
 
     <script>
         const ADMIN_NAV_HTML = `
-            <div class="nav-section-title">Gestión de Academia</div>
-            <a href="/">🏠 Dashboard</a>
-            <a href="/students">👥 Estudiantes</a>
-            <a href="/admin/teachers">👨‍🏫 Profesores</a>
-            <a href="/payments">💳 Pagos</a>
-            <a href="/chat">💬 Chat <span class="unread-badge-sidebar" id="global-unread"></span></a>
-            <a href="/settings">⚙️ Configuración</a>
+            <div class="nav-section-title">GestiÃ³n de Academia</div>
+            <a href="/">ðŸ  Dashboard</a>
+            <a href="/students">ðŸ‘¥ Estudiantes</a>
+            <a href="/admin/teachers">ðŸ‘¨â€ðŸ« Profesores</a>
+            <a href="/payments">ðŸ’³ Pagos</a>
+            <a href="/chat">ðŸ’¬ Chat <span class="unread-badge-sidebar" id="global-unread"></span></a>
+            <a href="/settings">âš™ï¸ ConfiguraciÃ³n</a>
             <div class="nav-section-title">Mi actividad docente</div>
-            <a href="/teacher/dashboard">👥 Mis Alumnos</a>
-            <a href="/teacher/sessions">📅 Sesiones</a>
-            <a href="/teacher/exams">📝 Exámenes</a>
-            <a href="/teacher/transcripts">📝 Transcripciones</a>
-            <a href="/teacher/calendar">🗓️ Calendario</a>
-            <a href="/ai-tutor">🤖 Asistente IA</a>
+            <a href="/teacher/dashboard">ðŸ‘¥ Mis Alumnos</a>
+            <a href="/teacher/sessions">ðŸ“… Sesiones</a>
+            <a href="/teacher/exams">ðŸ“ ExÃ¡menes</a>
+            <a href="/teacher/transcripts">ðŸ“ Transcripciones</a>
+            <a href="/teacher/calendar">ðŸ—“ï¸ Calendario</a>
+            <a href="/ai-tutor">ðŸ¤– Asistente IA</a>
         `;
 
         async function init() {
@@ -449,7 +448,7 @@
 
             // Profile info
             document.getElementById('profile-name').textContent = user.name;
-            document.getElementById('profile-email').textContent = user.email || '—';
+            document.getElementById('profile-email').textContent = user.email || 'â€”';
 
             // Load user code
             let code = user.user_code;
@@ -469,28 +468,28 @@
                 const stats = await statsRes.json();
                 document.getElementById('stat-students').textContent = stats.studentCount || '0';
                 document.getElementById('stat-sessions').textContent = stats.sessionCount || '0';
-                document.getElementById('stat-avg').textContent = stats.avgScore ? `${stats.avgScore} / 10` : '—';
+                document.getElementById('stat-avg').textContent = stats.avgScore ? `${stats.avgScore} / 10` : 'â€”';
             }
         }
 
         async function generateCode() {
-            if (!confirm('¿Regenerar tu código? El anterior quedará inválido.')) return;
+            if (!confirm('Â¿Regenerar tu cÃ³digo? El anterior quedarÃ¡ invÃ¡lido.')) return;
             const res = await fetch('/api/user/generate-code', { method: 'PUT' });
             if (res.ok) {
                 const data = await res.json();
                 document.getElementById('my-code').textContent = data.user_code;
                 document.getElementById('sidebar-code').textContent = data.user_code;
-                showToast('✅ Código regenerado correctamente');
+                showToast('âœ… CÃ³digo regenerado correctamente');
             }
         }
 
         function copyCode() {
             const code = document.getElementById('my-code').textContent;
-            navigator.clipboard.writeText(code).then(() => showToast('📋 Código copiado al portapapeles'));
+            navigator.clipboard.writeText(code).then(() => showToast('ðŸ“‹ CÃ³digo copiado al portapapeles'));
         }
 
         document.getElementById('delete-account-btn').addEventListener('click', async function () {
-            const confirmed = confirm('¿Estás seguro? Esta acción eliminará tu cuenta permanentemente y no se puede deshacer.');
+            const confirmed = confirm('Â¿EstÃ¡s seguro? Esta acciÃ³n eliminarÃ¡ tu cuenta permanentemente y no se puede deshacer.');
             if (!confirmed) return;
 
             const token = localStorage.getItem('token');
@@ -508,13 +507,13 @@
                     showToast(data.error || 'Error al eliminar la cuenta', 'error');
                 }
             } catch (err) {
-                showToast('Error de conexión', 'error');
+                showToast('Error de conexiÃ³n', 'error');
             }
         });
 
         init();
 
-        // ── Google Calendar functions ────────────────────────────────────────
+        // â”€â”€ Google Calendar functions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         async function connectCalendar() {
             const token = localStorage.getItem('token');
             const res = await fetch('/api/calendar/connect', {
@@ -534,12 +533,12 @@
                 const badge = document.getElementById('calendar-status-badge');
                 const btn = document.getElementById('calendar-connect-btn');
                 if (data.connected) {
-                    badge.textContent = '✅ Google Calendar conectado';
+                    badge.textContent = 'âœ… Google Calendar conectado';
                     badge.style.background = '#d1fae5';
                     badge.style.color = '#065f46';
-                    btn.textContent = '🔄 Reconectar Calendar';
+                    btn.textContent = 'ðŸ”„ Reconectar Calendar';
                 } else {
-                    badge.textContent = '❌ No conectado';
+                    badge.textContent = 'âŒ No conectado';
                     badge.style.background = '#fee2e2';
                     badge.style.color = '#991b1b';
                 }
@@ -548,7 +547,7 @@
             }
         }
 
-        // ── Gmail functions ──────────────────────────────────────────────────
+        // â”€â”€ Gmail functions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         async function loadGmailStatus() {
             const token = localStorage.getItem('token');
             try {
@@ -559,12 +558,12 @@
                 const badge = document.getElementById('gmail-status-badge');
                 const btn = document.getElementById('gmail-connect-btn');
                 if (data.connected) {
-                    badge.textContent = '✅ Gmail conectado';
+                    badge.textContent = 'âœ… Gmail conectado';
                     badge.style.background = '#d1fae5';
                     badge.style.color = '#065f46';
-                    btn.textContent = '🔄 Reconectar Gmail';
+                    btn.textContent = 'ðŸ”„ Reconectar Gmail';
                 } else {
-                    badge.textContent = '❌ Gmail no conectado';
+                    badge.textContent = 'âŒ Gmail no conectado';
                     badge.style.background = '#fee2e2';
                     badge.style.color = '#991b1b';
                 }
@@ -594,13 +593,13 @@
                 headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ transcript_email: email })
             });
-            if (res.ok) showToast('✅ Email alternativo guardado');
+            if (res.ok) showToast('âœ… Email alternativo guardado');
         }
 
         async function checkTranscriptsNow(e) {
             const token = localStorage.getItem('token');
             const btn = e.target;
-            btn.textContent = '⏳ Buscando...';
+            btn.textContent = 'â³ Buscando...';
             btn.disabled = true;
             try {
                 const res = await fetch('/api/gmail/check-transcripts', {
@@ -609,16 +608,16 @@
                 });
                 const data = await res.json();
                 if (!res.ok) {
-                    showToast('⚠️ ' + (data.error || 'Error al buscar'));
+                    showToast('âš ï¸ ' + (data.error || 'Error al buscar'));
                 } else if (data.processed > 0) {
-                    showToast(`✅ ${data.processed} transcripción(es) procesada(s) y enviadas al chat`);
+                    showToast(`âœ… ${data.processed} transcripciÃ³n(es) procesada(s) y enviadas al chat`);
                 } else {
-                    showToast('📭 No se encontraron transcripciones nuevas');
+                    showToast('ðŸ“­ No se encontraron transcripciones nuevas');
                 }
             } catch (err) {
-                showToast('❌ Error de conexión');
+                showToast('âŒ Error de conexiÃ³n');
             } finally {
-                btn.textContent = '🔄 Buscar transcripciones ahora';
+                btn.textContent = 'ðŸ”„ Buscar transcripciones ahora';
                 btn.disabled = false;
             }
         }
@@ -626,16 +625,16 @@
         // Handle OAuth callback redirects
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('gmail') === 'connected') {
-            showToast('✅ Gmail conectado correctamente');
+            showToast('âœ… Gmail conectado correctamente');
             history.replaceState({}, '', '/teacher/settings');
         } else if (urlParams.get('gmail') === 'error') {
-            showToast('❌ Error al conectar Gmail. Inténtalo de nuevo.');
+            showToast('âŒ Error al conectar Gmail. IntÃ©ntalo de nuevo.');
             history.replaceState({}, '', '/teacher/settings');
         } else if (urlParams.get('calendar') === 'connected') {
-            showToast('✅ Google Calendar conectado correctamente');
+            showToast('âœ… Google Calendar conectado correctamente');
             history.replaceState({}, '', '/teacher/settings');
         } else if (urlParams.get('calendar') === 'error') {
-            showToast('❌ Error al conectar Google Calendar. Inténtalo de nuevo.');
+            showToast('âŒ Error al conectar Google Calendar. IntÃ©ntalo de nuevo.');
             history.replaceState({}, '', '/teacher/settings');
         }
 

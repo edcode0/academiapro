@@ -1,11 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profesores - AcademiaPro</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary: #1e293b;
@@ -499,8 +499,7 @@
             }
         }
     </style>
-    <link rel="stylesheet" href="/glassmorphism.css">
-    <link rel="stylesheet" href="/shared-dashboard.css">
+    <link rel="stylesheet" href="/design-system.css">
     <script src="/global.js"></script>
 </head>
 
@@ -555,20 +554,20 @@
             <span class="badge-admin">Admin</span>
         </div>
         <nav id="mainNav" style="flex:1;">
-            <div class="nav-section-title">Gestión de Academia</div>
-            <a href="/">🏠 Dashboard</a>
-            <a href="/students">👥 Estudiantes</a>
-            <a href="/admin/teachers" class="active">👨‍🏫 Profesores</a>
-            <a href="/payments">💳 Pagos</a>
-            <a href="/chat">💬 Chat <span class="unread-badge-sidebar" id="global-unread"></span></a>
-            <a href="/settings">⚙️ Configuración</a>
+            <div class="nav-section-title">GestiÃ³n de Academia</div>
+            <a href="/">ðŸ  Dashboard</a>
+            <a href="/students">ðŸ‘¥ Estudiantes</a>
+            <a href="/admin/teachers" class="active">ðŸ‘¨â€ðŸ« Profesores</a>
+            <a href="/payments">ðŸ’³ Pagos</a>
+            <a href="/chat">ðŸ’¬ Chat <span class="unread-badge-sidebar" id="global-unread"></span></a>
+            <a href="/settings">âš™ï¸ ConfiguraciÃ³n</a>
             <div class="nav-section-title">Mi actividad docente</div>
-            <a href="/teacher/dashboard">👥 Mis Alumnos</a>
-            <a href="/teacher/sessions">📅 Sesiones</a>
-            <a href="/teacher/exams">📝 Exámenes</a>
-            <a href="/teacher/transcripts">📝 Transcripciones</a>
-            <a href="/teacher/calendar">🗓️ Calendario</a>
-            <a href="/ai-tutor">🤖 Asistente IA</a>
+            <a href="/teacher/dashboard">ðŸ‘¥ Mis Alumnos</a>
+            <a href="/teacher/sessions">ðŸ“… Sesiones</a>
+            <a href="/teacher/exams">ðŸ“ ExÃ¡menes</a>
+            <a href="/teacher/transcripts">ðŸ“ Transcripciones</a>
+            <a href="/teacher/calendar">ðŸ—“ï¸ Calendario</a>
+            <a href="/ai-tutor">ðŸ¤– Asistente IA</a>
         </nav>
         <div style="margin-top: auto;">
             <button class="Btn" onclick="window.location.href='/auth/logout'">
@@ -585,31 +584,31 @@
                 <button class="hamburger-btn" onclick="toggleMobileNav()">&#9776;</button>
                 
             <div>
-                <h2>👨‍🏫 Profesores</h2>
+                <h2>ðŸ‘¨â€ðŸ« Profesores</h2>
                 <p style="color: var(--text-muted); margin-top: 0.25rem;">Gestiona tu equipo docente</p>
             </div>
-            <button class="btn btn-primary" onclick="openAddModal()">+ Añadir Profesor</button>
+            <button class="btn btn-primary" onclick="openAddModal()">+ AÃ±adir Profesor</button>
         </div>
 
         <!-- Summary Stats -->
         <div class="stats-grid">
             <div class="stat-card border-blue">
-                <div class="icon">👨‍🏫</div>
+                <div class="icon">ðŸ‘¨â€ðŸ«</div>
                 <h3>Profesores Activos</h3>
                 <div class="value" id="stat-total">0</div>
             </div>
             <div class="stat-card border-green">
-                <div class="icon">⏱️</div>
+                <div class="icon">â±ï¸</div>
                 <h3>Horas Totales Este Mes</h3>
                 <div class="value" id="stat-hours">0h</div>
             </div>
             <div class="stat-card border-orange">
-                <div class="icon">💶</div>
+                <div class="icon">ðŸ’¶</div>
                 <h3>Total a Pagar Este Mes</h3>
-                <div class="value" id="stat-amount">0 €</div>
+                <div class="value" id="stat-amount">0 â‚¬</div>
             </div>
             <div class="stat-card border-purple">
-                <div class="icon">👥</div>
+                <div class="icon">ðŸ‘¥</div>
                 <h3>Media Alumnos / Profesor</h3>
                 <div class="value" id="stat-avg-students">0</div>
             </div>
@@ -626,18 +625,18 @@
     <!-- Add Teacher Modal -->
     <div id="addModal" class="modal-overlay">
         <div class="modal">
-            <h3>➕ Añadir Profesor</h3>
-            <p>Comparte el código de acceso con el profesor para que pueda crear su cuenta.</p>
+            <h3>âž• AÃ±adir Profesor</h3>
+            <p>Comparte el cÃ³digo de acceso con el profesor para que pueda crear su cuenta.</p>
             <div class="form-group">
-                <label>Código de Acceso de Profesores</label>
+                <label>CÃ³digo de Acceso de Profesores</label>
                 <input type="text" id="teacherCodeDisplay" readonly
                     style="background: #f8fafc; font-weight: 700; font-size: 1.2rem; letter-spacing: 0.1em; text-align: center; color: var(--accent);">
             </div>
-            <p style="margin-bottom: 0;">El profesor debe ir a <strong>/join</strong> e introducir este código para
+            <p style="margin-bottom: 0;">El profesor debe ir a <strong>/join</strong> e introducir este cÃ³digo para
                 crear su cuenta.</p>
             <div class="modal-actions">
                 <button class="btn btn-ghost" onclick="closeAddModal()">Cerrar</button>
-                <button class="btn btn-primary" onclick="copyCode()">📋 Copiar Código</button>
+                <button class="btn btn-primary" onclick="copyCode()">ðŸ“‹ Copiar CÃ³digo</button>
             </div>
         </div>
 
@@ -646,14 +645,14 @@
             <div class="modal">
                 <h3 style="color: var(--danger);">Eliminar Profesor</h3>
                 <p style="margin-bottom: 1.5rem; color: var(--text-muted);">
-                    ¿Seguro que quieres eliminar a <strong id="deleteTeacherName">este profesor</strong> de la
+                    Â¿Seguro que quieres eliminar a <strong id="deleteTeacherName">este profesor</strong> de la
                     academia?<br><br>
                     <span id="deleteTeacherWarning" style="color: var(--danger); font-weight: 600;"></span>
                 </p>
                 <div class="modal-actions">
                     <button class="btn btn-ghost" onclick="closeModal('deleteTeacherModal')">Cancelar</button>
                     <button class="btn btn-primary" style="background: var(--danger);" onclick="executeDeleteTeacher()"
-                        id="btnConfirmDeleteTeacher">Sí, eliminar</button>
+                        id="btnConfirmDeleteTeacher">SÃ­, eliminar</button>
                 </div>
             </div>
         </div>
@@ -687,8 +686,8 @@
                 } catch (e) {
                     document.getElementById('teachersGrid').innerHTML = `
                     <div class="empty-state">
-                        <h3>No hay profesores aún</h3>
-                        <p style="margin-top:0.5rem;">Añade profesores usando el botón "Añadir Profesor"</p>
+                        <h3>No hay profesores aÃºn</h3>
+                        <p style="margin-top:0.5rem;">AÃ±ade profesores usando el botÃ³n "AÃ±adir Profesor"</p>
                     </div>`;
                 }
             }
@@ -701,14 +700,14 @@
                 const avgStudents = allTeachers.length > 0 ? (totalStudents / allTeachers.length).toFixed(1) : 0;
 
                 document.getElementById('stat-hours').textContent = totalHours.toFixed(1) + 'h';
-                document.getElementById('stat-amount').textContent = totalAmount.toFixed(2) + ' €';
+                document.getElementById('stat-amount').textContent = totalAmount.toFixed(2) + ' â‚¬';
                 document.getElementById('stat-avg-students').textContent = avgStudents;
             }
 
             function renderGrid() {
                 const grid = document.getElementById('teachersGrid');
                 if (allTeachers.length === 0) {
-                    grid.innerHTML = `<div class="empty-state"><h3>No hay profesores aún</h3><p style="margin-top:0.5rem;">Usa "Añadir Profesor" para compartir el código de acceso.</p></div>`;
+                    grid.innerHTML = `<div class="empty-state"><h3>No hay profesores aÃºn</h3><p style="margin-top:0.5rem;">Usa "AÃ±adir Profesor" para compartir el cÃ³digo de acceso.</p></div>`;
                     return;
                 }
 
@@ -724,7 +723,7 @@
                         <div style="flex:1; min-width:0;">
                             <div class="teacher-name">${t.name}</div>
                             <span class="badge-teacher">Profesor</span>
-                            <div class="teacher-code">Código: ${t.user_code || 'N/A'}</div>
+                            <div class="teacher-code">CÃ³digo: ${t.user_code || 'N/A'}</div>
                         </div>
                         <div class="status-dot ${hasStudents ? 'status-active' : 'status-inactive'}" title="${hasStudents ? 'Con alumnos' : 'Sin alumnos'}"></div>
                     </div>
@@ -739,27 +738,27 @@
                             <div class="ts-label">Horas mes</div>
                         </div>
                         <div class="teacher-stat">
-                            <div class="ts-value" style="color:#10b981;">${t.amount_this_month}€</div>
+                            <div class="ts-value" style="color:#10b981;">${t.amount_this_month}â‚¬</div>
                             <div class="ts-label">A pagar</div>
                         </div>
                     </div>
 
                     <div style="background:#f0f9ff; border:1px solid #bae6fd; border-radius:0.5rem; padding:0.75rem; margin-bottom:1.25rem;">
                         <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem;">
-                            <label style="font-size:0.78rem; font-weight:600; color:#0369a1; width:130px; flex-shrink:0;">💰 Individual (€/h)</label>
+                            <label style="font-size:0.78rem; font-weight:600; color:#0369a1; width:130px; flex-shrink:0;">ðŸ’° Individual (â‚¬/h)</label>
                             <input class="rate-input" type="number" id="rate-${t.id}" value="${t.hourly_rate || 0}" min="0" step="0.5" style="flex:1;">
                         </div>
                         <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem;">
-                            <label style="font-size:0.78rem; font-weight:600; color:#7c3aed; width:130px; flex-shrink:0;">👥 Grupal (€/h)</label>
+                            <label style="font-size:0.78rem; font-weight:600; color:#7c3aed; width:130px; flex-shrink:0;">ðŸ‘¥ Grupal (â‚¬/h)</label>
                             <input class="rate-input" type="number" id="group-rate-${t.id}" value="${t.group_hourly_rate || 0}" min="0" step="0.5" style="flex:1; border-color:#c4b5fd;">
                         </div>
-                        <button class="rate-save-btn" style="width:100%; margin-top:0.25rem;" onclick="saveRate(${t.id})">💾 Guardar tarifas</button>
+                        <button class="rate-save-btn" style="width:100%; margin-top:0.25rem;" onclick="saveRate(${t.id})">ðŸ’¾ Guardar tarifas</button>
                     </div>
 
                     <div class="teacher-actions">
-                        <a href="/admin/teacher/${t.id}" class="btn-profile">👁 Ver</a>
-                        <a href="/teacher/calendar" class="btn-calendar">🗓 Cal</a>
-                        <button class="btn-calendar" style="color:var(--danger);" onclick="confirmDeleteTeacher(${t.id}, '${t.name.replace(/'/g, "\\'")}', ${t.student_count})">🗑️</button>
+                        <a href="/admin/teacher/${t.id}" class="btn-profile">ðŸ‘ Ver</a>
+                        <a href="/teacher/calendar" class="btn-calendar">ðŸ—“ Cal</a>
+                        <button class="btn-calendar" style="color:var(--danger);" onclick="confirmDeleteTeacher(${t.id}, '${t.name.replace(/'/g, "\\'")}', ${t.student_count})">ðŸ—‘ï¸</button>
                     </div>
                 </div>`;
                 }).join('');
@@ -774,7 +773,7 @@
                     body: JSON.stringify({ hourly_rate: parseFloat(rate), group_hourly_rate: parseFloat(groupRate) })
                 });
                 if (res.ok) {
-                    showToast('Tarifas actualizadas ✓');
+                    showToast('Tarifas actualizadas âœ“');
                     loadTeachers();
                 }
             }
@@ -784,9 +783,9 @@
                 try {
                     const res = await fetch('/api/academy/codes');
                     const data = await res.json();
-                    document.getElementById('teacherCodeDisplay').value = data.teacher_code || 'Sin código configurado';
+                    document.getElementById('teacherCodeDisplay').value = data.teacher_code || 'Sin cÃ³digo configurado';
                 } catch {
-                    document.getElementById('teacherCodeDisplay').value = 'Ver en Configuración';
+                    document.getElementById('teacherCodeDisplay').value = 'Ver en ConfiguraciÃ³n';
                 }
                 document.getElementById('addModal').style.display = 'flex';
             }
@@ -803,7 +802,7 @@
                 document.getElementById('deleteTeacherName').textContent = name;
                 const warningEl = document.getElementById('deleteTeacherWarning');
                 if (studentCount > 0) {
-                    warningEl.textContent = `Este profesor tiene ${studentCount} alumnos asignados. Quedarán sin profesor asignado.`;
+                    warningEl.textContent = `Este profesor tiene ${studentCount} alumnos asignados. QuedarÃ¡n sin profesor asignado.`;
                 } else {
                     warningEl.textContent = '';
                 }
@@ -828,14 +827,14 @@
                     console.error(err);
                 } finally {
                     btn.disabled = false;
-                    btn.textContent = 'Sí, eliminar';
+                    btn.textContent = 'SÃ­, eliminar';
                     teacherToDelete = null;
                 }
             }
 
             function copyCode() {
                 const code = document.getElementById('teacherCodeDisplay').value;
-                navigator.clipboard.writeText(code).then(() => showToast('¡Código copiado!'));
+                navigator.clipboard.writeText(code).then(() => showToast('Â¡CÃ³digo copiado!'));
             }
 
             init();

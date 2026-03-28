@@ -1,11 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat - AcademiaPro</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary: #1e293b;
@@ -358,8 +358,7 @@
             }
         }
     </style>
-    <link rel="stylesheet" href="/glassmorphism.css">
-    <link rel="stylesheet" href="/shared-dashboard.css">
+    <link rel="stylesheet" href="/design-system.css">
 </head>
 
 <body>
@@ -445,7 +444,7 @@
         <div id="active-chat">
             <div id="empty-state"
                 style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #94a3b8;">
-                <p>Selecciona una conversación para empezar</p>
+                <p>Selecciona una conversaciÃ³n para empezar</p>
             </div>
             <div id="chat-box" style="display: none; height: 100%; flex-direction: column;">
                 <header id="chat-header">
@@ -470,11 +469,11 @@
                 <div id="input-area">
                     <div class="input-container">
                         <button class="btn-attach" id="attach-btn"
-                            style="background:none; border:none; cursor:pointer; font-size:1.25rem;">📎</button>
+                            style="background:none; border:none; cursor:pointer; font-size:1.25rem;">ðŸ“Ž</button>
                         <input type="file" id="file-picker" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                             style="display: none;">
                         <textarea id="msg-input" placeholder="Escribe un mensaje..." rows="1"></textarea>
-                        <div class="send-btn" id="send-btn">➤</div>
+                        <div class="send-btn" id="send-btn">âž¤</div>
                     </div>
                 </div>
             </div>
@@ -589,41 +588,41 @@
             let links = '';
             if (currentUser.role === 'admin') {
                 links = `
-                    <div class="nav-section-title">Gestión de Academia</div>
-                    <a href="/">🏠 Dashboard</a>
-                    <a href="/students">👥 Estudiantes</a>
-                    <a href="/admin/teachers">👨‍🏫 Profesores</a>
-                    <a href="/payments">💳 Pagos</a>
-                    <a href="/chat" class="active">💬 Chat <span id="total-unread" class="unread-dot-total"></span></a>
-                    <a href="/settings">⚙️ Configuración</a>
+                    <div class="nav-section-title">GestiÃ³n de Academia</div>
+                    <a href="/">ðŸ  Dashboard</a>
+                    <a href="/students">ðŸ‘¥ Estudiantes</a>
+                    <a href="/admin/teachers">ðŸ‘¨â€ðŸ« Profesores</a>
+                    <a href="/payments">ðŸ’³ Pagos</a>
+                    <a href="/chat" class="active">ðŸ’¬ Chat <span id="total-unread" class="unread-dot-total"></span></a>
+                    <a href="/settings">âš™ï¸ ConfiguraciÃ³n</a>
                     <div class="nav-section-title">Mi actividad docente</div>
-                    <a href="/teacher/dashboard">👥 Mis Alumnos</a>
-                    <a href="/teacher/sessions">📅 Sesiones</a>
-                    <a href="/teacher/exams">📝 Exámenes</a>
-                    <a href="/teacher/transcripts">📝 Transcripciones</a>
-                    <a href="/teacher/calendar">🗓️ Calendario</a>
-                    <a href="/ai-tutor">🤖 Asistente IA</a>
+                    <a href="/teacher/dashboard">ðŸ‘¥ Mis Alumnos</a>
+                    <a href="/teacher/sessions">ðŸ“… Sesiones</a>
+                    <a href="/teacher/exams">ðŸ“ ExÃ¡menes</a>
+                    <a href="/teacher/transcripts">ðŸ“ Transcripciones</a>
+                    <a href="/teacher/calendar">ðŸ—“ï¸ Calendario</a>
+                    <a href="/ai-tutor">ðŸ¤– Asistente IA</a>
                 `;
             } else if (currentUser.role === 'teacher') {
                 links = `
-                    <a href="/teacher/dashboard">👥 Mis Alumnos</a>
-                    <a href="/teacher/sessions">📅 Sesiones</a>
-                    <a href="/teacher/exams">📝 Exámenes</a>
-                    <a href="/teacher/transcripts">📝 Transcripciones</a>
-                    <a href="/teacher/calendar">🗓️ Calendario</a>
-                    <a href="/ai-tutor">🤖 Asistente IA</a>
-                    <a href="/chat" class="active">💬 Chat <span id="total-unread" class="unread-dot-total"></span></a>
-                    <a href="/teacher/settings">⚙️ Configuración</a>
+                    <a href="/teacher/dashboard">ðŸ‘¥ Mis Alumnos</a>
+                    <a href="/teacher/sessions">ðŸ“… Sesiones</a>
+                    <a href="/teacher/exams">ðŸ“ ExÃ¡menes</a>
+                    <a href="/teacher/transcripts">ðŸ“ Transcripciones</a>
+                    <a href="/teacher/calendar">ðŸ—“ï¸ Calendario</a>
+                    <a href="/ai-tutor">ðŸ¤– Asistente IA</a>
+                    <a href="/chat" class="active">ðŸ’¬ Chat <span id="total-unread" class="unread-dot-total"></span></a>
+                    <a href="/teacher/settings">âš™ï¸ ConfiguraciÃ³n</a>
                 `;
             } else {
                 links = `
-                    <a href="/student-portal">🏠 Mi Panel</a>
-                    <a href="/student-portal/calendar">📅 Mi Calendario</a>
-                    <a href="/student-portal/exams">📝 Mis Notas</a>
-                    <a href="/student-portal/payments">💳 Mis Pagos</a>
-                    <a href="/exam-simulator">📋 Simulacro</a>
-                    <a href="/ai-tutor">🤖 Tutor IA</a>
-                    <a href="/chat" class="active">💬 Chat <span id="total-unread" class="unread-dot-total"></span></a>
+                    <a href="/student-portal">ðŸ  Mi Panel</a>
+                    <a href="/student-portal/calendar">ðŸ“… Mi Calendario</a>
+                    <a href="/student-portal/exams">ðŸ“ Mis Notas</a>
+                    <a href="/student-portal/payments">ðŸ’³ Mis Pagos</a>
+                    <a href="/exam-simulator">ðŸ“‹ Simulacro</a>
+                    <a href="/ai-tutor">ðŸ¤– Tutor IA</a>
+                    <a href="/chat" class="active">ðŸ’¬ Chat <span id="total-unread" class="unread-dot-total"></span></a>
                 `;
             }
             nav.innerHTML = links;
@@ -716,9 +715,9 @@
                 if (msg.file_type && msg.file_type.startsWith('image/')) {
                     fileHTML = `<img src="${msg.file_url}" style="max-width:200px;border-radius:8px;margin-top:4px;display:block;">`;
                 } else if (msg.file_type === 'application/pdf') {
-                    fileHTML = `<a href="${msg.file_url}" target="_blank" style="display:flex;align-items:center;gap:6px;background:rgba(99,102,241,0.1);padding:8px 12px;border-radius:8px;margin-top:4px;text-decoration:none;color:#6366f1;">📄 ${msg.file_name} <span style="font-size:0.8em">Abrir PDF</span></a>`;
+                    fileHTML = `<a href="${msg.file_url}" target="_blank" style="display:flex;align-items:center;gap:6px;background:rgba(99,102,241,0.1);padding:8px 12px;border-radius:8px;margin-top:4px;text-decoration:none;color:#6366f1;">ðŸ“„ ${msg.file_name} <span style="font-size:0.8em">Abrir PDF</span></a>`;
                 } else {
-                    fileHTML = `<a href="${msg.file_url}" target="_blank" style="display:flex;align-items:center;gap:6px;background:rgba(99,102,241,0.1);padding:8px 12px;border-radius:8px;margin-top:4px;text-decoration:none;color:#6366f1;">📎 ${msg.file_name}</a>`;
+                    fileHTML = `<a href="${msg.file_url}" target="_blank" style="display:flex;align-items:center;gap:6px;background:rgba(99,102,241,0.1);padding:8px 12px;border-radius:8px;margin-top:4px;text-decoration:none;color:#6366f1;">ðŸ“Ž ${msg.file_name}</a>`;
                 }
             }
 
@@ -770,7 +769,7 @@
             const tempId = 'temp-' + Date.now() + '-' + Math.random().toString(36).slice(2);
             pendingTempIds.add(tempId);
 
-            // Optimistic UI update — append element with data-temp-id so we can match it later
+            // Optimistic UI update â€” append element with data-temp-id so we can match it later
             const tempMessage = {
                 id: 'temp_' + Date.now(),
                 room_id: currentRoomId,

@@ -1,11 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Perfil de Estudiante - AcademiaPro</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
     <style>
         :root {
@@ -294,8 +294,7 @@
             background: var(--success);
         }
     </style>
-    <link rel="stylesheet" href="/glassmorphism.css">
-    <link rel="stylesheet" href="/shared-dashboard.css">
+    <link rel="stylesheet" href="/design-system.css">
     <script src="/global.js"></script>
 </head>
 
@@ -350,28 +349,28 @@
                 style="display:block;color:white;font-size:0.95rem;margin-bottom:0.4rem;">Cargando...</strong>
             <span class="role-tag">PROFESOR</span>
             <div style="margin-top:0.5rem;font-size:0.8rem;color:#94a3b8;">
-                Código: <b id="sidebar-code" style="color:white;">---</b>
+                CÃ³digo: <b id="sidebar-code" style="color:white;">---</b>
             </div>
         </div>
         <nav id="mainNav">
-            <a href="/teacher/dashboard">👥 Mis Alumnos</a>
-            <a href="/teacher/sessions">📅 Sesiones</a>
-            <a href="/teacher/exams">📝 Exámenes</a>
-            <a href="/teacher/transcripts">📝 Transcripciones</a>
-            <a href="/teacher/calendar">🗓️ Calendario</a>
-            <a href="/ai-tutor">🤖 Asistente IA</a>
-            <a href="/chat">💬 Chat</a>
-            <a href="/teacher/settings">⚙️ Configuración</a>
+            <a href="/teacher/dashboard">ðŸ‘¥ Mis Alumnos</a>
+            <a href="/teacher/sessions">ðŸ“… Sesiones</a>
+            <a href="/teacher/exams">ðŸ“ ExÃ¡menes</a>
+            <a href="/teacher/transcripts">ðŸ“ Transcripciones</a>
+            <a href="/teacher/calendar">ðŸ—“ï¸ Calendario</a>
+            <a href="/ai-tutor">ðŸ¤– Asistente IA</a>
+            <a href="/chat">ðŸ’¬ Chat</a>
+            <a href="/teacher/settings">âš™ï¸ ConfiguraciÃ³n</a>
         </nav>
         <div style="margin-top:auto;">
             <a href="/auth/logout"
-                style="color:#fca5a5;text-decoration:none;padding:0.75rem 1rem;display:block;border-radius:0.5rem;">🚪
-                Cerrar Sesión</a>
+                style="color:#fca5a5;text-decoration:none;padding:0.75rem 1rem;display:block;border-radius:0.5rem;">ðŸšª
+                Cerrar SesiÃ³n</a>
         </div>
     </aside>
 
     <main>
-        <a href="/teacher/dashboard" class="back-link">← Volver al Listado</a>
+        <a href="/teacher/dashboard" class="back-link">â† Volver al Listado</a>
 
         <div class="header-profile">
                 <button class="hamburger-btn" onclick="toggleMobileNav()">&#9776;</button>
@@ -382,20 +381,20 @@
             </div>
             <div style="display: flex; gap: 1rem;">
                 <button class="btn btn-ghost" onclick="window.location.href='/chat'"
-                    style="border: 1px solid var(--border);">💬 Mensaje</button>
+                    style="border: 1px solid var(--border);">ðŸ’¬ Mensaje</button>
                 <button class="btn btn-ghost" onclick="openModal('reportModal')"
-                    style="border: 1px solid var(--border);">📊 Informe IA</button>
-                <button class="btn btn-primary" onclick="openModal('sessionModal')">+ Sesión</button>
+                    style="border: 1px solid var(--border);">ðŸ“Š Informe IA</button>
+                <button class="btn btn-primary" onclick="openModal('sessionModal')">+ SesiÃ³n</button>
                 <button class="btn btn-primary" style="background:#1e293b" onclick="openModal('examModal')">+
                     Examen</button>
             </div>
         </div>
 
         <div class="tabs">
-            <div class="tab active" onclick="switchTab('sessions-content')">📚 Sesiones</div>
-            <div class="tab" onclick="switchTab('exams-content')">📝 Exámenes</div>
-            <div class="tab" onclick="switchTab('simulacros-content')">📋 Simulacros</div>
-            <div class="tab" onclick="switchTab('payments')">💳 Pagos</div>
+            <div class="tab active" onclick="switchTab('sessions-content')">ðŸ“š Sesiones</div>
+            <div class="tab" onclick="switchTab('exams-content')">ðŸ“ ExÃ¡menes</div>
+            <div class="tab" onclick="switchTab('simulacros-content')">ðŸ“‹ Simulacros</div>
+            <div class="tab" onclick="switchTab('payments')">ðŸ’³ Pagos</div>
         </div>
 
         <div id="sessions-content" class="tab-content active">
@@ -474,7 +473,7 @@
                 <h4 style="margin-bottom: 1.5rem; font-size: 1.125rem;">Informes Generados</h4>
                 <div id="reports-list"
                     style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem;">
-                    <p style="color: var(--text-muted); font-size: 0.875rem;">No hay informes disponibles todavía.</p>
+                    <p style="color: var(--text-muted); font-size: 0.875rem;">No hay informes disponibles todavÃ­a.</p>
                 </div>
             </div>
         </div>
@@ -482,7 +481,7 @@
         <div id="chatTab" class="tab-content">
             <div class="card"
                 style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4rem;">
-                <span style="font-size: 4rem; margin-bottom: 1rem;">💬</span>
+                <span style="font-size: 4rem; margin-bottom: 1rem;">ðŸ’¬</span>
                 <h3 style="margin-bottom: 1rem; color: var(--primary);">Bandeja de Mensajes</h3>
                 <p style="color: var(--text-muted); margin-bottom: 2rem; max-width: 400px; text-align: center;">Accede a
                     tus conversaciones con el alumno o sus familiares en el panel de chat centralizado.</p>
@@ -497,7 +496,7 @@
             <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
                 <h3 style="font-size: 1.5rem; color: var(--primary);">Evaluar Simulacro</h3>
                 <button onclick="closeModal('simModal')"
-                    style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:var(--text-muted);">✕</button>
+                    style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:var(--text-muted);">âœ•</button>
             </div>
 
             <div id="sim-details-content"
@@ -522,7 +521,7 @@
 
             <div style="display:flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem;">
                 <button class="btn btn-ghost" onclick="closeModal('simModal')">Cerrar</button>
-                <button class="btn btn-primary" onclick="saveSimGrade()">Guardar Evaluación</button>
+                <button class="btn btn-primary" onclick="saveSimGrade()">Guardar EvaluaciÃ³n</button>
             </div>
         </div>
     </div>
@@ -530,13 +529,13 @@
     <!-- Modals -->
     <div id="sessionModal" class="modal-overlay">
         <div class="modal">
-            <h3>Nueva Sesión</h3>
+            <h3>Nueva SesiÃ³n</h3>
             <form id="sessionForm">
                 <div class="form-group"><label>Fecha</label><input type="date" id="s_date" required></div>
-                <div class="form-group"><label>Duración (min)</label><input type="number" id="s_duration" value="60"
+                <div class="form-group"><label>DuraciÃ³n (min)</label><input type="number" id="s_duration" value="60"
                         required></div>
                 <div class="form-group"><label>Tareas</label><select id="s_homework">
-                        <option value="1">Sí</option>
+                        <option value="1">SÃ­</option>
                         <option value="0">No</option>
                     </select></div>
                 <div class="form-group"><label>Notas</label><textarea id="s_notes"></textarea></div>
@@ -565,11 +564,11 @@
     <!-- Report Modal -->
     <div id="reportModal" class="modal-overlay">
         <div class="modal">
-            <h3>📄 Generar Informe Mensual (IA)</h3>
+            <h3>ðŸ“„ Generar Informe Mensual (IA)</h3>
             <form id="reportForm">
                 <div class="form-group" style="display:flex;gap:1rem;">
                     <div style="flex:1"><label>Mes</label><select id="r_month"></select></div>
-                    <div style="flex:1"><label>Año</label><input type="number" id="r_year" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:8px;font-size:14px;"></div>
+                    <div style="flex:1"><label>AÃ±o</label><input type="number" id="r_year" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:8px;font-size:14px;"></div>
                 </div>
                 <div class="form-group"><label>Observaciones del profesor</label><textarea id="r_observations" placeholder="Escribe 3-4 frases sobre el progreso del alumno..."></textarea></div>
                 <div class="form-group" style="display:flex;align-items:center;gap:0.5rem;">
@@ -591,20 +590,20 @@
         let examChart = null;
 
         const ADMIN_NAV_HTML = `
-            <div class="nav-section-title">Gestión de Academia</div>
-            <a href="/">🏠 Dashboard</a>
-            <a href="/students">👥 Estudiantes</a>
-            <a href="/admin/teachers">👨‍🏫 Profesores</a>
-            <a href="/payments">💳 Pagos</a>
-            <a href="/chat">💬 Chat <span class="unread-badge-sidebar" id="global-unread"></span></a>
-            <a href="/settings">⚙️ Configuración</a>
+            <div class="nav-section-title">GestiÃ³n de Academia</div>
+            <a href="/">ðŸ  Dashboard</a>
+            <a href="/students">ðŸ‘¥ Estudiantes</a>
+            <a href="/admin/teachers">ðŸ‘¨â€ðŸ« Profesores</a>
+            <a href="/payments">ðŸ’³ Pagos</a>
+            <a href="/chat">ðŸ’¬ Chat <span class="unread-badge-sidebar" id="global-unread"></span></a>
+            <a href="/settings">âš™ï¸ ConfiguraciÃ³n</a>
             <div class="nav-section-title">Mi actividad docente</div>
-            <a href="/teacher/dashboard">👥 Mis Alumnos</a>
-            <a href="/teacher/sessions">📅 Sesiones</a>
-            <a href="/teacher/exams">📝 Exámenes</a>
-            <a href="/teacher/transcripts">📝 Transcripciones</a>
-            <a href="/teacher/calendar">🗓️ Calendario</a>
-            <a href="/ai-tutor">🤖 Asistente IA</a>
+            <a href="/teacher/dashboard">ðŸ‘¥ Mis Alumnos</a>
+            <a href="/teacher/sessions">ðŸ“… Sesiones</a>
+            <a href="/teacher/exams">ðŸ“ ExÃ¡menes</a>
+            <a href="/teacher/transcripts">ðŸ“ Transcripciones</a>
+            <a href="/teacher/calendar">ðŸ—“ï¸ Calendario</a>
+            <a href="/ai-tutor">ðŸ¤– Asistente IA</a>
         `;
 
         async function init() {
@@ -634,7 +633,7 @@
             const data = await res.json();
 
             document.getElementById('student-name').textContent = data.student.name;
-            document.getElementById('student-course-subject').textContent = `${data.student.course} • ${data.student.subject}`;
+            document.getElementById('student-course-subject').textContent = `${data.student.course} â€¢ ${data.student.subject}`;
 
             loadSessions(data.sessions);
             loadExams(data.exams);
@@ -647,7 +646,7 @@
                     <td>${new Date(s.date).toLocaleDateString('es-ES')}</td>
                     <td>${s.subject || '-'}</td>
                     <td>${s.topic || 'No especificado'}</td>
-                    <td>${s.homework_done ? '✅ Hecha' : '❌ No hecha'}</td>
+                    <td>${s.homework_done ? 'âœ… Hecha' : 'âŒ No hecha'}</td>
                     <td>${s.teacher_notes || '-'}</td>
                 </tr>
             `).join('');
@@ -696,7 +695,7 @@
                 container.innerHTML = sim.questions.map((q, i) => `
                     <div style="margin-bottom:1.5rem; border-bottom:1px solid var(--border); padding-bottom:1rem;">
                         <p style="font-weight:600; margin-bottom:0.5rem;">${i + 1}. ${q.question}</p>
-                        <p style="font-size:0.9rem; color:var(--text-muted); margin-bottom:0.5rem;"><strong>Respuesta del alumno:</strong> ${sim.answers[i] || '(No respondió)'}</p>
+                        <p style="font-size:0.9rem; color:var(--text-muted); margin-bottom:0.5rem;"><strong>Respuesta del alumno:</strong> ${sim.answers[i] || '(No respondiÃ³)'}</p>
                         <p style="font-size:0.9rem; color:var(--success);"><strong>Respuesta correcta:</strong> ${q.correct_answer}</p>
                     </div>
                 `).join('');
@@ -813,7 +812,7 @@
                     a.click();
                     a.remove();
                     closeModal('reportModal');
-                    if (typeof showToast === 'function') showToast(`✅ ${result.message}`);
+                    if (typeof showToast === 'function') showToast(`âœ… ${result.message}`);
                     else showToast(result.message, 'info');
                 }
             } catch (err) {

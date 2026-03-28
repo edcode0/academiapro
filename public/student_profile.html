@@ -1,11 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Perfil de Estudiante - AcademiaPro</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
     <style>
         :root {
@@ -397,8 +397,7 @@
             background: var(--danger);
         }
     </style>
-    <link rel="stylesheet" href="/glassmorphism.css">
-    <link rel="stylesheet" href="/shared-dashboard.css">
+    <link rel="stylesheet" href="/design-system.css">
     <script src="/global.js"></script>
 </head>
 
@@ -451,28 +450,28 @@
         <nav id="mainNav" style="flex:1;">
             <a href="/">Dashboard</a>
             <a href="/students">Estudiantes</a>
-            <a href="/admin/teachers">👨‍🏫 Profesores</a>
+            <a href="/admin/teachers">ðŸ‘¨â€ðŸ« Profesores</a>
             <a href="/sessions">Sesiones</a>
             <a href="/calendar">Calendario</a>
-            <a href="/exams">Exámenes</a>
+            <a href="/exams">ExÃ¡menes</a>
             <a href="/payments">Pagos</a>
             <a href="/chat">Chat</a>
-            <a href="/settings">Configuración</a>
+            <a href="/settings">ConfiguraciÃ³n</a>
         </nav>
         <div style="margin-top: auto;">
             <a href="/auth/logout"
                 style="color: #fca5a5; text-decoration: none; padding: 0.75rem 1rem; display: block; border-radius: 0.5rem; transition: background 0.2s;">Cerrar
-                Sesión</a>
+                SesiÃ³n</a>
         </div>
     </aside>
 
     <main>
-        <a href="/" class="back-link">← Volver al Listado</a>
+        <a href="/" class="back-link">â† Volver al Listado</a>
 
         <div id="risk-alert" class="risk-alert">
-            <span style="font-size: 1.5rem">⚠️</span>
+            <span style="font-size: 1.5rem">âš ï¸</span>
             <div>
-                <strong>Atención: Estudiante en Riesgo</strong>
+                <strong>AtenciÃ³n: Estudiante en Riesgo</strong>
                 <p style="font-size: 0.875rem; opacity: 0.8">Se ha detectado una bajada en el rendimiento o falta de
                     tareas.</p>
             </div>
@@ -498,14 +497,14 @@
             <div class="profile-actions">
                 <button class="btn btn-ghost"
                     style="color: var(--danger); border: 1px solid var(--danger); margin-right: auto;"
-                    onclick="openDeleteModal()">🗑️ Eliminar alumno</button>
+                    onclick="openDeleteModal()">ðŸ—‘ï¸ Eliminar alumno</button>
                 <button class="btn btn-ghost" style="border: 1px solid var(--border); margin-right: 0.5rem;"
-                    onclick="openModal('editStudentModal')">✏️ Editar</button>
+                    onclick="openModal('editStudentModal')">âœï¸ Editar</button>
                 <button class="btn btn-ghost" style="border: 1px solid var(--border); margin-right: 1rem;"
-                    onclick="openModal('reportModal')">📊 Generar Informe</button>
-                <button class="btn btn-primary" onclick="openModal('sessionModal')">+ Añadir Sesión</button>
+                    onclick="openModal('reportModal')">ðŸ“Š Generar Informe</button>
+                <button class="btn btn-primary" onclick="openModal('sessionModal')">+ AÃ±adir SesiÃ³n</button>
                 <button class="btn btn-primary" style="background-color: var(--primary)"
-                    onclick="openModal('examModal')">+ Añadir Examen</button>
+                    onclick="openModal('examModal')">+ AÃ±adir Examen</button>
             </div>
         </div>
 
@@ -520,7 +519,7 @@
                             <select id="r_month"></select>
                         </div>
                         <div style="flex: 1">
-                            <label>Año</label>
+                            <label>AÃ±o</label>
                             <input type="number" id="r_year" value="2024">
                         </div>
                     </div>
@@ -534,7 +533,7 @@
                         <label style="margin-bottom: 0;">Enviar por email a la familia</label>
                     </div>
                     <div id="report-email-warning" style="display:none;background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:10px 14px;font-size:13px;color:#92400e;margin-bottom:8px;">
-                        ⚠️ Este alumno no tiene email de familia registrado. <a href="#" onclick="openModal('editStudentModal');closeModal('reportModal');return false;" style="color:#6366f1;font-weight:600;">Añádelo en su perfil →</a>
+                        âš ï¸ Este alumno no tiene email de familia registrado. <a href="#" onclick="openModal('editStudentModal');closeModal('reportModal');return false;" style="color:#6366f1;font-weight:600;">AÃ±Ã¡delo en su perfil â†’</a>
                     </div>
                     <div class="modal-actions">
                         <button type="button" class="btn btn-ghost"
@@ -548,31 +547,31 @@
         <!-- Session Modal -->
         <div id="sessionModal" class="modal-overlay">
             <div class="modal">
-                <h3>Añadir Nueva Sesión</h3>
+                <h3>AÃ±adir Nueva SesiÃ³n</h3>
                 <form id="sessionForm">
                     <div class="form-group">
                         <label>Fecha</label>
                         <input type="date" id="s_date" required>
                     </div>
                     <div class="form-group">
-                        <label>Duración (minutos)</label>
+                        <label>DuraciÃ³n (minutos)</label>
                         <input type="number" id="s_duration" value="60" required>
                     </div>
                     <div class="form-group">
                         <label>Tareas Hechas</label>
                         <select id="s_homework">
-                            <option value="1">Sí</option>
+                            <option value="1">SÃ­</option>
                             <option value="0">No</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label>Notas del Profesor</label>
-                        <textarea id="s_notes" placeholder="Escribe aquí el resumen de la clase..."></textarea>
+                        <textarea id="s_notes" placeholder="Escribe aquÃ­ el resumen de la clase..."></textarea>
                     </div>
                     <div class="modal-actions">
                         <button type="button" class="btn btn-ghost"
                             onclick="closeModal('sessionModal')">Cancelar</button>
-                        <button type="submit" class="btn btn-primary">Guardar Sesión</button>
+                        <button type="submit" class="btn btn-primary">Guardar SesiÃ³n</button>
                     </div>
                 </form>
             </div>
@@ -589,7 +588,7 @@
                     </div>
                     <div class="form-group">
                         <label>Asignatura</label>
-                        <input type="text" id="e_subject" required placeholder="Ej: Física y Química">
+                        <input type="text" id="e_subject" required placeholder="Ej: FÃ­sica y QuÃ­mica">
                     </div>
                     <div class="form-group">
                         <label>Nota (0-10)</label>
@@ -606,7 +605,7 @@
         <!-- Edit Student Modal -->
         <div id="editStudentModal" class="modal-overlay">
             <div class="modal">
-                <h3>✏️ Editar Alumno</h3>
+                <h3>âœï¸ Editar Alumno</h3>
                 <form id="editStudentForm">
                     <div class="form-group">
                         <label>Nombre</label>
@@ -615,11 +614,11 @@
                     <div class="form-group" style="display:flex;gap:1rem;">
                         <div style="flex:1">
                             <label>Curso</label>
-                            <input type="text" id="edit_course" placeholder="Ej: 4º ESO">
+                            <input type="text" id="edit_course" placeholder="Ej: 4Âº ESO">
                         </div>
                         <div style="flex:1">
                             <label>Asignatura</label>
-                            <input type="text" id="edit_subject" placeholder="Ej: Matemáticas">
+                            <input type="text" id="edit_subject" placeholder="Ej: MatemÃ¡ticas">
                         </div>
                     </div>
                     <div class="form-group">
@@ -629,7 +628,7 @@
                     </div>
                     <div class="modal-actions">
                         <button type="button" class="btn btn-ghost" onclick="closeModal('editStudentModal')">Cancelar</button>
-                        <button type="submit" class="btn btn-primary">💾 Guardar cambios</button>
+                        <button type="submit" class="btn btn-primary">ðŸ’¾ Guardar cambios</button>
                     </div>
                 </form>
             </div>
@@ -640,21 +639,21 @@
             <div class="modal">
                 <h3 style="color: var(--danger);">Eliminar Alumno</h3>
                 <p style="margin-bottom: 1.5rem; color: var(--text-muted);">
-                    ¿Seguro que quieres eliminar a <strong id="deleteTargetName">este alumno</strong> de la
+                    Â¿Seguro que quieres eliminar a <strong id="deleteTargetName">este alumno</strong> de la
                     academia?<br><br>
-                    Se borrarán todas sus sesiones, exámenes y pagos. Esta acción no se puede deshacer.
+                    Se borrarÃ¡n todas sus sesiones, exÃ¡menes y pagos. Esta acciÃ³n no se puede deshacer.
                 </p>
                 <div class="modal-actions">
                     <button class="btn btn-ghost" onclick="closeModal('deleteStudentModal')">Cancelar</button>
                     <button class="btn btn-primary" style="background: var(--danger);" onclick="confirmDeleteStudent()"
-                        id="btnConfirmDeleteStudent">Sí, eliminar</button>
+                        id="btnConfirmDeleteStudent">SÃ­, eliminar</button>
                 </div>
             </div>
         </div>
 
         <div class="tabs">
             <div class="tab active" onclick="switchTab('sessions')">Sesiones</div>
-            <div class="tab" onclick="switchTab('exams')">Exámenes</div>
+            <div class="tab" onclick="switchTab('exams')">ExÃ¡menes</div>
             <div class="tab" onclick="switchTab('simulacros')">Simulacros</div>
             <div class="tab" onclick="switchTab('payments')">Pagos</div>
         </div>
@@ -665,7 +664,7 @@
                     <thead>
                         <tr>
                             <th>Fecha</th>
-                            <th>Duración</th>
+                            <th>DuraciÃ³n</th>
                             <th>Tareas Hechas</th>
                             <th>Notas del Profesor</th>
                         </tr>
@@ -680,7 +679,7 @@
                 <canvas id="examChart"></canvas>
                 <div id="chart-message"
                     style="display: none; height: 100%; align-items: center; justify-content: center; color: var(--text-muted); font-weight: 500;">
-                    Añade al menos 2 exámenes para ver la evolución
+                    AÃ±ade al menos 2 exÃ¡menes para ver la evoluciÃ³n
                 </div>
             </div>
             <div class="card">
@@ -720,7 +719,7 @@
                 <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
                     <h3 style="font-size: 1.5rem; color: var(--primary);">Detalle del Simulacro</h3>
                     <button onclick="closeModal('simModalRead')"
-                        style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:var(--text-muted);">✕</button>
+                        style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:var(--text-muted);">âœ•</button>
                 </div>
                 <div id="sim-read-content"
                     style="background:#f8fafc; padding:1.5rem; border-radius:1.75rem; margin-bottom:2rem;"></div>
@@ -733,7 +732,7 @@
         <div id="payments" class="tab-content">
             <!-- Payment Configuration -->
             <div class="card" style="margin-bottom: 2rem;">
-                <h3 style="margin-bottom: 1.5rem; color: var(--text-main); font-size: 1.25rem;">Configuración de Pago
+                <h3 style="margin-bottom: 1.5rem; color: var(--text-main); font-size: 1.25rem;">ConfiguraciÃ³n de Pago
                     Mensual</h3>
                 <form id="paymentConfigForm"
                     style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; align-items: end;">
@@ -742,15 +741,15 @@
                         <input type="date" id="p_start_date" required>
                     </div>
                     <div class="form-group" style="margin-bottom: 0;">
-                        <label>Cuota Mensual (€)</label>
+                        <label>Cuota Mensual (â‚¬)</label>
                         <input type="number" id="p_monthly_fee" step="0.5" min="0" value="0">
                     </div>
                     <div class="form-group" style="margin-bottom: 0;">
-                        <label>Día de Pago (1-28)</label>
+                        <label>DÃ­a de Pago (1-28)</label>
                         <input type="number" id="p_payment_day" min="1" max="28" value="1">
                     </div>
                     <div class="form-group" style="margin-bottom: 0;">
-                        <label>Método de Pago</label>
+                        <label>MÃ©todo de Pago</label>
                         <select id="p_payment_method">
                             <option value="">-- Seleccionar --</option>
                             <option value="Transferencia">Transferencia</option>
@@ -762,7 +761,7 @@
                         <label>Notas adicionales</label>
                         <input type="text" id="p_payment_notes" placeholder="Ej: Paga trimestral">
                     </div>
-                    <button type="submit" class="btn btn-primary" style="height: 48px; margin-bottom: 0;">💾 Guardar
+                    <button type="submit" class="btn btn-primary" style="height: 48px; margin-bottom: 0;">ðŸ’¾ Guardar
                         Cambios</button>
                 </form>
             </div>
@@ -799,7 +798,7 @@
 
                 // Header info
                 document.getElementById('student-name').textContent = student.name;
-                document.getElementById('student-course-subject').textContent = `${student.course} • ${student.subject}`;
+                document.getElementById('student-course-subject').textContent = `${student.course} â€¢ ${student.subject}`;
 
                 const statusBadge = document.getElementById('status-badge-container');
                 statusBadge.innerHTML = `<span class="badge ${student.status === 'at_risk' ? 'badge-risk' : 'badge-active'}">${student.status === 'at_risk' ? 'En Riesgo' : 'Activo'}</span>`;
@@ -814,7 +813,7 @@
                     <tr>
                         <td>${s.date}</td>
                         <td>${s.duration_minutes} min</td>
-                        <td><span class="badge ${s.homework_done ? 'badge-yes' : 'badge-no'}">${s.homework_done ? 'Sí' : 'No'}</span></td>
+                        <td><span class="badge ${s.homework_done ? 'badge-yes' : 'badge-no'}">${s.homework_done ? 'SÃ­' : 'No'}</span></td>
                         <td>${s.teacher_notes || '-'}</td>
                     </tr>
                 `).join('') || '<tr><td colspan="4" style="text-align:center">No hay sesiones registradas</td></tr>';
@@ -833,7 +832,7 @@
                             <td><div class="score-badge ${colorClass}">${e.score}</div></td>
                         </tr>
                     `;
-                }).join('') || '<tr><td colspan="3" style="text-align:center">No hay exámenes registrados</td></tr>';
+                }).join('') || '<tr><td colspan="3" style="text-align:center">No hay exÃ¡menes registrados</td></tr>';
 
                 // Exam Evolution Chart
                 renderExamChart(exams);
@@ -842,7 +841,7 @@
                 const paymentsTable = document.getElementById('payments-table');
                 paymentsTable.innerHTML = payments.map(p => `
                     <tr>
-                        <td style="font-weight:600">${p.amount} €</td>
+                        <td style="font-weight:600">${p.amount} â‚¬</td>
                         <td>${p.due_date}</td>
                         <td><span class="badge ${p.status === 'paid' ? 'badge-paid' : 'badge-pending'}">${p.status === 'paid' ? 'Pagado' : 'Pendiente'}</span></td>
                         <td>
@@ -911,7 +910,7 @@
                     plugins: {
                         title: {
                             display: true,
-                            text: 'Evolución de notas',
+                            text: 'EvoluciÃ³n de notas',
                             font: { size: 16, weight: '600' },
                             padding: { bottom: 20 }
                         },
@@ -978,7 +977,7 @@
                 if (res.ok) {
                     const teacherName = teacherId ? select.options[select.selectedIndex].text : 'Sin asignar';
                     document.getElementById('assigned-teacher-name').textContent = teacherName;
-                    showToast('✅ Profesor actualizado correctamente', 'success');
+                    showToast('âœ… Profesor actualizado correctamente', 'success');
                 } else {
                     showToast('Error al actualizar', 'error');
                 }
@@ -1006,7 +1005,7 @@
                 console.error(e);
             } finally {
                 btn.disabled = false;
-                btn.textContent = 'Sí, eliminar';
+                btn.textContent = 'SÃ­, eliminar';
             }
         }
 
@@ -1121,9 +1120,9 @@
                     body: JSON.stringify(data)
                 });
                 if (res.ok) {
-                    showToast('✅ Configuración de pago guardada', 'success');
+                    showToast('âœ… ConfiguraciÃ³n de pago guardada', 'success');
                 } else {
-                    showToast('❌ Error al guardar', 'error');
+                    showToast('âŒ Error al guardar', 'error');
                 }
             } catch (err) {
                 console.error('Error saving payment config:', err);
@@ -1149,14 +1148,14 @@
                 if (res.ok) {
                     currentStudent = { ...currentStudent, ...data };
                     closeModal('editStudentModal');
-                    showToast('✅ Alumno actualizado correctamente', 'success');
+                    showToast('âœ… Alumno actualizado correctamente', 'success');
                     loadProfile();
                 } else {
-                    showToast('❌ Error al guardar los cambios', 'error');
+                    showToast('âŒ Error al guardar los cambios', 'error');
                 }
             } catch (err) {
                 console.error('Error updating student:', err);
-                showToast('❌ Error de conexión', 'error');
+                showToast('âŒ Error de conexiÃ³n', 'error');
             }
         });
 
@@ -1164,9 +1163,9 @@
             try {
                 const res = await fetch(`/api/payments/${paymentId}/remind`, { method: 'POST' });
                 if (res.ok) {
-                    showToast('✅ Recordatorio enviado', 'success');
+                    showToast('âœ… Recordatorio enviado', 'success');
                 } else {
-                    showToast('❌ Error al enviar el recordatorio', 'error');
+                    showToast('âŒ Error al enviar el recordatorio', 'error');
                 }
             } catch (err) {
                 console.error(err);
@@ -1226,10 +1225,10 @@
                 a.remove();
 
                 closeModal('reportModal');
-                showToast(`✅ ${result.message}`);
+                showToast(`âœ… ${result.message}`);
             } catch (err) {
                 console.error('Error generating report:', err);
-                showToast('❌ Error de conexión con el servidor', 'error');
+                showToast('âŒ Error de conexiÃ³n con el servidor', 'error');
             } finally {
                 btn.textContent = originalText;
                 btn.disabled = false;
@@ -1289,7 +1288,7 @@
                         ` + sim.questions.map((q, i) => `
                             <div style="margin-bottom:1.5rem; border-bottom:1px solid var(--border); padding-bottom:1rem;">
                                 <p style="font-weight:600; margin-bottom:0.5rem;">${i + 1}. ${q.question}</p>
-                                <p style="font-size:0.9rem; color:var(--text-muted); margin-bottom:0.5rem;"><strong>Respuesta del alumno:</strong> ${sim.answers[i] || '(No respondió)'}</p>
+                                <p style="font-size:0.9rem; color:var(--text-muted); margin-bottom:0.5rem;"><strong>Respuesta del alumno:</strong> ${sim.answers[i] || '(No respondiÃ³)'}</p>
                                 <p style="font-size:0.9rem; color:var(--success);"><strong>Respuesta correcta:</strong> ${q.correct_answer}</p>
                             </div>
                         `).join('');

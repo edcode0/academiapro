@@ -1,11 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AcademiaPro - Registro</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary: #1A56A0;
@@ -176,7 +176,6 @@
             }
         }
     </style>
-    <link rel="stylesheet" href="/glassmorphism.css">
     <script src="/global.js"></script>
 </head>
 
@@ -229,14 +228,14 @@
             <h1>AcademiaPro</h1>
             <p>Gestiona tu academia con inteligencia</p>
             <ul class="features">
-                <li>✓ Seguimiento de alumnos</li>
-                <li>✓ Informes automáticos con IA</li>
-                <li>✓ Comunicación con familias</li>
+                <li>âœ“ Seguimiento de alumnos</li>
+                <li>âœ“ Informes automÃ¡ticos con IA</li>
+                <li>âœ“ ComunicaciÃ³n con familias</li>
             </ul>
         </div>
         <div class="auth-right">
             <div class="auth-form-container">
-                <h2>Regístrate</h2>
+                <h2>RegÃ­strate</h2>
                 <p>Crea tu academia hoy mismo</p>
 
                 <form id="registerForm">
@@ -248,11 +247,11 @@
                     </div>
                     <input type="text" id="name" placeholder="Nombre completo" required>
                     <input type="email" id="email" placeholder="Email" required>
-                    <input type="password" id="password" placeholder="Contraseña" required>
+                    <input type="password" id="password" placeholder="ContraseÃ±a" required>
 
                     <input type="text" id="academy_name" placeholder="Nombre de la academia" required>
 
-                    <input type="text" id="academy_code" placeholder="Código de academia (Ej: SKAJMN)"
+                    <input type="text" id="academy_code" placeholder="CÃ³digo de academia (Ej: SKAJMN)"
                         style="display:none;">
                     <div id="academy_code_feedback"
                         style="display:none; font-size: 0.85rem; margin-bottom: 1rem; margin-top: -0.5rem; text-align: left;">
@@ -276,8 +275,8 @@
                 </a>
 
                 <div class="links">
-                    <a href="/login">¿Ya tienes cuenta? Inicia sesión</a>
-                    <a href="/join">Unirte a una academia con código</a>
+                    <a href="/login">Â¿Ya tienes cuenta? Inicia sesiÃ³n</a>
+                    <a href="/join">Unirte a una academia con cÃ³digo</a>
                 </div>
             </div>
         </div>
@@ -329,16 +328,16 @@
                     const cData = await cRes.json();
 
                     if (!cData.valid) {
-                        feedback.innerHTML = '❌ Código no válido';
+                        feedback.innerHTML = 'âŒ CÃ³digo no vÃ¡lido';
                         feedback.style.color = '#ef4444';
                         return;
                     } else {
-                        feedback.innerHTML = '✅ ' + cData.academy_name;
+                        feedback.innerHTML = 'âœ… ' + cData.academy_name;
                         feedback.style.color = '#10b981';
                         payload.academy_code = code;
                     }
                 } catch (err) {
-                    feedback.innerHTML = '❌ Error de red';
+                    feedback.innerHTML = 'âŒ Error de red';
                     feedback.style.color = '#ef4444';
                     return;
                 }
@@ -352,7 +351,7 @@
             const data = await res.json();
             if (data.success) {
                 if (role === 'admin') {
-                    showToast('Códigos — Profesor: ' + data.teacher_code + ' | Estudiante: ' + data.student_code, 'info');
+                    showToast('CÃ³digos â€” Profesor: ' + data.teacher_code + ' | Estudiante: ' + data.student_code, 'info');
                     setTimeout(() => { window.location.href = data.redirect || '/login'; }, 3500);
                 } else {
                     window.location.href = data.redirect || '/login';

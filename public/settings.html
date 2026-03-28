@@ -1,11 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configuración - AcademiaPro</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>ConfiguraciÃ³n - AcademiaPro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary: #1e293b;
@@ -245,8 +245,7 @@
             z-index: 2000;
         }
     </style>
-    <link rel="stylesheet" href="/glassmorphism.css">
-    <link rel="stylesheet" href="/shared-dashboard.css">
+    <link rel="stylesheet" href="/design-system.css">
     <script src="/global.js"></script>
 </head>
 
@@ -302,25 +301,25 @@
     <aside>
         <h1>AcademiaPro</h1>
         <nav id="mainNav" style="flex:1;">
-            <div class="nav-section-title">Gestión de Academia</div>
-            <a href="/">🏠 Dashboard</a>
-            <a href="/students">👥 Estudiantes</a>
-            <a href="/admin/teachers">👨‍🏫 Profesores</a>
-            <a href="/payments">💳 Pagos</a>
-            <a href="/chat">💬 Chat <span class="unread-badge-sidebar" id="global-unread"></span></a>
-            <a href="/settings" class="active">⚙️ Configuración</a>
+            <div class="nav-section-title">GestiÃ³n de Academia</div>
+            <a href="/">ðŸ  Dashboard</a>
+            <a href="/students">ðŸ‘¥ Estudiantes</a>
+            <a href="/admin/teachers">ðŸ‘¨â€ðŸ« Profesores</a>
+            <a href="/payments">ðŸ’³ Pagos</a>
+            <a href="/chat">ðŸ’¬ Chat <span class="unread-badge-sidebar" id="global-unread"></span></a>
+            <a href="/settings" class="active">âš™ï¸ ConfiguraciÃ³n</a>
             <div class="nav-section-title">Mi actividad docente</div>
-            <a href="/teacher/dashboard">👥 Mis Alumnos</a>
-            <a href="/teacher/sessions">📅 Sesiones</a>
-            <a href="/teacher/exams">📝 Exámenes</a>
-            <a href="/teacher/transcripts">📝 Transcripciones</a>
-            <a href="/teacher/calendar">🗓️ Calendario</a>
-            <a href="/ai-tutor">🤖 Asistente IA</a>
+            <a href="/teacher/dashboard">ðŸ‘¥ Mis Alumnos</a>
+            <a href="/teacher/sessions">ðŸ“… Sesiones</a>
+            <a href="/teacher/exams">ðŸ“ ExÃ¡menes</a>
+            <a href="/teacher/transcripts">ðŸ“ Transcripciones</a>
+            <a href="/teacher/calendar">ðŸ—“ï¸ Calendario</a>
+            <a href="/ai-tutor">ðŸ¤– Asistente IA</a>
         </nav>
         <div style="margin-top: auto;">
             <a href="/auth/logout"
                 style="color: #fca5a5; text-decoration: none; padding: 0.75rem 1rem; display: block; border-radius: 0.5rem; transition: background 0.2s;">Cerrar
-                Sesión</a>
+                SesiÃ³n</a>
         </div>
     </aside>
 
@@ -328,15 +327,15 @@
         <div class="header">
                 <button class="hamburger-btn" onclick="toggleMobileNav()">&#9776;</button>
                 
-            <h2>Configuración</h2>
+            <h2>ConfiguraciÃ³n</h2>
         </div>
 
-        <!-- Section 0: Códigos de Acceso -->
+        <!-- Section 0: CÃ³digos de Acceso -->
         <div class="settings-section">
-            <h3>🔑 Mis Códigos</h3>
+            <h3>ðŸ”‘ Mis CÃ³digos</h3>
             <div class="form-grid">
                 <div class="form-group">
-                    <label>Mi código personal (Para ser añadido a otras academias)</label>
+                    <label>Mi cÃ³digo personal (Para ser aÃ±adido a otras academias)</label>
                     <div style="display:flex; gap:0.5rem;">
                         <input type="text" id="my_user_code" readonly
                             style="background:#f1f5f9; font-family:monospace; font-weight:bold; color:var(--primary);">
@@ -345,10 +344,10 @@
                     </div>
                 </div>
             </div>
-            <h3 style="margin-top: 2rem;">🔑 Códigos de Invitación de la Academia</h3>
+            <h3 style="margin-top: 2rem;">ðŸ”‘ CÃ³digos de InvitaciÃ³n de la Academia</h3>
             <div class="form-grid">
                 <div class="form-group">
-                    <label>Código para Profesores</label>
+                    <label>CÃ³digo para Profesores</label>
                     <div style="display:flex; gap:0.5rem;">
                         <input type="text" id="teacher_code" readonly
                             style="background:#f1f5f9; font-family:monospace;">
@@ -357,7 +356,7 @@
                     </div>
                 </div>
                 <div class="form-group">
-                    <label>Código para Estudiantes</label>
+                    <label>CÃ³digo para Estudiantes</label>
                     <div style="display:flex; gap:0.5rem;">
                         <input type="text" id="student_code" readonly
                             style="background:#f1f5f9; font-family:monospace;">
@@ -366,12 +365,12 @@
                     </div>
                 </div>
             </div>
-            <p style="font-size:0.8rem; color:var(--text-muted); margin-top:0.5rem;">Los códigos de academia son permanentes. Compártelos con profesores y alumnos para que se unan a tu academia.</p>
+            <p style="font-size:0.8rem; color:var(--text-muted); margin-top:0.5rem;">Los cÃ³digos de academia son permanentes. CompÃ¡rtelos con profesores y alumnos para que se unan a tu academia.</p>
         </div>
 
         <!-- Section 1 -->
         <div class="settings-section">
-            <h3>🏢 Datos de la Academia</h3>
+            <h3>ðŸ¢ Datos de la Academia</h3>
             <form id="form-academy">
                 <div class="form-grid">
                     <div class="form-group">
@@ -383,11 +382,11 @@
                         <input type="email" id="contact_email" required>
                     </div>
                     <div class="form-group">
-                        <label>Teléfono</label>
+                        <label>TelÃ©fono</label>
                         <input type="text" id="contact_phone">
                     </div>
                     <div class="form-group">
-                        <label>Dirección</label>
+                        <label>DirecciÃ³n</label>
                         <input type="text" id="contact_address">
                     </div>
                 </div>
@@ -395,13 +394,13 @@
             </form>
         </div>
 
-        <!-- Section: Añadir usuarios (New Feature 2) -->
+        <!-- Section: AÃ±adir usuarios (New Feature 2) -->
         <div class="settings-section">
-            <h3>👤 Añadir usuarios</h3>
+            <h3>ðŸ‘¤ AÃ±adir usuarios</h3>
             <form id="form-add-user">
                 <div class="form-grid">
                     <div class="form-group">
-                        <label>Código de usuario (#XXXXX)</label>
+                        <label>CÃ³digo de usuario (#XXXXX)</label>
                         <input type="text" id="add_user_code" required placeholder="#12345">
                     </div>
                     <div class="form-group">
@@ -413,14 +412,14 @@
                         </select>
                     </div>
                 </div>
-                <button type="submit" class="btn btn-primary" id="btn-add-user">Añadir a mi academia</button>
+                <button type="submit" class="btn btn-primary" id="btn-add-user">AÃ±adir a mi academia</button>
             </form>
             <div id="add-user-msg" style="margin-top: 1rem; font-weight: 500;"></div>
         </div>
 
         <!-- Section 2 -->
         <div class="settings-section">
-            <h3>📄 Personalización de Informes</h3>
+            <h3>ðŸ“„ PersonalizaciÃ³n de Informes</h3>
             <form id="form-reports">
                 <div class="form-grid">
                     <div class="form-group full-width">
@@ -428,7 +427,7 @@
                         <input type="text" id="report_name" required>
                     </div>
                     <div class="form-group full-width">
-                        <label>Texto de pie de página (Legal/Agradecimiento)</label>
+                        <label>Texto de pie de pÃ¡gina (Legal/Agradecimiento)</label>
                         <textarea id="report_footer"></textarea>
                     </div>
                     <div class="form-group">
@@ -436,13 +435,13 @@
                         <input type="text" id="report_signature">
                     </div>
                 </div>
-                <button type="submit" class="btn btn-primary">Guardar Diseño Informe</button>
+                <button type="submit" class="btn btn-primary">Guardar DiseÃ±o Informe</button>
             </form>
         </div>
 
-        <!-- Section: Configuración de Profesores (New) -->
+        <!-- Section: ConfiguraciÃ³n de Profesores (New) -->
         <div class="settings-section">
-            <h3>👨‍🏫 Configuración de Profesores</h3>
+            <h3>ðŸ‘¨â€ðŸ« ConfiguraciÃ³n de Profesores</h3>
             <div id="teachers-config-list" style="display: flex; flex-direction: column; gap: 1rem;">
                 <p>Cargando profesores...</p>
             </div>
@@ -450,12 +449,12 @@
 
         <!-- Section 3 -->
         <div class="settings-section">
-            <h3>🔔 Notificaciones Automáticas</h3>
+            <h3>ðŸ”” Notificaciones AutomÃ¡ticas</h3>
             <form id="form-notifications">
                 <div class="switch-group">
                     <div class="switch-info">
                         <h4>Aviso de Alumno en Riesgo</h4>
-                        <p>Enviar email automático cuando se detecte un alumno en riesgo.</p>
+                        <p>Enviar email automÃ¡tico cuando se detecte un alumno en riesgo.</p>
                     </div>
                     <label class="switch">
                         <input type="checkbox" id="notify_risk">
@@ -465,7 +464,7 @@
                 <div class="switch-group">
                     <div class="switch-info">
                         <h4>Recordatorios de Pago</h4>
-                        <p>Enviar recordatorio automático a los 7 días de vencimiento.</p>
+                        <p>Enviar recordatorio automÃ¡tico a los 7 dÃ­as de vencimiento.</p>
                     </div>
                     <label class="switch">
                         <input type="checkbox" id="notify_payment">
@@ -474,8 +473,8 @@
                 </div>
                 <div class="switch-group">
                     <div class="switch-info">
-                        <h4>Envío de Informes Mensuales</h4>
-                        <p>Generar y enviar informes automáticamente el día 1 de cada mes.</p>
+                        <h4>EnvÃ­o de Informes Mensuales</h4>
+                        <p>Generar y enviar informes automÃ¡ticamente el dÃ­a 1 de cada mes.</p>
                     </div>
                     <label class="switch">
                         <input type="checkbox" id="notify_monthly">
@@ -488,18 +487,18 @@
 
         <!-- Google Calendar & Meet -->
         <div class="settings-section">
-            <h3>📅 Google Calendar &amp; Meet</h3>
-            <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:1rem;">Conecta tu Google Calendar para que las clases que programes en AcademiaPro aparezcan automáticamente con enlace de Google Meet.</p>
+            <h3>ðŸ“… Google Calendar &amp; Meet</h3>
+            <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:1rem;">Conecta tu Google Calendar para que las clases que programes en AcademiaPro aparezcan automÃ¡ticamente con enlace de Google Meet.</p>
             <div id="calendar-status-badge" style="padding:0.6rem 1rem;border-radius:0.5rem;display:inline-block;font-weight:600;font-size:0.9rem;">Cargando...</div>
             <div style="margin-top:1.5rem;">
-                <button class="btn btn-primary" id="calendar-connect-btn" onclick="connectCalendar()">📅 Conectar Google Calendar</button>
+                <button class="btn btn-primary" id="calendar-connect-btn" onclick="connectCalendar()">ðŸ“… Conectar Google Calendar</button>
             </div>
         </div>
 
         <!-- Gmail & Transcripciones -->
         <div class="settings-section">
-            <h3>📧 Gmail &amp; Transcripciones Automáticas</h3>
-            <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:1rem;">Conecta tu Gmail para que AcademiaPro detecte automáticamente las transcripciones de Google Meet y las envíe al chat del alumno.</p>
+            <h3>ðŸ“§ Gmail &amp; Transcripciones AutomÃ¡ticas</h3>
+            <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:1rem;">Conecta tu Gmail para que AcademiaPro detecte automÃ¡ticamente las transcripciones de Google Meet y las envÃ­e al chat del alumno.</p>
             <div id="gmail-status-badge" style="padding:0.6rem 1rem;border-radius:0.5rem;display:inline-block;font-weight:600;font-size:0.9rem;">Cargando...</div>
             <div style="margin-top:1.25rem;">
                 <label style="display:block;font-size:0.875rem;color:var(--text-muted);font-weight:500;margin-bottom:0.375rem;">Email alternativo para transcripciones</label>
@@ -510,20 +509,20 @@
                 </div>
             </div>
             <div style="margin-top:1.5rem;display:flex;gap:0.75rem;flex-wrap:wrap;">
-                <button class="btn btn-primary" id="gmail-connect-btn" onclick="connectGmail()">🔗 Conectar Gmail</button>
-                <button class="btn" style="background:var(--border);color:var(--text-main);" onclick="checkTranscriptsNow(event)">🔄 Buscar transcripciones ahora</button>
+                <button class="btn btn-primary" id="gmail-connect-btn" onclick="connectGmail()">ðŸ”— Conectar Gmail</button>
+                <button class="btn" style="background:var(--border);color:var(--text-main);" onclick="checkTranscriptsNow(event)">ðŸ”„ Buscar transcripciones ahora</button>
             </div>
         </div>
 
         <div class="danger-zone"
             style="margin-top: 2rem; border: 1px solid #fee2e2; border-radius: 12px; padding: 1.5rem; background: #fff5f5;">
-            <h3 style="color: #dc2626; margin-bottom: 0.5rem;">⚠️ Zona de peligro</h3>
+            <h3 style="color: #dc2626; margin-bottom: 0.5rem;">âš ï¸ Zona de peligro</h3>
             <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 1rem;">
-                Esta acción es irreversible. Se eliminarán todos tus datos.
+                Esta acciÃ³n es irreversible. Se eliminarÃ¡n todos tus datos.
             </p>
             <button id="delete-account-btn"
                 style="background: #dc2626; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer; font-weight: 600;">
-                🗑️ Eliminar mi cuenta
+                ðŸ—‘ï¸ Eliminar mi cuenta
             </button>
         </div>
 
@@ -579,11 +578,11 @@
         function copyCode(id) {
             const el = document.getElementById(id);
             navigator.clipboard.writeText(el.value).then(() => {
-                showToast('Código copiado al portapapeles');
+                showToast('CÃ³digo copiado al portapapeles');
             }).catch(() => {
                 el.select();
                 document.execCommand('copy');
-                showToast('Código copiado al portapapeles');
+                showToast('CÃ³digo copiado al portapapeles');
             });
         }
 
@@ -602,8 +601,8 @@
                             <div class="form-group" style="margin-bottom: 0;">
                                 <label style="font-weight: 600; color: var(--primary);">${t.name}</label>
                                 <div style="display:flex; gap:0.5rem; margin-top:0.5rem;">
-                                    <input type="number" id="t_rate_${t.id}" value="${t.hourly_rate || 0}" step="0.5" min="0" placeholder="💰 Individual €/h" style="flex:1;" title="Tarifa individual €/hora">
-                                    <input type="number" id="t_group_rate_${t.id}" value="${t.group_hourly_rate || 0}" step="0.5" min="0" placeholder="👥 Grupal €/h" style="flex:1; border-color:#c4b5fd;" title="Tarifa grupal €/hora">
+                                    <input type="number" id="t_rate_${t.id}" value="${t.hourly_rate || 0}" step="0.5" min="0" placeholder="ðŸ’° Individual â‚¬/h" style="flex:1;" title="Tarifa individual â‚¬/hora">
+                                    <input type="number" id="t_group_rate_${t.id}" value="${t.group_hourly_rate || 0}" step="0.5" min="0" placeholder="ðŸ‘¥ Grupal â‚¬/h" style="flex:1; border-color:#c4b5fd;" title="Tarifa grupal â‚¬/hora">
                                 </div>
                             </div>
                             <div style="display: flex; gap: 0.5rem;">
@@ -628,13 +627,13 @@
                     body: JSON.stringify({ hourly_rate: rate, group_hourly_rate: groupRate })
                 });
                 if (res.ok) {
-                    showToast('✅ Tarifa guardada correctamente', 'success');
+                    showToast('âœ… Tarifa guardada correctamente', 'success');
                 } else {
-                    showToast('❌ Error al guardar tarifa', 'error');
+                    showToast('âŒ Error al guardar tarifa', 'error');
                 }
             } catch (err) {
                 console.error(err);
-                showToast('❌ Error de conexión', 'error');
+                showToast('âŒ Error de conexiÃ³n', 'error');
             }
         }
 
@@ -654,7 +653,7 @@
             });
 
             if (res.ok) {
-                showToast('Configuración guardada correctamente');
+                showToast('ConfiguraciÃ³n guardada correctamente');
             }
         }
 
@@ -681,15 +680,15 @@
                 if (res.ok) {
                     msgEl.style.color = 'var(--success)';
                     const rolName = role === 'teacher' ? 'Profesor' : 'Alumno';
-                    msgEl.textContent = `✅ ${data.name} añadido como ${rolName}`;
+                    msgEl.textContent = `âœ… ${data.name} aÃ±adido como ${rolName}`;
                     document.getElementById('add_user_code').value = '';
                 } else {
                     msgEl.style.color = 'var(--danger)';
-                    msgEl.textContent = `❌ ${data.error || 'Código no encontrado'}`;
+                    msgEl.textContent = `âŒ ${data.error || 'CÃ³digo no encontrado'}`;
                 }
             } catch (err) {
                 msgEl.style.color = 'var(--danger)';
-                msgEl.textContent = `❌ Error al conectar`;
+                msgEl.textContent = `âŒ Error al conectar`;
             }
             btn.disabled = false;
         };
@@ -714,7 +713,7 @@
         }
 
         document.getElementById('delete-account-btn').addEventListener('click', async function () {
-            const confirmed = confirm('¿Estás seguro? Esta acción eliminará tu cuenta permanentemente y no se puede deshacer.');
+            const confirmed = confirm('Â¿EstÃ¡s seguro? Esta acciÃ³n eliminarÃ¡ tu cuenta permanentemente y no se puede deshacer.');
             if (!confirmed) return;
 
             const token = localStorage.getItem('token');
@@ -732,11 +731,11 @@
                     showToast(data.error || 'Error al eliminar la cuenta', 'error');
                 }
             } catch (err) {
-                showToast('Error de conexión', 'error');
+                showToast('Error de conexiÃ³n', 'error');
             }
         });
 
-        // ── Google Calendar functions ────────────────────────────────────────
+        // â”€â”€ Google Calendar functions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         async function connectCalendar() {
             const token = localStorage.getItem('token');
             const res = await fetch('/api/calendar/connect', { headers: { 'Authorization': 'Bearer ' + token } });
@@ -752,19 +751,19 @@
                 const badge = document.getElementById('calendar-status-badge');
                 const btn = document.getElementById('calendar-connect-btn');
                 if (data.connected) {
-                    badge.textContent = '✅ Google Calendar conectado';
+                    badge.textContent = 'âœ… Google Calendar conectado';
                     badge.style.background = '#d1fae5';
                     badge.style.color = '#065f46';
-                    btn.textContent = '🔄 Reconectar Calendar';
+                    btn.textContent = 'ðŸ”„ Reconectar Calendar';
                 } else {
-                    badge.textContent = '❌ No conectado';
+                    badge.textContent = 'âŒ No conectado';
                     badge.style.background = '#fee2e2';
                     badge.style.color = '#991b1b';
                 }
             } catch (e) { console.error('Calendar status error:', e); }
         }
 
-        // ── Gmail functions ──────────────────────────────────────────────────
+        // â”€â”€ Gmail functions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         async function connectGmail() {
             const token = localStorage.getItem('token');
             const res = await fetch('/api/gmail/connect', { headers: { 'Authorization': 'Bearer ' + token } });
@@ -780,12 +779,12 @@
                 const badge = document.getElementById('gmail-status-badge');
                 const btn = document.getElementById('gmail-connect-btn');
                 if (data.connected) {
-                    badge.textContent = '✅ Gmail conectado';
+                    badge.textContent = 'âœ… Gmail conectado';
                     badge.style.background = '#d1fae5';
                     badge.style.color = '#065f46';
-                    btn.textContent = '🔄 Reconectar Gmail';
+                    btn.textContent = 'ðŸ”„ Reconectar Gmail';
                 } else {
-                    badge.textContent = '❌ Gmail no conectado';
+                    badge.textContent = 'âŒ Gmail no conectado';
                     badge.style.background = '#fee2e2';
                     badge.style.color = '#991b1b';
                 }
@@ -804,13 +803,13 @@
                 headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ transcript_email: email })
             });
-            if (res.ok) showToast('✅ Email alternativo guardado');
+            if (res.ok) showToast('âœ… Email alternativo guardado');
         }
 
         async function checkTranscriptsNow(e) {
             const token = localStorage.getItem('token');
             const btn = e.target;
-            btn.textContent = '⏳ Buscando...';
+            btn.textContent = 'â³ Buscando...';
             btn.disabled = true;
             try {
                 const res = await fetch('/api/gmail/check-transcripts', {
@@ -819,16 +818,16 @@
                 });
                 const data = await res.json();
                 if (!res.ok) {
-                    showToast('⚠️ ' + (data.error || 'Error al buscar'));
+                    showToast('âš ï¸ ' + (data.error || 'Error al buscar'));
                 } else if (data.processed > 0) {
-                    showToast(`✅ ${data.processed} transcripción(es) procesada(s) y enviadas al chat`);
+                    showToast(`âœ… ${data.processed} transcripciÃ³n(es) procesada(s) y enviadas al chat`);
                 } else {
-                    showToast('📭 No se encontraron transcripciones nuevas');
+                    showToast('ðŸ“­ No se encontraron transcripciones nuevas');
                 }
             } catch (err) {
-                showToast('❌ Error de conexión');
+                showToast('âŒ Error de conexiÃ³n');
             } finally {
-                btn.textContent = '🔄 Buscar transcripciones ahora';
+                btn.textContent = 'ðŸ”„ Buscar transcripciones ahora';
                 btn.disabled = false;
             }
         }
@@ -836,16 +835,16 @@
         // Handle OAuth callback redirects
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('gmail') === 'connected') {
-            showToast('✅ Gmail conectado correctamente');
+            showToast('âœ… Gmail conectado correctamente');
             history.replaceState({}, '', '/settings');
         } else if (urlParams.get('gmail') === 'error') {
-            showToast('❌ Error al conectar Gmail. Inténtalo de nuevo.');
+            showToast('âŒ Error al conectar Gmail. IntÃ©ntalo de nuevo.');
             history.replaceState({}, '', '/settings');
         } else if (urlParams.get('calendar') === 'connected') {
-            showToast('✅ Google Calendar conectado correctamente');
+            showToast('âœ… Google Calendar conectado correctamente');
             history.replaceState({}, '', '/settings');
         } else if (urlParams.get('calendar') === 'error') {
-            showToast('❌ Error al conectar Google Calendar. Inténtalo de nuevo.');
+            showToast('âŒ Error al conectar Google Calendar. IntÃ©ntalo de nuevo.');
             history.replaceState({}, '', '/settings');
         }
 

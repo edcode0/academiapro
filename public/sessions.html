@@ -1,11 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sesiones - AcademiaPro</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary: #1e293b;
@@ -201,7 +201,7 @@
         }
 
         .search-container::before {
-            content: '🔍';
+            content: 'ðŸ”';
             position: absolute;
             left: 0.875rem;
             top: 50%;
@@ -408,8 +408,7 @@
             background: var(--success);
         }
     </style>
-    <link rel="stylesheet" href="/glassmorphism.css">
-    <link rel="stylesheet" href="/shared-dashboard.css">
+    <link rel="stylesheet" href="/design-system.css">
     <script src="/global.js"></script>
 </head>
 
@@ -464,20 +463,20 @@
             <span class="badge-admin">Admin</span>
         </div>
         <nav id="mainNav" style="flex:1;">
-            <div class="nav-section-title">Gestión de Academia</div>
-            <a href="/">🏠 Dashboard</a>
-            <a href="/students">👥 Estudiantes</a>
-            <a href="/admin/teachers">👨‍🏫 Profesores</a>
-            <a href="/payments">💳 Pagos</a>
-            <a href="/chat">💬 Chat <span class="unread-badge-sidebar" id="global-unread"></span></a>
-            <a href="/settings">⚙️ Configuración</a>
+            <div class="nav-section-title">GestiÃ³n de Academia</div>
+            <a href="/">ðŸ  Dashboard</a>
+            <a href="/students">ðŸ‘¥ Estudiantes</a>
+            <a href="/admin/teachers">ðŸ‘¨â€ðŸ« Profesores</a>
+            <a href="/payments">ðŸ’³ Pagos</a>
+            <a href="/chat">ðŸ’¬ Chat <span class="unread-badge-sidebar" id="global-unread"></span></a>
+            <a href="/settings">âš™ï¸ ConfiguraciÃ³n</a>
             <div class="nav-section-title">Mi actividad docente</div>
-            <a href="/teacher/dashboard">👥 Mis Alumnos</a>
-            <a href="/teacher/sessions" class="active">📅 Sesiones</a>
-            <a href="/teacher/exams">📝 Exámenes</a>
-            <a href="/teacher/transcripts">📝 Transcripciones</a>
-            <a href="/teacher/calendar">🗓️ Calendario</a>
-            <a href="/ai-tutor">🤖 Asistente IA</a>
+            <a href="/teacher/dashboard">ðŸ‘¥ Mis Alumnos</a>
+            <a href="/teacher/sessions" class="active">ðŸ“… Sesiones</a>
+            <a href="/teacher/exams">ðŸ“ ExÃ¡menes</a>
+            <a href="/teacher/transcripts">ðŸ“ Transcripciones</a>
+            <a href="/teacher/calendar">ðŸ—“ï¸ Calendario</a>
+            <a href="/ai-tutor">ðŸ¤– Asistente IA</a>
         </nav>
         <div style="margin-top: auto;">
             <button class="Btn" onclick="window.location.href='/auth/logout'">
@@ -494,7 +493,7 @@
                 <button class="hamburger-btn" onclick="toggleMobileNav()">&#9776;</button>
                 
             <h2>Sesiones</h2>
-            <button class="btn btn-primary" onclick="openModal('sessionModal')">+ Nueva Sesión</button>
+            <button class="btn btn-primary" onclick="openModal('sessionModal')">+ Nueva SesiÃ³n</button>
         </div>
 
         <div class="stats-grid">
@@ -503,7 +502,7 @@
                 <div class="value" id="stats-total">0</div>
             </div>
             <div class="stat-card">
-                <h3>Duración Media</h3>
+                <h3>DuraciÃ³n Media</h3>
                 <div class="value" id="stats-duration">0 min</div>
             </div>
             <div class="stat-card">
@@ -529,7 +528,7 @@
                     <tr>
                         <th>Alumno</th>
                         <th>Fecha</th>
-                        <th>Duración</th>
+                        <th>DuraciÃ³n</th>
                         <th>Tareas</th>
                         <th>Notas</th>
                         <th>Acciones</th>
@@ -545,7 +544,7 @@
     <!-- Session Modal -->
     <div id="sessionModal" class="modal-overlay">
         <div class="modal">
-            <h3 id="modalTitle">Nueva Sesión</h3>
+            <h3 id="modalTitle">Nueva SesiÃ³n</h3>
             <form id="sessionForm">
                 <input type="hidden" id="sessionIdField">
                 <div class="form-group">
@@ -557,13 +556,13 @@
                     <input type="date" id="m_date" required>
                 </div>
                 <div class="form-group">
-                    <label>Duración (minutos)</label>
+                    <label>DuraciÃ³n (minutos)</label>
                     <input type="number" id="m_duration" value="60" required>
                 </div>
                 <div class="form-group">
-                    <label>¿Tareas hechas?</label>
+                    <label>Â¿Tareas hechas?</label>
                     <select id="m_homework">
-                        <option value="1">Sí</option>
+                        <option value="1">SÃ­</option>
                         <option value="0">No</option>
                     </select>
                 </div>
@@ -573,7 +572,7 @@
                 </div>
                 <div class="modal-actions">
                     <button type="button" class="btn btn-ghost" onclick="closeModal('sessionModal')">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Guardar Sesión</button>
+                    <button type="submit" class="btn btn-primary">Guardar SesiÃ³n</button>
                 </div>
             </form>
         </div>
@@ -648,12 +647,12 @@
                     </td>
                     <td>${s.date}</td>
                     <td>${s.duration_minutes} min</td>
-                    <td><span class="badge ${s.homework_done ? 'badge-yes' : 'badge-no'}">${s.homework_done ? 'Sí' : 'No'}</span></td>
+                    <td><span class="badge ${s.homework_done ? 'badge-yes' : 'badge-no'}">${s.homework_done ? 'SÃ­' : 'No'}</span></td>
                     <td><div class="notes-text" title="${s.teacher_notes || ''}">${s.teacher_notes || '-'}</div></td>
                     <td>
                         <div class="actions">
-                            <button class="action-btn btn-edit" title="Editar" onclick="editSession(${s.id})">✏️</button>
-                            <button class="action-btn btn-delete" title="Eliminar" onclick="deleteSession(${s.id})">🗑️</button>
+                            <button class="action-btn btn-edit" title="Editar" onclick="editSession(${s.id})">âœï¸</button>
+                            <button class="action-btn btn-delete" title="Eliminar" onclick="deleteSession(${s.id})">ðŸ—‘ï¸</button>
                         </div>
                     </td>
                 </tr>
@@ -671,7 +670,7 @@
             const title = document.getElementById('modalTitle');
 
             if (session) {
-                title.textContent = 'Editar Sesión';
+                title.textContent = 'Editar SesiÃ³n';
                 document.getElementById('sessionIdField').value = session.id;
                 document.getElementById('m_student').value = session.student_id;
                 document.getElementById('m_date').value = session.date;
@@ -679,7 +678,7 @@
                 document.getElementById('m_homework').value = session.homework_done ? '1' : '0';
                 document.getElementById('m_notes').value = session.teacher_notes || '';
             } else {
-                title.textContent = 'Nueva Sesión';
+                title.textContent = 'Nueva SesiÃ³n';
                 form.reset();
                 document.getElementById('sessionIdField').value = '';
                 document.getElementById('m_date').value = new Date().toISOString().split('T')[0];
@@ -696,11 +695,11 @@
         }
 
         async function deleteSession(id) {
-            if (confirm('¿Eliminar esta sesión? El estado de riesgo del alumno se recalculará.')) {
+            if (confirm('Â¿Eliminar esta sesiÃ³n? El estado de riesgo del alumno se recalcularÃ¡.')) {
                 try {
                     const res = await fetch(`/api/sessions/${id}`, { method: 'DELETE' });
                     if (res.ok) {
-                        showToast('Sesión eliminada');
+                        showToast('SesiÃ³n eliminada');
                         loadSessions();
                     }
                 } catch (err) { console.error(err); }
@@ -727,7 +726,7 @@
                     body: JSON.stringify(data)
                 });
                 if (res.ok) {
-                    showToast(id ? 'Sesión actualizada' : 'Sesión guardada');
+                    showToast(id ? 'SesiÃ³n actualizada' : 'SesiÃ³n guardada');
                     closeModal('sessionModal');
                     loadSessions();
                 }

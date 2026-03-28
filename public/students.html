@@ -1,11 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Estudiantes - AcademiaPro</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary: #1e293b;
@@ -174,7 +174,7 @@
         }
 
         .search-container::before {
-            content: '🔍';
+            content: 'ðŸ”';
             position: absolute;
             left: 0.875rem;
             top: 50%;
@@ -400,8 +400,7 @@
             z-index: 2000;
         }
     </style>
-    <link rel="stylesheet" href="/glassmorphism.css">
-    <link rel="stylesheet" href="/shared-dashboard.css">
+    <link rel="stylesheet" href="/design-system.css">
     <script src="/global.js"></script>
 </head>
 
@@ -456,20 +455,20 @@
             <span class="badge-admin">Admin</span>
         </div>
         <nav id="mainNav" style="flex:1;">
-            <div class="nav-section-title">Gestión de Academia</div>
-            <a href="/">🏠 Dashboard</a>
-            <a href="/students" class="active">👥 Estudiantes</a>
-            <a href="/admin/teachers">👨‍🏫 Profesores</a>
-            <a href="/payments">💳 Pagos</a>
-            <a href="/chat">💬 Chat <span class="unread-badge-sidebar" id="global-unread"></span></a>
-            <a href="/settings">⚙️ Configuración</a>
+            <div class="nav-section-title">GestiÃ³n de Academia</div>
+            <a href="/">ðŸ  Dashboard</a>
+            <a href="/students" class="active">ðŸ‘¥ Estudiantes</a>
+            <a href="/admin/teachers">ðŸ‘¨â€ðŸ« Profesores</a>
+            <a href="/payments">ðŸ’³ Pagos</a>
+            <a href="/chat">ðŸ’¬ Chat <span class="unread-badge-sidebar" id="global-unread"></span></a>
+            <a href="/settings">âš™ï¸ ConfiguraciÃ³n</a>
             <div class="nav-section-title">Mi actividad docente</div>
-            <a href="/teacher/dashboard">👥 Mis Alumnos</a>
-            <a href="/teacher/sessions">📅 Sesiones</a>
-            <a href="/teacher/exams">📝 Exámenes</a>
-            <a href="/teacher/transcripts">📝 Transcripciones</a>
-            <a href="/teacher/calendar">🗓️ Calendario</a>
-            <a href="/ai-tutor">🤖 Asistente IA</a>
+            <a href="/teacher/dashboard">ðŸ‘¥ Mis Alumnos</a>
+            <a href="/teacher/sessions">ðŸ“… Sesiones</a>
+            <a href="/teacher/exams">ðŸ“ ExÃ¡menes</a>
+            <a href="/teacher/transcripts">ðŸ“ Transcripciones</a>
+            <a href="/teacher/calendar">ðŸ—“ï¸ Calendario</a>
+            <a href="/ai-tutor">ðŸ¤– Asistente IA</a>
         </nav>
         <div style="margin-top: auto;">
             <button class="Btn" onclick="window.location.href='/auth/logout'">
@@ -487,7 +486,7 @@
                 
             <h2>Estudiantes</h2>
             <button class="btn btn-primary" onclick="openModal('studentModal')">
-                <span>+</span> Nueva Inscripción
+                <span>+</span> Nueva InscripciÃ³n
             </button>
         </div>
 
@@ -514,7 +513,7 @@
                         <th>Email Tutor</th>
                         <th>Estado</th>
                         <th>Sesiones Mes</th>
-                        <th>Última Clase</th>
+                        <th>Ãšltima Clase</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
@@ -531,7 +530,7 @@
     <!-- Student Modal (Add/Edit) -->
     <div id="studentModal" class="modal-overlay">
         <div class="modal">
-            <h3 id="modalTitle">Nueva Inscripción</h3>
+            <h3 id="modalTitle">Nueva InscripciÃ³n</h3>
             <form id="studentForm">
                 <input type="hidden" id="studentIdField">
                 <div class="form-group">
@@ -540,18 +539,18 @@
                 </div>
                 <div class="form-group">
                     <label>Curso</label>
-                    <input type="text" id="m_course" placeholder="Ej: 2º ESO" required>
+                    <input type="text" id="m_course" placeholder="Ej: 2Âº ESO" required>
                 </div>
                 <div class="form-group">
                     <label>Asignatura Principal</label>
-                    <input type="text" id="m_subject" placeholder="Ej: Matemáticas" required>
+                    <input type="text" id="m_subject" placeholder="Ej: MatemÃ¡ticas" required>
                 </div>
                 <div class="form-group">
                     <label>Email del Padre/Madre</label>
                     <input type="email" id="m_email" required>
                 </div>
                 <div class="form-group">
-                    <label>Teléfono</label>
+                    <label>TelÃ©fono</label>
                     <input type="text" id="m_phone" required>
                 </div>
                 <div class="form-group" id="statusField" style="display: none;">
@@ -575,14 +574,14 @@
         <div class="modal">
             <h3 style="color: var(--danger);">Eliminar Alumno</h3>
             <p style="margin-bottom: 1.5rem; color: var(--text-muted);">
-                ¿Seguro que quieres eliminar a <strong id="deleteTargetName">este alumno</strong> de la
+                Â¿Seguro que quieres eliminar a <strong id="deleteTargetName">este alumno</strong> de la
                 academia?<br><br>
-                Se borrarán todas sus sesiones, exámenes y pagos. Esta acción no se puede deshacer.
+                Se borrarÃ¡n todas sus sesiones, exÃ¡menes y pagos. Esta acciÃ³n no se puede deshacer.
             </p>
             <div class="modal-actions">
                 <button class="btn btn-ghost" onclick="closeModal('deleteStudentModal')">Cancelar</button>
                 <button class="btn btn-primary" style="background: var(--danger);" onclick="executeDeleteStudent()"
-                    id="btnConfirmDeleteStudent">Sí, eliminar</button>
+                    id="btnConfirmDeleteStudent">SÃ­, eliminar</button>
             </div>
         </div>
     </div>
@@ -670,9 +669,9 @@
                     <td>${s.last_session_date || '-'}</td>
                     <td>
                         <div class="actions">
-                            <button class="action-btn" title="Cambiar Profesor" onclick="openAssignModal(${s.id}, ${s.assigned_teacher_id || 'null'})">👨‍🏫</button>
-                            <button class="action-btn btn-edit" title="Editar" onclick="editStudent(${s.id})">✏️</button>
-                            <button class="action-btn btn-delete" title="Eliminar" onclick="confirmDeleteStudent(${s.id}, '${s.name.replace(/'/g, "\\'")}')">🗑️</button>
+                            <button class="action-btn" title="Cambiar Profesor" onclick="openAssignModal(${s.id}, ${s.assigned_teacher_id || 'null'})">ðŸ‘¨â€ðŸ«</button>
+                            <button class="action-btn btn-edit" title="Editar" onclick="editStudent(${s.id})">âœï¸</button>
+                            <button class="action-btn btn-delete" title="Eliminar" onclick="confirmDeleteStudent(${s.id}, '${s.name.replace(/'/g, "\\'")}')">ðŸ—‘ï¸</button>
                         </div>
                     </td>
                 </tr>
@@ -711,7 +710,7 @@
                 document.getElementById('m_status').value = student.status;
                 statusField.style.display = 'block';
             } else {
-                title.textContent = 'Nueva Inscripción';
+                title.textContent = 'Nueva InscripciÃ³n';
                 form.reset();
                 document.getElementById('studentIdField').value = '';
                 statusField.style.display = 'none';
@@ -752,7 +751,7 @@
                 console.error(err);
             } finally {
                 btn.disabled = false;
-                btn.textContent = 'Sí, eliminar';
+                btn.textContent = 'SÃ­, eliminar';
                 studentToDelete = null;
             }
         }
@@ -775,7 +774,7 @@
                     body: JSON.stringify({ assigned_teacher_id: teacherId || null })
                 });
                 if (res.ok) {
-                    showToast('✅ Profesor actualizado correctamente');
+                    showToast('âœ… Profesor actualizado correctamente');
                     closeModal('assignTeacherModal');
                     loadStudents();
                 } else {
@@ -813,7 +812,7 @@
                 });
 
                 if (res.ok) {
-                    showToast(id ? 'Estudiante actualizado' : 'Inscripción completada');
+                    showToast(id ? 'Estudiante actualizado' : 'InscripciÃ³n completada');
                     closeModal('studentModal');
                     loadStudents();
                 }
