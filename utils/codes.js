@@ -1,6 +1,7 @@
 'use strict';
+const crypto = require('crypto');
 
-const generateCode     = () => Math.random().toString(36).substring(2, 8).toUpperCase();
-const generateUserCode = () => '#' + Math.floor(10000 + Math.random() * 90000);
+const generateCode     = () => crypto.randomBytes(3).toString('hex').toUpperCase();
+const generateUserCode = () => '#' + crypto.randomInt(10000, 99999).toString();
 
 module.exports = { generateCode, generateUserCode };

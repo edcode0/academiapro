@@ -20,8 +20,11 @@ const checkStudentRisk = (studentId) => {
             db.query(`SELECT score FROM exams WHERE student_id = $1 ORDER BY date DESC LIMIT 4`, [studentId], (err, resExams) => {
                 const exams = resExams?.rows || [];
                 if (!err && exams.length >= 4) {
-                    const last2Avg = (exams[0].score + exams[1].score) / 2;
-                    const prev2Avg = (exams[2].score + exams[3].score) / 2;
+                    const scores = exams.slice(0, 4).map(e => e.score);
+                    const validScores = scores.filter(s => s !== null && s !== undefined && !isNaN(Number(s)));
+                    if (validScores.length < 4) return;
+                    const last2Avg = (validScores[0] + validScores[1]) / 2;
+                    const prev2Avg = (validScores[2] + validScores[3]) / 2;
                     if (last2Avg < prev2Avg) {
                         db.query(`UPDATE students SET status = 'at_risk' WHERE id = $1`, [studentId]);
                         notifyAtRisk(studentId, 'Bajada de notas en los últimos exámenes');

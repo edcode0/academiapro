@@ -4,6 +4,7 @@ const express = require('express');
 const router  = express.Router();
 const db      = require('../db');
 const { authenticateJWT }    = require('../middleware/auth');
+const { requireTeacherOrAdmin } = require('../middleware/roles');
 const { checkStudentRisk }   = require('../services/risk');
 const { createNotification } = require('../notifications');
 
@@ -138,7 +139,7 @@ router.get('/api/sessions-list', authenticateJWT, (req, res) => {
     });
 });
 
-router.put('/api/sessions/:id', authenticateJWT, async (req, res) => {
+router.put('/api/sessions/:id', authenticateJWT, requireTeacherOrAdmin, async (req, res) => {
     try {
         const { date, duration_minutes, homework_done, teacher_notes } = req.body;
         const result = await db.query(
@@ -152,7 +153,7 @@ router.put('/api/sessions/:id', authenticateJWT, async (req, res) => {
     }
 });
 
-router.delete('/api/sessions/:id', authenticateJWT, async (req, res) => {
+router.delete('/api/sessions/:id', authenticateJWT, requireTeacherOrAdmin, async (req, res) => {
     try {
         await db.query(
             'DELETE FROM sessions WHERE id=$1 AND student_id IN (SELECT id FROM students WHERE academy_id=$2)',

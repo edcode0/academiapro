@@ -19,9 +19,16 @@
     <script>
         (function () {
             try {
-                const params = new URLSearchParams(window.location.search);
-                const token = params.get('token');
+                // Read token from short-lived auth_token cookie (set by OAuth callback)
+                function getCookie(name) {
+                    const match = document.cookie.match(new RegExp('(?:^|;)\\s*' + name + '=([^;]+)'));
+                    return match ? decodeURIComponent(match[1]) : null;
+                }
+                const token = getCookie('auth_token');
                 if (!token) { window.location.href = '/login?error=no_token'; return; }
+
+                // Delete the temporary cookie immediately
+                document.cookie = 'auth_token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; secure; samesite=strict';
 
                 const payload = JSON.parse(atob(token.split('.')[1]));
                 localStorage.setItem('token', token);

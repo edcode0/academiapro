@@ -160,13 +160,17 @@ router.get('/api/simulator/results/student/:studentId', authenticateJWT, async (
 });
 
 // Get single result detail
-router.get('/api/simulator/results/:id', authenticateJWT, (req, res) => {
-    db.get('SELECT * FROM simulator_results WHERE id = $1', [req.params.id], (err, row) => {
-        if (err || !row) return res.status(404).json({ error: 'Resultado no encontrado' });
+router.get('/api/simulator/results/:id', authenticateJWT, async (req, res) => {
+    try {
+        const result = await db.query('SELECT * FROM simulator_results WHERE id = $1', [req.params.id]);
+        const row = result.rows[0];
+        if (!row) return res.status(404).json({ error: 'Resultado no encontrado' });
         row.questions = JSON.parse(row.questions_json || '[]');
         row.answers = JSON.parse(row.answers_json || '[]');
         res.json(row);
-    });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Teacher grade simulator result
@@ -270,7 +274,7 @@ router.put('/api/exams/:id/score', authenticateJWT, (req, res) => {
     });
 });
 
-router.post('/api/exams', authenticateJWT, async (req, res) => {
+router.post('/api/exams', authenticateJWT, requireTeacherOrAdmin, async (req, res) => {
     try {
         const { student_id, subject, score, date, notes } = req.body;
         const result = await db.query(
@@ -283,7 +287,7 @@ router.post('/api/exams', authenticateJWT, async (req, res) => {
     }
 });
 
-router.put('/api/exams/:id', authenticateJWT, async (req, res) => {
+router.put('/api/exams/:id', authenticateJWT, requireTeacherOrAdmin, async (req, res) => {
     try {
         const { subject, score, date, notes } = req.body;
         const result = await db.query(
@@ -297,7 +301,7 @@ router.put('/api/exams/:id', authenticateJWT, async (req, res) => {
     }
 });
 
-router.delete('/api/exams/:id', authenticateJWT, async (req, res) => {
+router.delete('/api/exams/:id', authenticateJWT, requireTeacherOrAdmin, async (req, res) => {
     try {
         await db.query(
             'DELETE FROM exams WHERE id=$1 AND student_id IN (SELECT id FROM students WHERE academy_id=$2)',

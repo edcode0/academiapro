@@ -123,8 +123,12 @@ router.post('/api/admin/add-user-by-code', authenticateJWT, requireAdmin, async 
 });
 
 router.put('/api/students/:id', authenticateJWT, requireAdmin, (req, res) => {
-    const keys = Object.keys(req.body);
-    const values = Object.values(req.body);
+    const ALLOWED_COLUMNS = new Set(['name', 'course', 'subject', 'status', 'parent_email', 'parent_phone',
+        'notes', 'hourly_rate', 'monthly_fee', 'payment_day', 'payment_method',
+        'payment_notes', 'payment_start_date', 'join_date', 'assigned_teacher_id']);
+    const keys = Object.keys(req.body).filter(k => ALLOWED_COLUMNS.has(k));
+    if (keys.length === 0) return res.status(400).json({ error: 'No hay campos válidos para actualizar' });
+    const values = keys.map(k => req.body[k]);
     const setClause = keys.map((k, i) => `${k} = $${i + 1}`).join(',');
     values.push(req.params.id, req.user.academy_id);
     const sql = `UPDATE students SET ${setClause} WHERE id = $${keys.length + 1} AND academy_id = $${keys.length + 2}`;

@@ -5,11 +5,16 @@ const router   = express.Router();
 const db       = require('../db');
 const { Resend } = require('resend');
 const { authenticateJWT } = require('../middleware/auth');
-const { requireAdmin }    = require('../middleware/roles');
+const { requireAdmin, requireTeacherOrAdmin } = require('../middleware/roles');
 
-router.post('/api/payments', authenticateJWT, async (req, res) => {
+router.post('/api/payments', authenticateJWT, requireTeacherOrAdmin, async (req, res) => {
     try {
         const { student_id, amount, due_date, status, paid_date, notes } = req.body;
+        const studentCheck = await db.query(
+            'SELECT id FROM students WHERE id = $1 AND academy_id = $2',
+            [student_id, req.user.academy_id]
+        );
+        if (!studentCheck.rows.length) return res.status(403).json({ error: 'El alumno no pertenece a tu academia' });
         const result = await db.query(
             `INSERT INTO payments (student_id, amount, due_date, status, paid_date)
              VALUES ($1, $2, $3, $4, $5) RETURNING *`,
@@ -18,7 +23,7 @@ router.post('/api/payments', authenticateJWT, async (req, res) => {
         res.json(result.rows[0]);
     } catch (err) {
         console.error('Payment error:', err.message);
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Error al crear el pago' });
     }
 });
 
@@ -200,7 +205,7 @@ router.post('/api/admin/send-monthly-report', authenticateJWT, requireAdmin, asy
     }
 });
 
-router.put('/api/payments/:id', authenticateJWT, async (req, res) => {
+router.put('/api/payments/:id', authenticateJWT, requireTeacherOrAdmin, async (req, res) => {
     try {
         const { amount, due_date, status, paid_date } = req.body;
         const result = await db.query(
@@ -214,7 +219,7 @@ router.put('/api/payments/:id', authenticateJWT, async (req, res) => {
     }
 });
 
-router.delete('/api/payments/:id', authenticateJWT, async (req, res) => {
+router.delete('/api/payments/:id', authenticateJWT, requireTeacherOrAdmin, async (req, res) => {
     try {
         await db.query(
             'DELETE FROM payments WHERE id=$1 AND student_id IN (SELECT id FROM students WHERE academy_id=$2)',

@@ -2,10 +2,11 @@
 
 const express   = require('express');
 const router    = express.Router();
+const crypto    = require('crypto');
 const db        = require('../db');
 const { google } = require('googleapis');
 const { makeOAuth2Client, createCalendarEvent, deleteCalendarEvent } = require('../services/calendar');
-const { authenticateJWT }         = require('../middleware/auth');
+const { authenticateJWT, JWT_SECRET } = require('../middleware/auth');
 const { requireStudent, requireTeacherOrAdmin } = require('../middleware/roles');
 
 const isPostgres = db.isPostgres;
@@ -88,12 +89,13 @@ router.post('/api/calendar/slots', authenticateJWT, requireTeacherOrAdmin, async
 router.delete('/api/calendar/slots/:id', authenticateJWT, async (req, res) => {
     if (req.user.role === 'student') return res.status(403).json({ error: 'Access denied' });
     try {
-        const slotRes = await db.query('SELECT * FROM available_slots WHERE id = $1', [req.params.id]);
+        const slotRes = await db.query('SELECT * FROM available_slots WHERE id = $1 AND academy_id = $2', [req.params.id, req.user.academy_id]);
         const slot = slotRes.rows[0];
-        await db.query('DELETE FROM available_slots WHERE id = $1 AND is_booked = false', [req.params.id]);
+        if (!slot) return res.status(404).json({ error: 'Slot not found' });
+        await db.query('DELETE FROM available_slots WHERE id = $1 AND is_booked = false AND academy_id = $2', [req.params.id, req.user.academy_id]);
         // Delete from Google Calendar (non-blocking)
         if (slot?.google_event_id) {
-            const teacherRes = await db.query('SELECT * FROM users WHERE id = $1', [req.user.id]);
+            const teacherRes = await db.query('SELECT calendar_access_token, calendar_refresh_token FROM users WHERE id = $1', [req.user.id]);
             deleteCalendarEvent(teacherRes.rows[0], slot.google_event_id).catch(e =>
                 console.error('[Calendar] Delete event error:', e.message)
             );
@@ -203,6 +205,10 @@ router.get('/api/calendar/connect', authenticateJWT, requireTeacherOrAdmin, (req
         process.env.GOOGLE_CLIENT_SECRET,
         calendarRedirectUri
     );
+    const nonce = crypto.randomBytes(8).toString('hex');
+    const stateData = `${req.user.id}:${nonce}`;
+    const sig = crypto.createHmac('sha256', JWT_SECRET).update(stateData).digest('hex').substring(0, 16);
+    const signedState = Buffer.from(JSON.stringify({ d: stateData, s: sig })).toString('base64');
     const authUrl = oauth2Client.generateAuthUrl({
         access_type: 'offline',
         prompt: 'consent',
@@ -210,14 +216,26 @@ router.get('/api/calendar/connect', authenticateJWT, requireTeacherOrAdmin, (req
             'https://www.googleapis.com/auth/calendar',
             'https://www.googleapis.com/auth/calendar.events'
         ],
-        state: req.user.id.toString()
+        state: signedState
     });
     res.json({ authUrl });
 });
 
 router.get('/api/calendar/callback', async (req, res) => {
     try {
-        const { code, state: userId } = req.query;
+        const { code, state: rawState } = req.query;
+        // Verify HMAC-signed state to prevent account takeover
+        let userId;
+        try {
+            const parsed = JSON.parse(Buffer.from(rawState, 'base64').toString());
+            const expectedSig = crypto.createHmac('sha256', JWT_SECRET).update(parsed.d).digest('hex').substring(0, 16);
+            if (parsed.s !== expectedSig) throw new Error('Invalid state signature');
+            userId = parsed.d.split(':')[0];
+            if (!userId || isNaN(Number(userId))) throw new Error('Invalid userId in state');
+        } catch (e) {
+            console.error('[Calendar] Invalid state:', e.message);
+            return res.redirect('/teacher/settings?calendar=error');
+        }
         const calendarRedirectUri = (process.env.BASE_URL || '') + '/api/calendar/callback';
         const oauth2Client = new google.auth.OAuth2(
             process.env.GOOGLE_CLIENT_ID,

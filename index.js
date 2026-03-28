@@ -1,22 +1,24 @@
 require('dotenv').config();
 
 console.log('=== DB CHECK ===');
-console.log('DATABASE_URL set:', !!process.env.DATABASE_URL);
-console.log('DATABASE_URL value:', process.env.DATABASE_URL?.substring(0, 30) + '...');
+console.log('Database configured:', !!process.env.DATABASE_URL);
 
 process.on('uncaughtException', (err) => {
     console.error('UNCAUGHT EXCEPTION:', err.message, err.stack);
-    // Don't crash, just log
+    process.exit(1);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
     console.error('UNHANDLED REJECTION:', reason);
-    // Don't crash, just log
+    process.exit(1);
 });
 
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const crypto = require('crypto');
 const db = require('./db');
 
 // Call database initialization on startup
@@ -55,23 +57,12 @@ const { Server } = require("socket.io");
 
 const app = express();
 app.get('/health', async (req, res) => {
-    console.log('--- USERS ---');
-    const users = await db.query("SELECT id, name, role, academy_id FROM users");
-    console.log(users.rows || users);
-
-    console.log('--- STUDENTS ---');
-    const students = await db.query("SELECT id, name, user_id, assigned_teacher_id, academy_id FROM students");
-    console.log(students.rows || students);
-
-    console.log('--- ROOMS ---');
-    const rooms = await db.query("SELECT * FROM rooms");
-    console.log(rooms.rows || rooms);
-
-    console.log('--- ROOM MEMBERS ---');
-    const members = await db.query("SELECT * FROM room_members");
-    console.log(members.rows || members);
-
-    res.json({ status: 'ok', uptime: process.uptime() });
+    try {
+        await db.query('SELECT 1');
+        res.json({ status: 'ok', uptime: process.uptime() });
+    } catch (err) {
+        res.status(500).json({ status: 'error' });
+    }
 });
 
 const server = http.createServer(app);
@@ -94,7 +85,7 @@ io.use((socket, next) => {
   const token = socket.handshake.auth.token;
   if (!token) return next(new Error('No token'));
   try {
-    const user = jwt.verify(token, process.env.JWT_SECRET || 'super_secret_jwt');
+    const user = jwt.verify(token, process.env.JWT_SECRET);
     socket.user = user;
     next();
   } catch(e) {
@@ -371,11 +362,26 @@ const PORT = process.env.PORT || 3000;
 const multer = require('multer');
 
 
-app.use(cors());
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',')
+    : ['http://localhost:3000'];
+app.use(cors({ origin: allowedOrigins, credentials: true }));
+app.use(helmet({ contentSecurityPolicy: false }));
+
+const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false });
+const registerLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false });
+const aiLimiter = rateLimit({ windowMs: 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false });
+const globalLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 500, standardHeaders: true, legacyHeaders: false });
+app.use('/api/', globalLimiter);
+app.use('/api/login', loginLimiter);
+app.use('/api/register', registerLimiter);
+app.use('/api/join', registerLimiter);
+app.use('/api/ai-tutor', aiLimiter);
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(session({ secret: 'academia-secret', resave: false, saveUninitialized: true }));
+app.use(session({ secret: process.env.SESSION_SECRET || 'academia-secret-change-in-prod', resave: false, saveUninitialized: true }));
 app.use(passport.initialize());
 app.use(passport.session());
 app.use(calendarRouter);
@@ -403,7 +409,7 @@ passport.serializeUser((user, done) => done(null, user));
 passport.deserializeUser((user, done) => done(null, user));
 
 // API Authentication Middlewares
-const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_jwt';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 const authenticateJWT = (req, res, next) => {
     let token = req.cookies.token;
@@ -592,7 +598,7 @@ app.post('/api/ai-tutor/chat', authenticateJWT, async (req, res) => {
         res.json({ response: aiResponse, conversationId });
     } catch (e) {
         console.error('[ai-tutor/chat] ERROR:', e.message, e.stack);
-        res.status(500).json({ error: e.message });
+        res.status(500).json({ error: 'Error interno del servidor' });
     }
 });
 
@@ -633,7 +639,7 @@ app.post('/api/ai-tutor/generate-pdf', authenticateJWT, (req, res) => {
         doc.moveDown(4);
         doc.fillColor('black').fontSize(12).text(text, { align: 'justify', lineGap: 5 });
 
-        res.end();
+        doc.end();
     } catch (err) {
         console.error('PDF gen error:', err);
         res.status(500).json({ error: 'Failed to generate PDF' });
@@ -645,6 +651,10 @@ app.post('/api/ai-tutor/generate-pdf', authenticateJWT, (req, res) => {
 // ─── Gmail OAuth endpoints ────────────────────────────────────────────────────
 app.get('/api/gmail/connect', authenticateJWT, requireTeacherOrAdmin, (req, res) => {
     const oauth2Client = makeOAuth2Client();
+    const nonce = crypto.randomBytes(8).toString('hex');
+    const stateData = `${req.user.id}:${nonce}`;
+    const sig = crypto.createHmac('sha256', JWT_SECRET).update(stateData).digest('hex').substring(0, 16);
+    const signedState = Buffer.from(JSON.stringify({ d: stateData, s: sig })).toString('base64');
     const authUrl = oauth2Client.generateAuthUrl({
         access_type: 'offline',
         prompt: 'consent',
@@ -654,7 +664,7 @@ app.get('/api/gmail/connect', authenticateJWT, requireTeacherOrAdmin, (req, res)
             'https://www.googleapis.com/auth/calendar',
             'https://www.googleapis.com/auth/calendar.events'
         ],
-        state: req.user.id.toString()
+        state: signedState
     });
     res.json({ authUrl });
 });
@@ -662,7 +672,18 @@ app.get('/api/gmail/connect', authenticateJWT, requireTeacherOrAdmin, (req, res)
 
 app.get('/api/gmail/callback', async (req, res) => {
     try {
-        const { code, state: userId } = req.query;
+        const { code, state: rawState } = req.query;
+        let userId;
+        try {
+            const parsed = JSON.parse(Buffer.from(rawState, 'base64').toString());
+            const expectedSig = crypto.createHmac('sha256', JWT_SECRET).update(parsed.d).digest('hex').substring(0, 16);
+            if (parsed.s !== expectedSig) throw new Error('Invalid state signature');
+            userId = parsed.d.split(':')[0];
+            if (!userId || isNaN(Number(userId))) throw new Error('Invalid userId in state');
+        } catch (e) {
+            console.error('[Gmail] Invalid state:', e.message);
+            return res.redirect('/teacher/settings?gmail=error');
+        }
         const oauth2Client = makeOAuth2Client();
         const { tokens } = await oauth2Client.getToken(code);
         await db.query(
@@ -966,7 +987,7 @@ app.post('/api/transcripts/send-to-chat', authenticateJWT, async (req, res) => {
 
     } catch (err) {
         console.error('send-to-chat error:', err);
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Error al enviar el mensaje' });
     }
 });
 app.get('/api/transcripts/history', authenticateJWT, (req, res) => {
@@ -1025,13 +1046,13 @@ app.get('/uploads/:folder/:filename', (req, res, next) => {
 app.get('/api/notifications', authenticateJWT, async (req, res) => {
     try {
         const result = await db.query(
-            `SELECT * FROM notifications WHERE user_id = $1
+            `SELECT * FROM notifications WHERE user_id = $1 AND academy_id = $2
              ORDER BY created_at DESC LIMIT 50`,
-            [req.user.id]
+            [req.user.id, req.user.academy_id]
         );
         res.json(result.rows || []);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Error interno del servidor' });
     }
 });
 
@@ -1043,7 +1064,7 @@ app.post('/api/notifications/mark-read/:id', authenticateJWT, async (req, res) =
         );
         res.json({ success: true });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Error interno del servidor' });
     }
 });
 
@@ -1055,7 +1076,7 @@ app.post('/api/notifications/mark-all-read', authenticateJWT, async (req, res) =
         );
         res.json({ success: true });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Error interno del servidor' });
     }
 });
 // ──────────────────────────────────────────────────────────────────────────────
@@ -1282,10 +1303,10 @@ app.post('/api/academy/regenerate', authenticateJWT, requireAdmin, (req, res) =>
 // --- AI conversation history ---
 app.get('/api/ai/conversations', authenticateJWT, async (req, res) => {
     try {
-        const result = await db.query('SELECT * FROM ai_conversations WHERE user_id = $1 ORDER BY COALESCE(is_pinned, FALSE) DESC, updated_at DESC', [req.user.id]);
+        const result = await db.query('SELECT * FROM ai_conversations WHERE user_id = $1 AND academy_id = $2 ORDER BY COALESCE(is_pinned, FALSE) DESC, updated_at DESC', [req.user.id, req.user.academy_id]);
         res.json(result.rows || []);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Error interno del servidor' });
     }
 });
 
@@ -1314,10 +1335,12 @@ app.put('/api/ai/conversations/:id/pin', authenticateJWT, (req, res) => {
 // Get messages for a conversation
 app.get('/api/ai/conversations/:id/messages', authenticateJWT, async (req, res) => {
     try {
+        const ownerCheck = await db.query('SELECT id FROM ai_conversations WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
+        if (!ownerCheck.rows.length) return res.status(403).json({ error: 'Acceso denegado' });
         const result = await db.query('SELECT * FROM ai_messages WHERE conversation_id = $1 ORDER BY created_at ASC', [req.params.id]);
         res.json(result.rows || []);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Error interno del servidor' });
     }
 });
 
@@ -1416,7 +1439,7 @@ app.get('/api/settings', authenticateJWT, requireAdmin, async (req, res) => {
         });
         res.json(settings);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Error interno del servidor' });
     }
 });
 
@@ -1433,7 +1456,7 @@ app.post('/api/settings', authenticateJWT, requireAdmin, async (req, res) => {
         }
         res.json({ success: true });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Error interno del servidor' });
     }
 });
 
@@ -1597,7 +1620,7 @@ app.post('/api/generate-report', authenticateJWT, async (req, res) => {
 
     } catch (err) {
         console.error('[Report] Error:', err.message);
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Error al generar el informe' });
     }
 });
 

@@ -21,7 +21,7 @@ router.get('/api/teacher/profile', authenticateJWT, async (req, res) => {
 });
 
 // GET all teachers in academy with stats
-router.get('/api/admin/teachers', authenticateJWT, (req, res) => {
+router.get('/api/admin/teachers', authenticateJWT, requireAdmin, (req, res) => {
     const now = new Date();
     const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
     const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
@@ -65,7 +65,7 @@ router.get('/api/admin/teachers', authenticateJWT, (req, res) => {
 });
 
 // GET single teacher profile with full stats
-router.get('/api/admin/teachers/:id', authenticateJWT, (req, res) => {
+router.get('/api/admin/teachers/:id', authenticateJWT, requireAdmin, (req, res) => {
     const now = new Date();
     const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
     const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
@@ -140,7 +140,7 @@ router.get('/api/admin/teachers/:id', authenticateJWT, (req, res) => {
 });
 
 // GET sessions for teacher in month
-router.get('/api/admin/teachers/:id/sessions', authenticateJWT, (req, res) => {
+router.get('/api/admin/teachers/:id/sessions', authenticateJWT, requireAdmin, (req, res) => {
     const { month } = req.query; // YYYY-MM
     const monthStart = month ? `${month}-01` : new Date().toISOString().slice(0, 7) + '-01';
     const monthEnd = month
@@ -161,7 +161,7 @@ router.get('/api/admin/teachers/:id/sessions', authenticateJWT, (req, res) => {
 });
 
 // PUT update teacher hourly rate (individual and group)
-router.put('/api/admin/teachers/:id/rate', authenticateJWT, (req, res) => {
+router.put('/api/admin/teachers/:id/rate', authenticateJWT, requireAdmin, (req, res) => {
     const { hourly_rate, group_hourly_rate } = req.body;
     db.query('UPDATE users SET hourly_rate = $1, group_hourly_rate = $2 WHERE id = $3 AND academy_id = $4 AND role = \'teacher\'',
         [hourly_rate, group_hourly_rate ?? 0, req.params.id, req.user.academy_id], (err) => {
@@ -171,7 +171,7 @@ router.put('/api/admin/teachers/:id/rate', authenticateJWT, (req, res) => {
 });
 
 // POST assign student to teacher
-router.post('/api/admin/teachers/:id/assign-student', authenticateJWT, (req, res) => {
+router.post('/api/admin/teachers/:id/assign-student', authenticateJWT, requireAdmin, (req, res) => {
     const { student_id } = req.body;
     db.query('UPDATE students SET assigned_teacher_id = $1 WHERE id = $2 AND academy_id = $3',
         [req.params.id, student_id, req.user.academy_id], (err) => {
@@ -181,7 +181,7 @@ router.post('/api/admin/teachers/:id/assign-student', authenticateJWT, (req, res
 });
 
 // DELETE unassign student from teacher
-router.delete('/api/admin/teachers/:id/unassign-student/:studentId', authenticateJWT, (req, res) => {
+router.delete('/api/admin/teachers/:id/unassign-student/:studentId', authenticateJWT, requireAdmin, (req, res) => {
     db.query('UPDATE students SET assigned_teacher_id = NULL WHERE id = $1 AND assigned_teacher_id = $2 AND academy_id = $3',
         [req.params.studentId, req.params.id, req.user.academy_id], (err) => {
             if (err) return res.status(500).json({ error: err.message });
@@ -190,7 +190,7 @@ router.delete('/api/admin/teachers/:id/unassign-student/:studentId', authenticat
 });
 
 // POST mark teacher month as paid
-router.post('/api/admin/teachers/:id/mark-paid', authenticateJWT, (req, res) => {
+router.post('/api/admin/teachers/:id/mark-paid', authenticateJWT, requireAdmin, (req, res) => {
     const { month, year, hours, hourly_rate, total } = req.body;
     const checkSQL = 'SELECT id FROM teacher_payments WHERE teacher_id = $1 AND month = $2 AND year = $3';
     db.query(checkSQL, [req.params.id, month, year], (err, r) => {

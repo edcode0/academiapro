@@ -9,7 +9,7 @@ const { Resend } = require('resend');
 const db       = require('../db');
 const { authenticateJWT } = require('../middleware/auth');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_jwt';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // ─── Email helpers ────────────────────────────────────────────────────────────
 async function sendWelcomeEmail(user, academyName) {
@@ -45,8 +45,7 @@ async function sendJoinWelcomeEmail(user, academyName, role) {
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
-const generateCode     = () => Math.random().toString(36).substring(2, 8).toUpperCase();
-const generateUserCode = () => '#' + Math.floor(10000 + Math.random() * 90000);
+const { generateCode, generateUserCode } = require('../utils/codes');
 
 router.get('/api/auth/check-code/:code', (req, res) => {
     db.query('SELECT name FROM academies WHERE teacher_code = $1 OR student_code = $2', [req.params.code, req.params.code], (err, result) => {
@@ -164,11 +163,13 @@ router.post('/auth/register', async (req, res) => {
                 if (err.message.includes('UNIQUE constraint failed') || err.message.includes('duplicate key value')) {
                     return res.status(400).json({ error: 'Este email ya está registrado. Por favor inicia sesión.' });
                 }
-                res.status(500).json({ error: err.message });
+                console.error('[Register] Error:', err.message);
+                res.status(500).json({ error: 'Error interno del servidor' });
             }
         }
     } catch (e) {
-        res.status(500).json({ error: e.message });
+        console.error('[Register] Error:', e.message);
+        res.status(500).json({ error: 'Error interno del servidor' });
     }
 });
 
@@ -178,7 +179,7 @@ router.post('/auth/login', async (req, res) => {
 
         // Find user
         const result = await db.query(
-            'SELECT * FROM users WHERE email = $1', [email]
+            'SELECT id, name, email, role, academy_id, user_code, password_hash, password FROM users WHERE email = $1', [email]
         );
         const user = result.rows?.[0] || result[0];
 
@@ -220,7 +221,7 @@ router.post('/auth/login', async (req, res) => {
 
     } catch (err) {
         console.error('Login error:', err.message);
-        res.status(500).json({ error: 'Error interno: ' + err.message });
+        res.status(500).json({ error: 'Error interno del servidor' });
     }
 });
 
@@ -272,7 +273,7 @@ router.post('/api/auth/join', async (req, res) => {
         );
 
         const newUserResult = await db.query(
-            'SELECT * FROM users WHERE email = $1', [email]
+            'SELECT id, name, email, role, academy_id, user_code FROM users WHERE email = $1', [email]
         );
         const user = newUserResult.rows?.[0] || newUserResult[0];
 
@@ -309,7 +310,7 @@ router.post('/api/auth/join', async (req, res) => {
 
     } catch (err) {
         console.error('Join error:', err.message);
-        res.status(500).json({ error: 'Error interno: ' + err.message });
+        res.status(500).json({ error: 'Error interno del servidor' });
     }
 });
 
@@ -328,7 +329,7 @@ router.get('/auth/google/callback', passport.authenticate('google', { failureRed
     const name = profile.displayName;
 
     try {
-        const existingResult = await db.query('SELECT * FROM users WHERE email = $1', [email]);
+        const existingResult = await db.query('SELECT id, name, email, role, academy_id, user_code, google_id FROM users WHERE email = $1', [email]);
         const existingUser = existingResult.rows?.[0];
 
         if (existingUser) {
@@ -340,9 +341,10 @@ router.get('/auth/google/callback', passport.authenticate('google', { failureRed
                 { id: existingUser.id, email: existingUser.email, role: existingUser.role, academy_id: existingUser.academy_id, name: existingUser.name, user_code: existingUser.user_code },
                 JWT_SECRET, { expiresIn: '7d' }
             );
-            res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'strict' });
+            res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'strict', maxAge: 7 * 24 * 60 * 60 * 1000 });
+            res.cookie('auth_token', token, { httpOnly: false, secure: true, sameSite: 'strict', maxAge: 60000 });
             console.log('Google Auth existing user: id=%d role=%s', existingUser.id, existingUser.role);
-            return res.redirect(`/auth-success?token=${token}&role=${existingUser.role}`);
+            return res.redirect('/auth-success');
         }
 
         // New user — decide what to do based on selected role
@@ -392,16 +394,17 @@ router.get('/auth/google/callback', passport.authenticate('google', { failureRed
             await db.query('UPDATE academies SET owner_id = $1 WHERE id = $2', [userId, academyId]);
         }
 
-        const newUserRes = await db.query('SELECT * FROM users WHERE id = $1', [userId]);
+        const newUserRes = await db.query('SELECT id, name, email, role, academy_id, user_code FROM users WHERE id = $1', [userId]);
         const newUser = newUserRes.rows?.[0];
 
         const token = jwt.sign(
             { id: newUser.id, email: newUser.email, role: newUser.role, academy_id: newUser.academy_id, name: newUser.name, user_code: newUser.user_code },
             JWT_SECRET, { expiresIn: '7d' }
         );
-        res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'strict' });
+        res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'strict', maxAge: 7 * 24 * 60 * 60 * 1000 });
+        res.cookie('auth_token', token, { httpOnly: false, secure: true, sameSite: 'strict', maxAge: 60000 });
         console.log('Google Auth new user: id=%d role=%s', newUser.id, newUser.role);
-        return res.redirect(`/auth-success?token=${token}&role=${newUser.role}`);
+        return res.redirect('/auth-success');
 
     } catch (err) {
         console.error('Google callback error:', err);
@@ -472,26 +475,15 @@ router.delete('/api/auth/delete-account', authenticateJWT, async (req, res) => {
         console.log('Deleting account:', userId, userRole, academyId);
 
         if (userRole === 'admin' && academyId) {
-            // Delete all academy data safely, ignoring errors per table
-            const tables = ['messages', 'payments', 'exams', 'sessions', 'students'];
-            for (const table of tables) {
-                try {
-                    await db.query(`DELETE FROM ${table} WHERE academy_id = $1`, [academyId]);
-                } catch (e) {
-                    console.log(`Skip ${table}:`, e.message);
-                }
-            }
-            // Delete all users in this academy
-            try {
-                await db.query(`DELETE FROM users WHERE id IN (
-                    SELECT u.id FROM users u
-                    JOIN academies a ON u.academy_id = a.id
-                    WHERE a.id = $1
-                )`, [academyId]);
-            } catch (e) {
-                console.log('Skip users by academy:', e.message);
-                await db.query('DELETE FROM users WHERE id = $1', [userId]);
-            }
+            // Delete all academy data with proper cascade via subqueries
+            try { await db.query('DELETE FROM messages WHERE room_id IN (SELECT id FROM rooms WHERE academy_id = $1)', [academyId]); } catch (e) { console.log('Skip messages:', e.message); }
+            try { await db.query('DELETE FROM room_members WHERE room_id IN (SELECT id FROM rooms WHERE academy_id = $1)', [academyId]); } catch (e) { console.log('Skip room_members:', e.message); }
+            try { await db.query('DELETE FROM rooms WHERE academy_id = $1', [academyId]); } catch (e) { console.log('Skip rooms:', e.message); }
+            try { await db.query('DELETE FROM payments WHERE student_id IN (SELECT id FROM students WHERE academy_id = $1)', [academyId]); } catch (e) { console.log('Skip payments:', e.message); }
+            try { await db.query('DELETE FROM exams WHERE student_id IN (SELECT id FROM students WHERE academy_id = $1)', [academyId]); } catch (e) { console.log('Skip exams:', e.message); }
+            try { await db.query('DELETE FROM sessions WHERE student_id IN (SELECT id FROM students WHERE academy_id = $1)', [academyId]); } catch (e) { console.log('Skip sessions:', e.message); }
+            try { await db.query('DELETE FROM students WHERE academy_id = $1', [academyId]); } catch (e) { console.log('Skip students:', e.message); }
+            try { await db.query('DELETE FROM users WHERE academy_id = $1', [academyId]); } catch (e) { console.log('Skip users:', e.message); }
             // Delete academy
             try {
                 await db.query('DELETE FROM academies WHERE id = $1', [academyId]);
@@ -511,7 +503,7 @@ router.delete('/api/auth/delete-account', authenticateJWT, async (req, res) => {
         res.json({ success: true });
     } catch (err) {
         console.error('Delete error:', err.message);
-        res.status(500).json({ error: 'Error al eliminar: ' + err.message });
+        res.status(500).json({ error: 'Error al eliminar la cuenta' });
     }
 });
 
