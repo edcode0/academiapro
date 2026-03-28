@@ -1,4 +1,49 @@
-# Session Plan — 2026-03-28
+# Session Plan — 2026-03-28 (Frontend Improvements)
+
+## 9 Frontend Improvements — Sequential
+
+### #1 Mobile hamburger menu
+- [ ] Add shared CSS + JS to glassmorphism.css / global.js
+- [ ] Add hamburger button + overlay markup to all 24 dashboard HTML pages
+
+### #3 Replace alert() with toasts
+- [ ] Add showToast(msg, type) to global.js (success/error/info)
+- [ ] Replace all alert() calls in all HTML files (login.html uses inline banner)
+
+### #4 Shared CSS deduplication
+- [ ] Create public/shared-dashboard.css with common blocks
+- [ ] Link in all dashboard pages
+- [ ] Remove duplicated blocks from individual files
+
+### #5 Empty states for tables
+- [ ] index.html: student table + activity list empty states
+- [ ] teacher_dashboard.html: student table empty state
+
+### #6 Password show/hide toggle
+- [ ] login.html: add eye icon to password field
+- [ ] join.html: add eye icon to password field
+
+### #7 Sidebar user avatar
+- [ ] Add avatar CSS to shared-dashboard.css
+- [ ] Add avatar HTML to all dashboard pages
+
+### #8 Student grade progress bar
+- [ ] Add progress bar CSS + HTML to student_portal.html
+
+### #9 Landing pricing + footer
+- [ ] Add pricing section to landing.html
+- [ ] Expand footer to 3 columns
+
+### #10 Keyboard focus rings
+- [ ] Add :focus box-shadow to shared-dashboard.css and login/join/register
+
+## Done when:
+- [ ] npm run test:smoke → 64/64
+- [ ] git commit + push
+
+---
+
+# Session Plan — 2026-03-28 (Bug Fixes)
 
 ## Bug Fixes: Group Session Selector + Teacher Rate Fields
 
