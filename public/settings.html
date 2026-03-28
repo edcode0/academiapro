@@ -598,7 +598,10 @@
                         <div class="form-grid" style="align-items: end; background: #f8fafc; padding: 1rem; border-radius: 0.5rem; border: 1px solid var(--border);">
                             <div class="form-group" style="margin-bottom: 0;">
                                 <label style="font-weight: 600; color: var(--primary);">${t.name}</label>
-                                <input type="number" id="t_rate_${t.id}" value="${t.hourly_rate || 0}" step="0.5" min="0" placeholder="€/hora" style="margin-top: 0.5rem;">
+                                <div style="display:flex; gap:0.5rem; margin-top:0.5rem;">
+                                    <input type="number" id="t_rate_${t.id}" value="${t.hourly_rate || 0}" step="0.5" min="0" placeholder="💰 Individual €/h" style="flex:1;" title="Tarifa individual €/hora">
+                                    <input type="number" id="t_group_rate_${t.id}" value="${t.group_hourly_rate || 0}" step="0.5" min="0" placeholder="👥 Grupal €/h" style="flex:1; border-color:#c4b5fd;" title="Tarifa grupal €/hora">
+                                </div>
                             </div>
                             <div style="display: flex; gap: 0.5rem;">
                                 <button class="btn btn-primary" style="margin-top: 0;" onclick="saveTeacherRate(${t.id})">Guardar</button>
@@ -614,11 +617,12 @@
 
         async function saveTeacherRate(id) {
             const rate = parseFloat(document.getElementById(`t_rate_${id}`).value) || 0;
+            const groupRate = parseFloat(document.getElementById(`t_group_rate_${id}`).value) || 0;
             try {
                 const res = await fetch(`/api/teachers/${id}/rate`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ hourly_rate: rate })
+                    body: JSON.stringify({ hourly_rate: rate, group_hourly_rate: groupRate })
                 });
                 if (res.ok) {
                     showToast('✅ Tarifa guardada correctamente', 'success');

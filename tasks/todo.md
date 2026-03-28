@@ -1,3 +1,16 @@
+# Session Plan — 2026-03-28
+
+## Bug Fixes: Group Session Selector + Teacher Rate Fields
+
+### BUG 1 — teacher_dashboard.html: group student checkboxes not showing
+- [ ] Fix `setDbSessionType('group')` line 743: change `''` → `'block'` for `db-group-students-container`
+
+### BUG 2 — settings.html: Configuración de Profesores shows only one rate field
+- [ ] Add `group_hourly_rate` input field to `teachers-config-list` render template
+- [ ] Update `saveTeacherRate()` to read and send both `hourly_rate` AND `group_hourly_rate`
+
+---
+
 # Session Plan — 2026-03-25
 
 ## 4-Subagent Feature Sprint

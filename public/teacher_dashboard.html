@@ -740,7 +740,7 @@
             document.getElementById('db-btn-type-group').classList.toggle('active', type === 'group');
             document.getElementById('db-individual-student-group').style.display = type === 'individual' ? '' : 'none';
             document.getElementById('db-group-student-group').style.display = type === 'group' ? '' : 'none';
-            document.getElementById('db-group-students-container').style.display = type === 'group' ? '' : 'none';
+            document.getElementById('db-group-students-container').style.display = type === 'group' ? 'block' : 'none';
             document.getElementById('db-m-student').required = (type === 'individual');
         }
 
