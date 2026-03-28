@@ -584,6 +584,7 @@ async function initDb() {
   }
 }
 
-db.initDb = initDb;
+db.initDb    = initDb;
+db.isPostgres = isPostgres;
 
 module.exports = db;

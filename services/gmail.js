@@ -1,0 +1,212 @@
+'use strict';
+
+const { google }             = require('googleapis');
+const db                     = require('../db');
+const groqClient             = require('./groq');
+const { createNotification } = require('../notifications');
+const { makeOAuth2Client }   = require('./calendar');
+
+const isPostgres = !!process.env.DATABASE_URL;
+
+/**
+ * Factory: returns { checkAndProcessTranscripts } bound to the given io instance.
+ * Call once after io is created: const gmailService = require('./services/gmail')(io);
+ */
+module.exports = function makeGmailService(io) {
+
+    async function checkAndProcessTranscripts(teacher) {
+        const oauth2Client = makeOAuth2Client();
+        oauth2Client.setCredentials({
+            access_token:  teacher.gmail_access_token,
+            refresh_token: teacher.gmail_refresh_token,
+            expiry_date:   teacher.gmail_token_expiry
+        });
+
+        // Persist refreshed tokens automatically
+        oauth2Client.on('tokens', async (tokens) => {
+            await db.query(
+                'UPDATE users SET gmail_access_token=$1, gmail_refresh_token=$2, gmail_token_expiry=$3 WHERE id=$4',
+                [tokens.access_token, tokens.refresh_token || teacher.gmail_refresh_token, tokens.expiry_date, teacher.id]
+            ).catch(err => console.error('[OAuth] Gmail token persist failed:', err.message));
+        });
+
+        const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+
+        const lastCheck = teacher.gmail_last_check
+            ? Math.floor(new Date(teacher.gmail_last_check).getTime() / 1000)
+            : Math.floor(Date.now() / 1000) - 86400;
+
+        const searchQuery = `(from:meet-recordings-noreply@google.com OR subject:"Transcripción de" OR subject:"Transcript of") after:${lastCheck}`;
+
+        const messagesRes = await gmail.users.messages.list({ userId: 'me', q: searchQuery, maxResults: 10 });
+        const messages    = messagesRes.data.messages || [];
+        console.log(`[Gmail] Found ${messages.length} transcript emails for teacher ${teacher.id}`);
+
+        let processed = 0;
+
+        for (const msg of messages) {
+            try {
+                const email = await gmail.users.messages.get({ userId: 'me', id: msg.id, format: 'full' });
+
+                function extractText(payload) {
+                    if (payload.mimeType === 'text/plain' && payload.body?.data) {
+                        return Buffer.from(payload.body.data, 'base64').toString('utf-8');
+                    }
+                    if (payload.parts) {
+                        for (const part of payload.parts) {
+                            const text = extractText(part);
+                            if (text) return text;
+                        }
+                    }
+                    return '';
+                }
+
+                const body = extractText(email.data.payload);
+                if (!body || body.length < 100) continue;
+
+                // Get teacher's students
+                const studentsResult = teacher.role === 'admin'
+                    ? await db.query(
+                        'SELECT s.id, s.name, s.user_id FROM students s WHERE s.academy_id = $1',
+                        [teacher.academy_id]
+                      )
+                    : await db.query(
+                        'SELECT s.id, s.name, s.user_id FROM students s WHERE s.academy_id = $1 AND s.assigned_teacher_id = $2',
+                        [teacher.academy_id, teacher.id]
+                      );
+                const students = studentsResult.rows || [];
+                if (!students.length) continue;
+
+                // Analyze with Groq
+                const studentNames = students.map(s => s.name).join(', ');
+                const analysis = await groqClient.chat.completions.create({
+                    model:    'llama-3.3-70b-versatile',
+                    messages: [{
+                        role:    'user',
+                        content: `Analiza esta transcripción de clase de Google Meet y genera un resumen estructurado.\n\nAlumnos posibles: ${studentNames}\n\nTranscripción:\n${body.substring(0, 8000)}\n\nResponde SOLO en JSON con este formato exacto:\n{\n  "student_name": "nombre del alumno que aparece o más probable",\n  "summary": "Resumen de lo tratado en clase en 2-3 frases",\n  "topics_covered": ["tema1", "tema2"],\n  "topics_pending": ["tema pendiente 1"],\n  "homework": ["tarea 1", "tarea 2"],\n  "key_points": ["punto clave 1", "punto clave 2"],\n  "teacher_notes": "Observaciones importantes del profesor"\n}`
+                    }],
+                    max_tokens:      1000,
+                    temperature:     0.3,
+                    response_format: { type: 'json_object' }
+                });
+
+                let analysisData;
+                try {
+                    analysisData = JSON.parse(analysis.choices[0].message.content);
+                } catch (e) {
+                    console.error('[Gmail] JSON parse error:', e.message);
+                    continue;
+                }
+
+                // Match student by name
+                const student = students.find(s =>
+                    s.name.toLowerCase().includes((analysisData.student_name || '').toLowerCase()) ||
+                    (analysisData.student_name || '').toLowerCase().includes(s.name.toLowerCase())
+                ) || students[0];
+
+                if (!student) continue;
+
+                // Resolve student user_id
+                let studentUserId = student.user_id;
+                if (!studentUserId) {
+                    const nameMatch = await db.query(
+                        "SELECT id FROM users WHERE academy_id=$1 AND role='student' AND LOWER(name)=LOWER($2) LIMIT 1",
+                        [teacher.academy_id, student.name]
+                    );
+                    studentUserId = (nameMatch.rows || [])[0]?.id;
+                    if (studentUserId) {
+                        await db.query('UPDATE students SET user_id=$1 WHERE id=$2', [studentUserId, student.id])
+                            .catch(err => console.error('[Transcript] Student user_id link failed:', err.message));
+                        student.user_id = studentUserId;
+                    }
+                }
+                if (!studentUserId) {
+                    console.warn(`[Gmail] No user_id for student ${student.name}, skipping`);
+                    continue;
+                }
+
+                // Find or create direct room
+                const roomResult = await db.query(
+                    `SELECT r.id FROM rooms r
+                     JOIN room_members rm1 ON r.id = rm1.room_id AND rm1.user_id = $1
+                     JOIN room_members rm2 ON r.id = rm2.room_id AND rm2.user_id = $2
+                     WHERE r.type = 'direct' AND r.academy_id = $3
+                     LIMIT 1`,
+                    [teacher.id, studentUserId, teacher.academy_id]
+                );
+                let roomId = (roomResult.rows || [])[0]?.id;
+
+                if (!roomId) {
+                    const newRoom = await db.query(
+                        `INSERT INTO rooms (academy_id, type, name, created_at) VALUES ($1, 'direct', $2, NOW()) RETURNING id`,
+                        [teacher.academy_id, `${teacher.name} - ${student.name}`]
+                    );
+                    roomId = newRoom.rows[0].id;
+                    const memberSql = isPostgres
+                        ? 'INSERT INTO room_members (room_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING'
+                        : 'INSERT OR IGNORE INTO room_members (room_id, user_id) VALUES ($1, $2)';
+                    await db.query(memberSql, [roomId, teacher.id]);
+                    await db.query(memberSql, [roomId, studentUserId]);
+                }
+
+                // Build and save chat message
+                const d = analysisData;
+                const chatMessage =
+                    `📋 **Resumen de clase - ${new Date().toLocaleDateString('es-ES')}**\n\n` +
+                    `📚 **Temas tratados:**\n${(d.topics_covered || []).map(t => `• ${t}`).join('\n') || '• Ver transcripción'}\n\n` +
+                    `📝 **Deberes:**\n${(d.homework || []).length ? d.homework.map(h => `• ${h}`).join('\n') : '• Sin deberes asignados'}\n\n` +
+                    `🎯 **Puntos clave:**\n${(d.key_points || []).map(k => `• ${k}`).join('\n') || ''}\n\n` +
+                    `⏭️ **Próximos temas:**\n${(d.topics_pending || []).map(t => `• ${t}`).join('\n') || '• Por determinar'}\n\n` +
+                    `💬 **Nota del profesor:**\n${d.teacher_notes || d.summary || ''}`;
+
+                await db.query(
+                    `INSERT INTO messages (room_id, sender_id, academy_id, content, created_at) VALUES ($1, $2, $3, $4, NOW())`,
+                    [roomId, teacher.id, teacher.academy_id, chatMessage]
+                );
+
+                // Save transcript record
+                await db.query(
+                    'INSERT INTO transcripts (academy_id, teacher_id, student_id, raw_text, processed_json) VALUES ($1, $2, $3, $4, $5)',
+                    [teacher.academy_id, teacher.id, student.id, body.substring(0, 5000), JSON.stringify(analysisData)]
+                );
+
+                // Notify student
+                if (student.user_id) {
+                    createNotification(student.user_id, teacher.academy_id, 'transcript',
+                        '📝 Resumen de sesión disponible',
+                        `Tu profesor ha procesado la transcripción de la última sesión.`,
+                        '/student-portal'
+                    );
+                }
+
+                // Emit via Socket.IO
+                io.to(`room_${roomId}`).emit('new_message', {
+                    room_id:     roomId,
+                    sender_id:   teacher.id,
+                    sender_name: teacher.name,
+                    sender_role: 'teacher',
+                    content:     chatMessage,
+                    created_at:  new Date().toISOString()
+                });
+
+                // Mark email as read
+                await gmail.users.messages.modify({
+                    userId:      'me',
+                    id:          msg.id,
+                    requestBody: { removeLabelIds: ['UNREAD'] }
+                });
+
+                processed++;
+                console.log(`[Gmail] Processed transcript for student ${student.name}`);
+            } catch (err) {
+                console.error('[Gmail] Error processing email:', err.message);
+            }
+        }
+
+        await db.query('UPDATE users SET gmail_last_check=NOW() WHERE id=$1', [teacher.id])
+            .catch(err => console.error('[Gmail] Last check update failed:', err.message));
+        return processed;
+    }
+
+    return { checkAndProcessTranscripts };
+};
