@@ -524,14 +524,15 @@
     /* ─── CURSOR GLOW ─── */
     #cursor-glow {
       position: fixed;
-      width: 600px; height: 600px;
+      width: 500px; height: 500px;
       border-radius: 50%;
-      background: radial-gradient(circle, rgba(37,99,235,0.07) 0%, transparent 70%);
+      background: radial-gradient(circle, rgba(37,99,235,0.12) 0%, transparent 65%);
       transform: translate(-50%, -50%);
       pointer-events: none;
       z-index: 0;
       opacity: 0;
-      transition: left 0.15s ease, top 0.15s ease, opacity 0.4s ease;
+      top: 0; left: 0;
+      transition: opacity 0.4s ease;
     }
 
     /* ─── HERO SECTION ATMOSPHERE ─── */
@@ -571,11 +572,11 @@
 
     /* ─── HERO H1 REVEAL ─── */
     @keyframes heroReveal {
-      from { opacity: 0; transform: translateY(12px); }
+      from { opacity: 0; transform: translateY(14px); }
       to   { opacity: 1; transform: translateY(0); }
     }
-    .hero-h1 { animation: heroReveal 0.6s ease-out both; }
-    .hero-h1 em { animation: heroReveal 0.6s ease-out 0.1s both; }
+    .hero-h1 { animation: heroReveal 0.7s ease-out both; }
+    .hero-h1 em { animation: heroReveal 0.7s ease-out 0.12s both; }
 
     /* ─── NAV SCROLL BEHAVIOR ─── */
     .nav {
@@ -652,9 +653,9 @@
         IA integrada para academias
       </div>
 
-      <h1 class="hero-h1">
+      <h1 class="hero-h1" style="animation: heroReveal 0.7s ease-out both;">
         Tu academia,<br>
-        <em>inteligente</em><br>
+        <em style="animation: heroReveal 0.7s ease-out 0.12s both;">inteligente</em><br>
         desde el día uno
       </h1>
 
@@ -963,16 +964,15 @@
   // ─── CURSOR GLOW ───
   (function() {
     const glow = document.getElementById('cursor-glow');
-    const heroSection = document.querySelector('.hero-section');
     let glowVisible = false;
     document.addEventListener('mousemove', function(e) {
       glow.style.left = e.clientX + 'px';
       glow.style.top  = e.clientY + 'px';
-      const rect = heroSection.getBoundingClientRect();
-      const inside = e.clientX >= rect.left && e.clientX <= rect.right &&
-                     e.clientY >= rect.top  && e.clientY <= rect.bottom;
-      if (inside && !glowVisible)  { glow.style.opacity = '1'; glowVisible = true; }
-      if (!inside && glowVisible)  { glow.style.opacity = '0'; glowVisible = false; }
+      if (!glowVisible) { glow.style.opacity = '1'; glowVisible = true; }
+    });
+    document.addEventListener('mouseleave', function() {
+      glow.style.opacity = '0';
+      glowVisible = false;
     });
   })();
 
