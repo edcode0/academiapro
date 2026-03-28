@@ -1,24 +1,20 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AcademiaPro - Iniciar Sesión</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>AcademiaPro — Iniciar Sesión</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
-            font-family: 'Inter', sans-serif;
-            background: white;
-            color: #1e293b;
+            font-family: 'DM Sans', sans-serif;
+            background: #f8f7f4;
+            color: #1a1a1a;
             min-height: 100vh;
             overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
         }
 
         .login-layout {
@@ -27,95 +23,82 @@
             width: 100%;
         }
 
-        /* Left Panel */
+        /* ─── LEFT PANEL ─── */
         .login-left {
             width: 55%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #6B73FF 100%);
+            background: #0f172a;
             position: relative;
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            padding: 4rem 3rem;
-            color: white;
+            justify-content: space-between;
+            padding: 48px;
         }
 
-        /* Background effects */
-        .login-grid {
+        /* Decorative blobs */
+        .left-blob-1 {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image:
-                linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-            background-size: 40px 40px;
-            z-index: 1;
+            width: 400px; height: 400px;
+            background: rgba(37,99,235,0.15);
+            border-radius: 50%;
+            bottom: -150px; right: -100px;
+            filter: blur(80px);
+            pointer-events: none;
         }
-
-        .login-blobs {
+        .left-blob-2 {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 0;
+            width: 200px; height: 200px;
+            background: rgba(99,102,241,0.1);
+            border-radius: 50%;
+            top: -50px; left: -50px;
+            filter: blur(60px);
             pointer-events: none;
         }
 
-        .blob {
-            position: absolute;
-            border-radius: 50%;
-            filter: blur(80px);
-            opacity: 0.5;
-        }
+        /* Left content sits above blobs */
+        .left-top, .carousel-container, .social-proof { position: relative; z-index: 1; }
 
-        .login-left-content {
-            position: relative;
-            z-index: 2;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            height: 100%;
-        }
-
+        /* Logo */
         .login-logo {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
+            font-family: 'Fraunces', serif;
+            font-size: 24px;
+            font-weight: 600;
             color: white;
+            margin-bottom: 8px;
+        }
+        .login-logo span { color: #3b82f6; }
+
+        .login-tagline {
+            font-size: 14px;
+            color: #94a3b8;
         }
 
-        .login-subtitle {
-            color: rgba(255, 255, 255, 0.8);
-            font-size: 1.1rem;
-        }
-
-        /* Carousel */
+        /* ─── CAROUSEL ─── */
         .carousel-container {
             flex: 1;
             display: flex;
             flex-direction: column;
             justify-content: center;
-            position: relative;
-            margin: 3rem 0;
-            min-height: 250px;
+            margin: 48px 0 32px;
+            min-height: 260px;
         }
 
         .carousel-slides {
             position: relative;
             width: 100%;
-            height: 200px;
+            height: 210px;
         }
 
         .carousel-slide {
             position: absolute;
             width: 100%;
-            top: 0;
-            left: 0;
+            top: 0; left: 0;
             opacity: 0;
             transition: opacity 0.5s ease;
             pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
         }
 
         .carousel-slide.active {
@@ -124,225 +107,209 @@
         }
 
         .slide-icon {
-            font-size: 5rem;
-            line-height: 1;
-            margin-bottom: 1.5rem;
+            width: 56px; height: 56px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin-bottom: 24px;
+            flex-shrink: 0;
         }
 
         .slide-title {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 0.75rem;
+            font-family: 'Fraunces', serif;
+            font-size: 32px;
+            font-weight: 600;
             color: white;
+            letter-spacing: -0.5px;
+            line-height: 1.2;
+            margin-bottom: 12px;
         }
 
         .slide-desc {
-            font-size: 1rem;
-            color: rgba(255, 255, 255, 0.8);
-            line-height: 1.5;
-            max-width: 85%;
+            font-size: 15px;
+            color: #94a3b8;
+            line-height: 1.7;
+            max-width: 360px;
         }
 
+        /* Dots */
         .carousel-dots {
             display: flex;
-            gap: 0.5rem;
-            margin-top: 1rem;
+            gap: 6px;
+            margin-top: 8px;
         }
 
         .dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.3);
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255,255,255,0.25);
             cursor: pointer;
-            transition: background 0.3s;
+            transition: width 0.3s ease, background 0.3s ease;
+            width: 6px;
         }
 
         .dot.active {
+            width: 24px;
             background: white;
         }
 
-        /* Social Proof */
+        /* ─── SOCIAL PROOF ─── */
         .social-proof {
             display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-
-        .stars {
-            font-size: 0.9rem;
-            color: rgba(255, 255, 255, 0.9);
-            margin-bottom: 0.25rem;
-        }
-
-        .proof-bottom {
-            display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: 0;
         }
 
-        .avatars {
+        .proof-avatars {
             display: flex;
         }
 
-        .avatar {
-            width: 32px;
-            height: 32px;
+        .proof-avatar {
+            width: 32px; height: 32px;
             border-radius: 50%;
-            background: #fff;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            font-size: 12px;
+            font-weight: 500;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.75rem;
-            font-weight: 700;
-            color: #667eea;
-            border: 2px solid #764ba2;
-            margin-right: -10px;
-        }
-
-        .avatar:nth-child(2) {
-            background: #dbeafe;
-            color: #1e40af;
-            border-color: #667eea;
-        }
-
-        .avatar:nth-child(3) {
-            background: #dcfce7;
-            color: #166534;
-            border-color: #6b73ff;
-            margin-right: 0;
+            border: 1.5px solid rgba(255,255,255,0.2);
+            margin-right: -8px;
         }
 
         .proof-text {
-            font-size: 0.9rem;
-            color: rgba(255, 255, 255, 0.9);
+            font-size: 13px;
+            color: #64748b;
+            margin-left: 20px;
         }
 
-        /* Right Panel */
+        /* ─── RIGHT PANEL ─── */
         .login-right {
             width: 45%;
-            background: white;
-            padding: 3rem;
+            background: #ffffff;
             display: flex;
             flex-direction: column;
             justify-content: center;
+            padding: 64px 48px;
             overflow-y: auto;
-            position: relative;
         }
 
         .right-logo {
-            position: absolute;
-            top: 2rem;
-            left: 3rem;
-            color: #6366f1;
-            font-weight: 700;
-            font-size: 1.2rem;
+            font-family: 'Fraunces', serif;
+            font-size: 16px;
+            font-weight: 600;
+            color: #2563eb;
+            margin-bottom: 40px;
+            text-decoration: none;
+            display: block;
         }
 
         .form-wrapper {
-            max-width: 420px;
-            margin: 0 auto;
+            max-width: 400px;
             width: 100%;
         }
 
         .form-title {
-            color: #1e293b;
-            font-size: 1.8rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
+            font-family: 'Fraunces', serif;
+            font-size: 28px;
+            font-weight: 600;
+            color: #0f172a;
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
         }
 
         .form-subtitle {
+            font-size: 14px;
             color: #64748b;
-            margin-bottom: 2rem;
+            margin-bottom: 32px;
         }
 
-        /* Role Cards */
+        /* ─── ROLE CARDS ─── */
         .role-selector {
             display: flex;
             flex-direction: column;
-            gap: 1rem;
+            gap: 0;
             margin-bottom: 0;
-            transition: margin-bottom 0.4s ease;
         }
 
         .role-btn {
             background: white;
-            border: 2px solid #e2e8f0;
-            border-radius: 16px;
-            padding: 1.25rem 1.5rem;
+            border: 0.5px solid #e2e0d8;
+            border-radius: 12px;
+            padding: 16px 20px;
             display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: 14px;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
             text-align: left;
-            position: relative;
+            width: 100%;
+            margin-bottom: 10px;
         }
 
         .role-btn:hover {
-            border-color: #6366f1;
-            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
-            transform: translateX(4px);
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.08);
         }
 
         .role-btn.selected {
-            border-color: #6366f1;
-            background: rgba(99, 102, 241, 0.05);
+            border: 1.5px solid #2563eb;
+            background: #eff6ff;
         }
 
+        .role-btn.selected .role-arrow { color: #2563eb; }
+        .role-btn:hover .role-arrow { color: #2563eb; }
+
         .role-icon-circle {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
+            width: 40px; height: 40px;
+            border-radius: 10px;
+            background: #f1f5f9;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
+            font-size: 20px;
             flex-shrink: 0;
         }
 
-        .role-admin .role-icon-circle {
-            background: #ede9fe;
-        }
-
-        .role-teacher .role-icon-circle {
-            background: #dcfce7;
-        }
-
-        .role-student .role-icon-circle {
-            background: #dbeafe;
-        }
-
-        .role-info {
-            flex: 1;
-        }
+        .role-info { flex: 1; }
 
         .role-name {
             display: block;
-            font-weight: 700;
-            color: #1e293b;
-            margin-bottom: 0.25rem;
+            font-size: 15px;
+            font-weight: 500;
+            color: #0f172a;
         }
 
         .role-desc {
             display: block;
-            font-size: 0.85rem;
-            color: #64748b;
+            font-size: 13px;
+            color: #94a3b8;
+            margin-top: 2px;
         }
 
         .role-arrow {
             color: #94a3b8;
-            font-weight: bold;
-            transition: transform 0.2s;
+            font-size: 16px;
+            transition: color 0.2s;
         }
 
-        .role-btn:hover .role-arrow {
-            transform: translateX(5px);
-            color: #6366f1;
+        /* Change role link */
+        #change-role-btn {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+            color: #64748b;
+            cursor: pointer;
+            margin-bottom: 16px;
+            font-weight: 400;
+            display: none;
         }
+        #change-role-btn:hover { color: #2563eb; }
 
-        /* Form */
+        /* ─── LOGIN FORM ─── */
         .slide-down-form {
             max-height: 0;
             overflow: hidden;
@@ -351,498 +318,499 @@
         }
 
         .slide-down-form.show {
-            max-height: 600px;
+            max-height: 700px;
             opacity: 1;
-            margin-top: 1.5rem;
+            margin-top: 4px;
         }
 
-        .input-group {
-            position: relative;
-            margin-bottom: 1.5rem;
-        }
-
-        .input-group input {
-            width: 100%;
-            padding: 1.25rem 1rem 0.5rem;
-            border: 1px solid #e2e8f0;
-            border-radius: 10px;
-            font-size: 1rem;
-            background: transparent;
-            color: #1e293b;
-            outline: none;
-            transition: border-color 0.2s;
-            position: relative;
-            z-index: 2;
-        }
-
-        .input-group input:focus {
-            border-color: #6366f1;
-        }
-
-        .input-group label {
-            position: absolute;
-            left: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #94a3b8;
-            transition: all 0.2s ease;
-            z-index: 1;
-            font-size: 1rem;
-            pointer-events: none;
-        }
-
-        .input-group input:focus+label,
-        .input-group input:not(:placeholder-shown)+label {
-            top: 0.6rem;
-            font-size: 0.7rem;
-            color: #6366f1;
-        }
-
-        .input-group input:not(:focus):not(:placeholder-shown)+label {
-            color: #94a3b8;
-        }
-
-        .btn-gradient {
-            width: 100%;
-            padding: 0.875rem;
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-weight: 600;
-            font-size: 1rem;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
-            margin-bottom: 1.5rem;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .btn-gradient:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.6);
+        /* Google button first, then divider, then form fields */
+        .form-google-first {
+            margin-bottom: 0;
         }
 
         .google-btn {
             width: 100%;
-            padding: 0.875rem;
+            height: 44px;
             background: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 10px;
-            color: #1e293b;
-            font-weight: 600;
+            border: 0.5px solid #e2e0d8;
+            border-radius: 8px;
+            color: #374151;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
+            font-weight: 400;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 0.75rem;
+            gap: 10px;
             cursor: pointer;
             text-decoration: none;
-            transition: background 0.2s;
-            margin-bottom: 1.5rem;
+            transition: background 0.15s;
+            margin-bottom: 20px;
         }
 
-        .google-btn:hover {
-            background: #f8fafc;
+        .google-btn:hover { background: #f8f7f4; }
+
+        /* Divider */
+        .form-divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
         }
 
-        .auth-links {
-            text-align: center;
-            font-size: 0.9rem;
+        .form-divider::before,
+        .form-divider::after {
+            content: '';
+            flex: 1;
+            height: 0.5px;
+            background: #e2e0d8;
         }
 
-        .auth-links a {
-            color: #6366f1;
-            text-decoration: none;
+        .form-divider span {
+            font-size: 13px;
+            color: #94a3b8;
+            white-space: nowrap;
+        }
+
+        /* Input fields */
+        .field-group {
+            margin-bottom: 12px;
+            position: relative;
+        }
+
+        .field-group input {
+            width: 100%;
+            height: 44px;
+            border: 0.5px solid #e2e0d8;
+            border-radius: 8px;
+            padding: 0 14px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
+            color: #0f172a;
+            background: white;
+            outline: none;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        .field-group input::placeholder { color: #94a3b8; }
+
+        .field-group input:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.08);
+        }
+
+        .pwd-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 15px;
+            color: #94a3b8;
+            padding: 0;
+            line-height: 1;
+        }
+
+        /* Error banner */
+        #login-error-banner {
+            display: none;
+            background: #fef2f2;
+            color: #b91c1c;
+            border: 0.5px solid #fca5a5;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 13px;
+            margin-bottom: 12px;
+        }
+
+        /* Submit */
+        .btn-submit {
+            width: 100%;
+            height: 44px;
+            background: #0f172a;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
             font-weight: 500;
+            cursor: pointer;
+            transition: background 0.15s;
+            margin-bottom: 16px;
         }
 
-        .auth-links a:hover {
-            text-decoration: underline;
+        .btn-submit:hover { background: #1e293b; }
+
+        /* Admin links */
+        .admin-links {
+            font-size: 13px;
+            color: #64748b;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+        .admin-links a { color: #2563eb; text-decoration: none; font-weight: 500; }
+        .admin-links a:hover { text-decoration: underline; }
+
+        /* ─── JOIN CARD ─── */
+        .join-card {
+            border: 0.5px solid #e2e0d8;
+            border-radius: 10px;
+            padding: 14px 20px;
+            text-align: center;
+            margin-top: 16px;
+            text-decoration: none;
+            display: block;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        .join-card:hover {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.06);
+        }
+        .join-card-eyebrow {
+            font-size: 12px;
+            color: #94a3b8;
+            display: block;
+            margin-bottom: 4px;
+        }
+        .join-card-link {
+            font-size: 14px;
+            font-weight: 500;
+            color: #2563eb;
         }
 
-        /* Keyframes for blobs */
-        @keyframes drift1 {
-            0% {
-                transform: translate(0, 0) scale(1);
-            }
+        /* Landing link */
+        .landing-link {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 13px;
+            color: #94a3b8;
+        }
+        .landing-link a { color: #2563eb; text-decoration: none; font-weight: 500; }
 
-            100% {
-                transform: translate(50px, 30px) scale(1.1);
-            }
+        /* ─── FOCUS RINGS ─── */
+        a:focus-visible,
+        button:focus-visible,
+        input:focus-visible {
+            outline: none !important;
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.3) !important;
+            border-radius: 4px;
         }
 
-        @keyframes drift2 {
-            0% {
-                transform: translate(0, 0) scale(1);
-            }
-
-            100% {
-                transform: translate(-40px, 50px) scale(0.9);
-            }
-        }
-
+        /* ─── RESPONSIVE ─── */
         @media (max-width: 768px) {
-            .login-left {
-                display: none;
-            }
-
+            .login-left { display: none; }
             .login-right {
                 width: 100%;
-                padding: 2rem;
+                padding: 32px 24px;
+                justify-content: flex-start;
             }
-
-            .right-logo {
-                position: static;
-                text-align: center;
-                margin-bottom: 2rem;
-                display: block;
-            }
+            .form-wrapper { max-width: 100%; }
         }
-        a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible { outline: none !important; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.35) !important; border-radius: 0.25rem; }
     </style>
 </head>
 
 <body>
+<div class="login-layout">
 
+    <!-- ═══ LEFT PANEL ═══ -->
+    <div class="login-left">
+        <div class="left-blob-1"></div>
+        <div class="left-blob-2"></div>
 
+        <!-- Top -->
+        <div class="left-top">
+            <div class="login-logo">Academia<span>Pro</span></div>
+            <div class="login-tagline">La plataforma inteligente para academias</div>
+        </div>
 
-
-    <div class="login-layout">
-        <!-- Left Panel -->
-        <div class="login-left">
-            <div class="login-grid"></div>
-            <div class="login-blobs">
-                <!-- 3 large blurred circles -->
-                <div class="blob"
-                    style="width: 500px; height: 500px; background: rgba(255,255,255,0.1); top: -150px; left: -150px; animation: drift1 15s infinite alternate;">
+        <!-- Carousel -->
+        <div class="carousel-container">
+            <div class="carousel-slides">
+                <div class="carousel-slide active" id="slide-0">
+                    <div class="slide-icon">📊</div>
+                    <div class="slide-title">Seguimiento completo</div>
+                    <div class="slide-desc">Controla el progreso de cada alumno en tiempo real con métricas detalladas</div>
                 </div>
-                <div class="blob"
-                    style="width: 400px; height: 400px; background: rgba(59,130,246,0.2); top: 40%; right: -100px; animation: drift2 20s infinite alternate;">
+                <div class="carousel-slide" id="slide-1">
+                    <div class="slide-icon">🤖</div>
+                    <div class="slide-title">Tutor IA integrado</div>
+                    <div class="slide-desc">Inteligencia artificial adaptada a cualquier materia y al nivel del alumno</div>
                 </div>
-                <div class="blob"
-                    style="width: 350px; height: 350px; background: rgba(168,85,247,0.15); bottom: -100px; left: 10%; animation: drift1 18s infinite alternate-reverse;">
+                <div class="carousel-slide" id="slide-2">
+                    <div class="slide-icon">📄</div>
+                    <div class="slide-title">Informes automáticos</div>
+                    <div class="slide-desc">Genera informes mensuales profesionales con un clic y envíalos a las familias</div>
+                </div>
+                <div class="carousel-slide" id="slide-3">
+                    <div class="slide-icon">💬</div>
+                    <div class="slide-title">Comunicación fluida</div>
+                    <div class="slide-desc">Chat en tiempo real entre profesores, alumnos y administración</div>
+                </div>
+                <div class="carousel-slide" id="slide-4">
+                    <div class="slide-icon">📅</div>
+                    <div class="slide-title">Calendario inteligente</div>
+                    <div class="slide-desc">Gestiona horarios, sesiones y exámenes en un solo lugar</div>
                 </div>
             </div>
-
-            <div class="login-left-content">
-                <div>
-                    <div class="login-logo">AcademiaPro</div>
-                    <div class="login-subtitle">La plataforma inteligente para academias</div>
-                </div>
-
-                <div class="carousel-container">
-                    <div class="carousel-slides">
-                        <div class="carousel-slide active" id="slide-0">
-                            <div class="slide-icon">📊</div>
-                            <div class="slide-title">Seguimiento completo</div>
-                            <div class="slide-desc">Controla el progreso de cada alumno en tiempo real con métricas
-                                detalladas</div>
-                        </div>
-                        <div class="carousel-slide" id="slide-1">
-                            <div class="slide-icon">🤖</div>
-                            <div class="slide-title">Tutor IA integrado</div>
-                            <div class="slide-desc">Inteligencia artificial adaptada a cualquier materia y
-                                al nivel del alumno</div>
-                        </div>
-                        <div class="carousel-slide" id="slide-2">
-                            <div class="slide-icon">📄</div>
-                            <div class="slide-title">Informes automáticos</div>
-                            <div class="slide-desc">Genera informes mensuales profesionales con un clic y envíalos a las
-                                familias</div>
-                        </div>
-                        <div class="carousel-slide" id="slide-3">
-                            <div class="slide-icon">💬</div>
-                            <div class="slide-title">Comunicación fluida</div>
-                            <div class="slide-desc">Chat en tiempo real entre profesores, alumnos y administración</div>
-                        </div>
-                        <div class="carousel-slide" id="slide-4">
-                            <div class="slide-icon">📅</div>
-                            <div class="slide-title">Calendario inteligente</div>
-                            <div class="slide-desc">Gestiona horarios, sesiones y exámenes en un solo lugar</div>
-                        </div>
-                    </div>
-                    <div class="carousel-dots">
-                        <div class="dot active" onclick="goToSlide(0)"></div>
-                        <div class="dot" onclick="goToSlide(1)"></div>
-                        <div class="dot" onclick="goToSlide(2)"></div>
-                        <div class="dot" onclick="goToSlide(3)"></div>
-                        <div class="dot" onclick="goToSlide(4)"></div>
-                    </div>
-                </div>
-
-                <div class="social-proof">
-                    <div class="stars">⭐⭐⭐⭐⭐ Usado por más de 50 academias</div>
-                    <div class="proof-bottom">
-                        <div class="avatars">
-                            <div class="avatar">JM</div>
-                            <div class="avatar">AL</div>
-                            <div class="avatar">RC</div>
-                        </div>
-                        <div class="proof-text">y muchos más...</div>
-                    </div>
-                </div>
+            <div class="carousel-dots">
+                <div class="dot active" onclick="goToSlide(0)"></div>
+                <div class="dot" onclick="goToSlide(1)"></div>
+                <div class="dot" onclick="goToSlide(2)"></div>
+                <div class="dot" onclick="goToSlide(3)"></div>
+                <div class="dot" onclick="goToSlide(4)"></div>
             </div>
         </div>
 
-        <!-- Right Panel -->
-        <div class="login-right">
-            <div class="right-logo"><a href="/landing" style="color:inherit;text-decoration:none;">AcademiaPro</a></div>
+        <!-- Social proof -->
+        <div class="social-proof">
+            <div class="proof-avatars">
+                <div class="proof-avatar">JM</div>
+                <div class="proof-avatar">AL</div>
+                <div class="proof-avatar">RC</div>
+            </div>
+            <div class="proof-text">Más de 50 academias confían en nosotros</div>
+        </div>
+    </div>
 
-            <div class="form-wrapper">
-                <h1 class="form-title">¿Cómo deseas acceder?</h1>
-                <p class="form-subtitle">Selecciona tu perfil para continuar</p>
+    <!-- ═══ RIGHT PANEL ═══ -->
+    <div class="login-right">
+        <a href="/landing" class="right-logo">AcademiaPro</a>
 
-                <div class="role-selector" id="role-selector">
-                    <div class="role-btn role-admin" onclick="selectRole('admin', this)">
-                        <div class="role-icon-circle">🏫</div>
-                        <div class="role-info">
-                            <span class="role-name">Soy Administrador</span>
-                            <span class="role-desc">Crear o acceder a mi academia</span>
-                        </div>
-                        <div class="role-arrow">→</div>
+        <div class="form-wrapper">
+            <h1 class="form-title">¿Cómo deseas acceder?</h1>
+            <p class="form-subtitle">Selecciona tu perfil para continuar</p>
+
+            <!-- Role selector -->
+            <div class="role-selector" id="role-selector">
+                <button class="role-btn role-admin" onclick="selectRole('admin', this)">
+                    <div class="role-icon-circle">🏫</div>
+                    <div class="role-info">
+                        <span class="role-name">Soy Administrador</span>
+                        <span class="role-desc">Crear o acceder a mi academia</span>
+                    </div>
+                    <span class="role-arrow">→</span>
+                </button>
+
+                <button class="role-btn role-teacher" onclick="selectRole('teacher', this)">
+                    <div class="role-icon-circle">👨‍🏫</div>
+                    <div class="role-info">
+                        <span class="role-name">Soy Profesor</span>
+                        <span class="role-desc">Acceder con código de profesor</span>
+                    </div>
+                    <span class="role-arrow">→</span>
+                </button>
+
+                <button class="role-btn role-student" onclick="selectRole('student', this)">
+                    <div class="role-icon-circle">🎓</div>
+                    <div class="role-info">
+                        <span class="role-name">Soy Alumno</span>
+                        <span class="role-desc">Acceder con código de alumno</span>
+                    </div>
+                    <span class="role-arrow">→</span>
+                </button>
+            </div>
+
+            <!-- Login form (slide-down) -->
+            <div class="slide-down-form" id="login-form-container">
+                <form method="POST" action="/auth/login" id="login-form" class="form-google-first">
+
+                    <!-- Google OAuth -->
+                    <a href="/auth/google" class="google-btn" id="google-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 48 48">
+                            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                        </svg>
+                        Continuar con Google
+                    </a>
+
+                    <!-- Divider -->
+                    <div class="form-divider"><span>o continúa con email</span></div>
+
+                    <!-- Academy code (non-admin) -->
+                    <div class="field-group" id="academy-code-group" style="display:none;">
+                        <input type="text" name="academy_code" id="academy_code" placeholder="Código de academia">
                     </div>
 
-                    <div class="role-btn role-teacher" onclick="selectRole('teacher', this)">
-                        <div class="role-icon-circle">👨‍🏫</div>
-                        <div class="role-info">
-                            <span class="role-name">Soy Profesor</span>
-                            <span class="role-desc">Acceder con código de profesor</span>
-                        </div>
-                        <div class="role-arrow">→</div>
+                    <!-- Email -->
+                    <div class="field-group">
+                        <input type="email" name="email" id="email" required placeholder="Correo electrónico">
                     </div>
 
-                    <div class="role-btn role-student" onclick="selectRole('student', this)">
-                        <div class="role-icon-circle">👨‍🎓</div>
-                        <div class="role-info">
-                            <span class="role-name">Soy Alumno</span>
-                            <span class="role-desc">Acceder con código de alumno</span>
-                        </div>
-                        <div class="role-arrow">→</div>
+                    <!-- Password -->
+                    <div class="field-group">
+                        <input type="password" name="password" id="password" required placeholder="Contraseña" style="padding-right:40px;">
+                        <button type="button" class="pwd-toggle" onclick="togglePwd('password', this)" tabindex="-1">👁</button>
                     </div>
-                </div>
 
-                <div class="slide-down-form" id="login-form-container">
-                    <form method="POST" action="/auth/login" id="login-form">
+                    <!-- Error banner -->
+                    <div id="login-error-banner"></div>
 
-                        <div class="input-group" id="academy-code-group" style="display: none;">
-                            <input type="text" name="academy_code" id="academy_code" placeholder=" ">
-                            <label for="academy_code">Código de academia (Opcional)</label>
-                        </div>
+                    <!-- Submit -->
+                    <button type="submit" class="btn-submit">Iniciar sesión</button>
 
-                        <div class="input-group">
-                            <input type="email" name="email" id="email" required placeholder=" ">
-                            <label for="email">Correo electrónico</label>
-                        </div>
-
-                        <div class="input-group" style="position:relative;">
-                            <input type="password" name="password" id="password" required placeholder=" ">
-                            <label for="password">Contraseña</label>
-                            <button type="button" onclick="togglePwd('password', this)" tabindex="-1" style="position:absolute; right:0.75rem; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:1rem; color:#94a3b8; padding:0; line-height:1;">👁</button>
-                        </div>
-
-                        <div id="login-error-banner" style="display:none; background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; border-radius:0.5rem; padding:0.6rem 1rem; font-size:0.875rem; margin-bottom:0.5rem;"></div>
-                        <button type="submit" class="btn-gradient">Iniciar Sesión</button>
-
-                        <a href="/auth/google" class="google-btn" id="google-btn">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 48 48">
-                                <path fill="#EA4335"
-                                    d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
-                                <path fill="#4285F4"
-                                    d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
-                                <path fill="#FBBC05"
-                                    d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
-                                <path fill="#34A853"
-                                    d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
-                            </svg>
-                            Continuar con Google
-                        </a>
-                    </form>
-
-                    <div class="auth-links" id="admin-links" style="display: none;">
+                    <!-- Admin links -->
+                    <div class="admin-links" id="admin-links" style="display:none;">
                         ¿No tienes cuenta? <a href="/register">Crea tu academia</a>
                     </div>
 
-                </div>
+                </form>
+            </div>
 
-                <div style="text-align:center; margin-top: 16px;">
-                    <p style="color:#64748b; font-size:14px; margin-bottom:8px;">¿Primera vez aquí?</p>
-                    <a href="/join" style="display:inline-block; width:100%; padding:12px; border:2px solid #e2e8f0; border-radius:10px; color:#6366f1; font-weight:600; text-decoration:none; text-align:center; transition: all 0.2s; box-sizing:border-box;">
-                        👋 Unirme a una academia con código
-                    </a>
-                </div>
+            <!-- Join card -->
+            <a href="/join" class="join-card">
+                <span class="join-card-eyebrow">¿Primera vez aquí?</span>
+                <span class="join-card-link">Unirme a una academia con código →</span>
+            </a>
 
+            <!-- Landing link -->
+            <div class="landing-link">
+                ¿Aún no conoces AcademiaPro? <a href="/landing">Ver la presentación →</a>
             </div>
         </div>
     </div>
 
-    <script>
-        function togglePwd(id, btn) {
-            const input = document.getElementById(id);
-            const isHidden = input.type === 'password';
-            input.type = isHidden ? 'text' : 'password';
-            btn.textContent = isHidden ? '🙈' : '👁';
-        }
+</div>
 
-        // Carousel logic
-        let currentSlide = 0;
-        const totalSlides = 5;
-        let slideInterval;
+<script>
+    function togglePwd(id, btn) {
+        const input = document.getElementById(id);
+        const isHidden = input.type === 'password';
+        input.type = isHidden ? 'text' : 'password';
+        btn.textContent = isHidden ? '🙈' : '👁';
+    }
 
-        function showSlide(index) {
-            document.querySelectorAll('.carousel-slide').forEach(s => s.classList.remove('active'));
-            document.querySelectorAll('.dot').forEach(d => d.classList.remove('active'));
+    // ─── CAROUSEL ───
+    let currentSlide = 0;
+    const totalSlides = 5;
+    let slideInterval;
 
-            document.getElementById('slide-' + index).classList.add('active');
-            document.querySelectorAll('.dot')[index].classList.add('active');
-            currentSlide = index;
-        }
+    function showSlide(index) {
+        document.querySelectorAll('.carousel-slide').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.dot').forEach(d => d.classList.remove('active'));
+        document.getElementById('slide-' + index).classList.add('active');
+        document.querySelectorAll('.dot')[index].classList.add('active');
+        currentSlide = index;
+    }
 
-        function nextSlide() {
-            let next = (currentSlide + 1) % totalSlides;
-            showSlide(next);
-        }
+    function nextSlide() {
+        showSlide((currentSlide + 1) % totalSlides);
+    }
 
-        function goToSlide(index) {
-            showSlide(index);
-            resetInterval();
-        }
+    function goToSlide(index) {
+        showSlide(index);
+        resetInterval();
+    }
 
-        function resetInterval() {
-            clearInterval(slideInterval);
-            slideInterval = setInterval(nextSlide, 3000);
-        }
-
-        // Start auto-slide
+    function resetInterval() {
+        clearInterval(slideInterval);
         slideInterval = setInterval(nextSlide, 3000);
+    }
 
-        // Role selection logic
-        function selectRole(role, element) {
-            // Reset previously selected
-            document.querySelectorAll('.role-btn').forEach(btn => {
-                btn.classList.remove('selected');
-            });
+    slideInterval = setInterval(nextSlide, 3000);
 
-            // Hide unselected gracefully
-            const parent = document.getElementById('role-selector');
-            // Let's hide the non-selected to focus user on the form
-            document.querySelectorAll('.role-btn').forEach(btn => {
-                if (btn !== element) {
-                    btn.style.display = 'none';
-                }
-            });
-            element.classList.add('selected');
+    // ─── ROLE SELECTION ───
+    function selectRole(role, element) {
+        document.querySelectorAll('.role-btn').forEach(btn => btn.classList.remove('selected'));
 
-            // Add change role button if it doesn't exist
-            let changeBtn = document.getElementById('change-role-btn');
-            if (!changeBtn) {
-                changeBtn = document.createElement('div');
-                changeBtn.id = 'change-role-btn';
-                changeBtn.innerHTML = '← Cambiar perfil';
-                changeBtn.style.color = '#64748b';
-                changeBtn.style.fontSize = '0.85rem';
-                changeBtn.style.cursor = 'pointer';
-                changeBtn.style.marginBottom = '1rem';
-                changeBtn.style.fontWeight = '500';
+        const parent = document.getElementById('role-selector');
+        document.querySelectorAll('.role-btn').forEach(btn => {
+            if (btn !== element) btn.style.display = 'none';
+        });
+        element.classList.add('selected');
 
-                changeBtn.onclick = function () {
-                    // Show all roles
-                    document.querySelectorAll('.role-btn').forEach(btn => {
-                        btn.style.display = 'flex';
-                        btn.classList.remove('selected');
-                    });
-                    // Hide form
-                    document.getElementById('login-form-container').classList.remove('show');
-                    // Hide self
-                    changeBtn.style.display = 'none';
-                };
-                parent.parentNode.insertBefore(changeBtn, parent);
-            }
-            changeBtn.style.display = 'block';
+        let changeBtn = document.getElementById('change-role-btn');
+        if (!changeBtn) {
+            changeBtn = document.createElement('div');
+            changeBtn.id = 'change-role-btn';
+            changeBtn.innerHTML = '← Cambiar perfil';
+            changeBtn.onclick = function () {
+                document.querySelectorAll('.role-btn').forEach(btn => {
+                    btn.style.display = 'flex';
+                    btn.classList.remove('selected');
+                });
+                document.getElementById('login-form-container').classList.remove('show');
+                changeBtn.style.display = 'none';
+            };
+            parent.parentNode.insertBefore(changeBtn, parent);
+        }
+        changeBtn.style.display = 'block';
 
-            // Update form state based on role
-            const codeGroup = document.getElementById('academy-code-group');
-            const adminLinks = document.getElementById('admin-links');
+        const codeGroup = document.getElementById('academy-code-group');
+        const adminLinks = document.getElementById('admin-links');
 
-            if (role === 'admin') {
-                codeGroup.style.display = 'none';
-                adminLinks.style.display = 'block';
-            } else {
-                codeGroup.style.display = 'block';
-                adminLinks.style.display = 'none';
-            }
-
-            // Slide down form
-            const formContainer = document.getElementById('login-form-container');
-            formContainer.classList.add('show');
-
-            // Update Google OAuth URL with selected role
-            const googleBtn = document.getElementById('google-btn');
-            if (googleBtn) googleBtn.href = '/auth/google?role=' + role;
-
-            // Focus email input
-            setTimeout(() => document.getElementById('email').focus(), 400);
+        if (role === 'admin') {
+            codeGroup.style.display = 'none';
+            adminLinks.style.display = 'block';
+        } else {
+            codeGroup.style.display = 'block';
+            adminLinks.style.display = 'none';
         }
 
-        document.getElementById('login-form').addEventListener('submit', function (e) {
-            e.preventDefault();
+        document.getElementById('login-form-container').classList.add('show');
 
-            const roleSelected = document.querySelector('.role-btn.selected');
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const academyCode = document.getElementById('academy_code').value;
+        const googleBtn = document.getElementById('google-btn');
+        if (googleBtn) googleBtn.href = '/auth/google?role=' + role;
 
-            // Validate code for non-admin roles
-            if (roleSelected && !roleSelected.classList.contains('role-admin')) {
-                if (!academyCode.trim()) {
-                    if (!document.getElementById('code-err-msg')) {
-                        const err = document.createElement('div');
-                        err.id = 'code-err-msg';
-                        err.style.color = '#ef4444';
-                        err.style.fontSize = '0.8rem';
-                        err.style.marginTop = '0.2rem';
-                        err.textContent = 'El código de academia es obligatorio';
-                        document.getElementById('academy-code-group').appendChild(err);
-                    }
-                    return;
+        setTimeout(() => document.getElementById('email').focus(), 400);
+    }
+
+    // ─── FORM SUBMIT ───
+    document.getElementById('login-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const roleSelected = document.querySelector('.role-btn.selected');
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const academyCode = document.getElementById('academy_code').value;
+
+        if (roleSelected && !roleSelected.classList.contains('role-admin')) {
+            if (!academyCode.trim()) {
+                if (!document.getElementById('code-err-msg')) {
+                    const err = document.createElement('div');
+                    err.id = 'code-err-msg';
+                    err.style.color = '#ef4444';
+                    err.style.fontSize = '12px';
+                    err.style.marginTop = '4px';
+                    err.textContent = 'El código de academia es obligatorio';
+                    document.getElementById('academy-code-group').appendChild(err);
                 }
+                return;
             }
+        }
 
-            // Determine role
-            const role = roleSelected?.classList.contains('role-admin') ? 'admin' :
-                roleSelected?.classList.contains('role-teacher') ? 'teacher' : 'student';
+        const role = roleSelected?.classList.contains('role-admin') ? 'admin' :
+            roleSelected?.classList.contains('role-teacher') ? 'teacher' : 'student';
 
-            // Send login request
-            fetch('/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password, role, academy_code: academyCode })
-            })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.token) {
-                        localStorage.setItem('token', data.token);
-                        localStorage.setItem('user', JSON.stringify(data.user));
-                        // Redirect based on role
-                        if (data.user.role === 'admin') window.location.href = '/';
-                        else if (data.user.role === 'teacher') window.location.href = '/teacher';
-                        else window.location.href = '/student';
-                    } else {
-                        const banner = document.getElementById('login-error-banner');
-                        banner.textContent = data.error || 'Error al iniciar sesión';
-                        banner.style.display = 'block';
-                    }
-                })
-                .catch(() => {
-                    const banner = document.getElementById('login-error-banner');
-                    banner.textContent = 'Error de conexión';
-                    banner.style.display = 'block';
-                });
+        fetch('/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password, role, academy_code: academyCode })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.token) {
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+                if (data.user.role === 'admin') window.location.href = '/';
+                else if (data.user.role === 'teacher') window.location.href = '/teacher';
+                else window.location.href = '/student';
+            } else {
+                const banner = document.getElementById('login-error-banner');
+                banner.textContent = data.error || 'Error al iniciar sesión';
+                banner.style.display = 'block';
+            }
+        })
+        .catch(() => {
+            const banner = document.getElementById('login-error-banner');
+            banner.textContent = 'Error de conexión';
+            banner.style.display = 'block';
         });
-    </script>
-
-    <div style="text-align:center; margin-top:16px; font-size:13px; color:#94a3b8;">
-        ¿Aún no conoces AcademiaPro? <a href="/landing" style="color:#6366f1; font-weight:600;">Ver la presentación →</a>
-    </div>
+    });
+</script>
 
 </body>
-
 </html>
