@@ -589,16 +589,86 @@
         /* ── RESPONSIVE ────────────────────────────────────────────── */
         @media (max-width: 1200px) {
             .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .content-grid { grid-template-columns: 1fr; }
         }
 
         @media (max-width: 1024px) {
-            aside { display: none; }
+            .hamburger-btn { display: flex !important; }
+            aside {
+                transform: translateX(-100%);
+                display: flex !important;
+                transition: transform 0.3s ease;
+                position: fixed !important;
+                top: 0 !important; left: 0 !important;
+                height: 100vh !important;
+                z-index: 200 !important;
+            }
+            aside.mobile-open { transform: translateX(0); }
             main { margin-left: 0; padding: 20px; }
-            .content-grid { grid-template-columns: 1fr; }
         }
+
+        @media (max-width: 640px) {
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+        }
+
+        /* ── HAMBURGER + MOBILE OVERLAY ─────────────────────────────── */
+        .hamburger-btn {
+            display: none;
+            align-items: center; justify-content: center;
+            width: 38px; height: 38px;
+            background: var(--bg-surface);
+            border: 0.5px solid var(--border);
+            border-radius: var(--border-radius-sm);
+            cursor: pointer; font-size: 1.2rem;
+            color: var(--text-secondary);
+            flex-shrink: 0; z-index: 150;
+        }
+        .mobile-nav-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.5); z-index: 190;
+            backdrop-filter: blur(2px);
+        }
+        .mobile-nav-overlay.active { display: block; }
+
+        /* ── LOADING OVERLAY + PENCIL ───────────────────────────────── */
+        .loading-overlay {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(248,247,244,0.92);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            z-index: 9999; opacity: 0; pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .loading-overlay.active { opacity: 1; pointer-events: all; }
+        .loading-overlay p { margin-top: 1rem; color: var(--accent); font-weight: 600; font-size: 1rem; }
+        .pencil { display: block; width: 10em; height: 10em; }
+        .pencil__body1,.pencil__body2,.pencil__body3,.pencil__eraser,.pencil__eraser-skew,.pencil__point,.pencil__stroke { animation-duration:3s;animation-timing-function:linear;animation-iteration-count:infinite; }
+        .pencil__body1,.pencil__body2,.pencil__body3 { transform:rotate(-90deg); }
+        .pencil__body1{animation-name:pencilBody1}.pencil__body2{animation-name:pencilBody2}.pencil__body3{animation-name:pencilBody3}
+        .pencil__eraser{animation-name:pencilEraser;transform:rotate(-90deg) translate(49px,0)}
+        .pencil__eraser-skew{animation-name:pencilEraserSkew;animation-timing-function:ease-in-out}
+        .pencil__point{animation-name:pencilPoint;transform:rotate(-90deg) translate(49px,-30px)}
+        .pencil__stroke{animation-name:pencilStroke;transform:translate(100px,100px) rotate(-113deg)}
+        @keyframes pencilBody1{from,to{stroke-dashoffset:351.86;transform:rotate(-90deg)}50%{stroke-dashoffset:150.8;transform:rotate(-225deg)}}
+        @keyframes pencilBody2{from,to{stroke-dashoffset:406.84;transform:rotate(-90deg)}50%{stroke-dashoffset:174.36;transform:rotate(-225deg)}}
+        @keyframes pencilBody3{from,to{stroke-dashoffset:296.88;transform:rotate(-90deg)}50%{stroke-dashoffset:127.23;transform:rotate(-225deg)}}
+        @keyframes pencilEraser{from,to{transform:rotate(-45deg) translate(49px,0)}50%{transform:rotate(0deg) translate(49px,0)}}
+        @keyframes pencilEraserSkew{from,32.5%,67.5%,to{transform:skewX(0)}35%,65%{transform:skewX(-4deg)}37.5%,62.5%{transform:skewX(8deg)}40%,45%,50%,55%,60%{transform:skewX(-15deg)}42.5%,47.5%,52.5%,57.5%{transform:skewX(15deg)}}
+        @keyframes pencilPoint{from,to{transform:rotate(-90deg) translate(49px,-30px)}50%{transform:rotate(-225deg) translate(49px,-30px)}}
+        @keyframes pencilStroke{from{stroke-dashoffset:439.82;transform:translate(100px,100px) rotate(-113deg)}50%{stroke-dashoffset:164.93;transform:translate(100px,100px) rotate(-113deg)}75%,to{stroke-dashoffset:439.82;transform:translate(100px,100px) rotate(112deg)}}
+
+        /* ── TOAST ──────────────────────────────────────────────────── */
+        .toast-container{position:fixed;top:1.25rem;right:1.25rem;z-index:9999;display:flex;flex-direction:column;gap:.5rem;pointer-events:none}
+        .toast{padding:.75rem 1.25rem;border-radius:10px;font-size:.9rem;font-weight:500;color:#fff;box-shadow:0 4px 20px rgba(0,0,0,.15);opacity:0;transform:translateX(40px);transition:opacity .25s ease,transform .25s ease;pointer-events:auto;max-width:320px}
+        .toast.show{opacity:1;transform:translateX(0)}
+        .toast.success{background:linear-gradient(135deg,#10b981,#059669)}
+        .toast.error{background:linear-gradient(135deg,#ef4444,#dc2626)}
+        .toast.info{background:linear-gradient(135deg,#6366f1,#4f46e5)}
+
+        /* ── FOCUS RINGS ────────────────────────────────────────────── */
+        a:focus-visible,button:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(37,99,235,.25);border-radius:4px}
     </style>
-    <link rel="stylesheet" href="/glassmorphism.css">
-    <link rel="stylesheet" href="/shared-dashboard.css">
     <script src="/global.js"></script>
 </head>
 
@@ -642,13 +712,6 @@
             </g>
         </svg>
         <p id="loadingText">Cargando...</p>
-    </div>
-
-    <!-- BG Blobs -->
-    <div class="bg-blobs">
-        <div class="blob blob-1"></div>
-        <div class="blob blob-2"></div>
-        <div class="blob blob-3"></div>
     </div>
 
     <aside>

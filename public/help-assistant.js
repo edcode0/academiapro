@@ -5,8 +5,8 @@
     #help-btn {
       position: fixed; bottom: 24px; right: 24px; z-index: 9998;
       width: 56px; height: 56px; border-radius: 50%; border: none; cursor: pointer;
-      background: linear-gradient(135deg, #6366f1, #8b5cf6);
-      color: white; font-size: 24px; box-shadow: 0 4px 20px rgba(99,102,241,0.4);
+      background: #0f172a;
+      color: white; font-size: 24px; box-shadow: 0 4px 20px rgba(15,23,42,0.35);
       display: flex; align-items: center; justify-content: center;
       transition: transform 0.2s;
     }
@@ -19,7 +19,7 @@
     }
     #help-panel.open { display: flex; }
     #help-header {
-      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      background: #0f172a;
       color: white; padding: 16px; display: flex; align-items: center; justify-content: space-between;
       font-weight: 600; font-size: 14px;
     }
@@ -29,20 +29,20 @@
       background: #f9fafb;
     }
     .help-msg { max-width: 80%; padding: 10px 14px; border-radius: 12px; font-size: 13px; line-height: 1.5; }
-    .help-msg.user { background: #6366f1; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
+    .help-msg.user { background: #0f172a; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
     .help-msg.assistant { background: white; color: #1f2937; align-self: flex-start; border-bottom-left-radius: 4px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
     #help-input-row { padding: 12px; display: flex; gap: 8px; border-top: 1px solid #e5e7eb; background: white; }
     #help-input {
       flex: 1; border: 1px solid #d1d5db; border-radius: 8px; padding: 8px 12px;
       font-size: 13px; outline: none; resize: none;
     }
-    #help-input:focus { border-color: #6366f1; }
+    #help-input:focus { border-color: #2563eb; }
     #help-send {
-      background: #6366f1; color: white; border: none; border-radius: 8px;
+      background: #0f172a; color: white; border: none; border-radius: 8px;
       padding: 8px 14px; cursor: pointer; font-size: 13px; font-weight: 600;
       transition: background 0.2s;
     }
-    #help-send:hover { background: #4f46e5; }
+    #help-send:hover { background: #1e293b; }
     #help-send:disabled { background: #9ca3af; cursor: not-allowed; }
   `;
   document.head.appendChild(style);
