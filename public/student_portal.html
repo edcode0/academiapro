@@ -341,14 +341,6 @@
             font-weight: 600;
             margin-top: 4px;
         }
-        /* Notification Bell */
-        .notif-bell-wrap { position: relative; display: inline-flex; align-items: center; }
-        .notif-bell { background: none; border: none; font-size: 1.4rem; cursor: pointer; position: relative; padding: 6px 8px; border-radius: 50%; transition: background 0.2s; }
-        .notif-bell:hover { background: #f1f5f9; }
-        .notif-badge { position: absolute; top: 2px; right: 2px; background: #ef4444; color: white; border-radius: 999px; font-size: 10px; font-weight: 700; padding: 1px 5px; min-width: 16px; text-align: center; line-height: 14px; }
-        .notif-dropdown { display: none; position: absolute; right: 0; top: calc(100% + 8px); width: 360px; background: white; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.12); z-index: 1000; overflow: hidden; }
-        .notif-dropdown.open { display: block; }
-        .notif-dropdown-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-bottom: 1px solid #e2e8f0; font-weight: 600; font-size: 14px; color: #1e293b; }
         .notif-mark-all { font-size: 12px; color: #6366f1; background: none; border: none; cursor: pointer; font-weight: 500; padding: 0; }
         .notif-mark-all:hover { text-decoration: underline; }
         .notif-list { max-height: 380px; overflow-y: auto; }
@@ -364,6 +356,7 @@
         .notif-empty { padding: 32px 16px; text-align: center; color: #94a3b8; font-size: 13px; }
     </style>
     <link rel="stylesheet" href="/glassmorphism.css">
+    <link rel="stylesheet" href="/shared-dashboard.css">
     <script src="/global.js"></script>
     <script src="/notifications.js"></script>
 </head>
@@ -451,6 +444,8 @@
 
     <main>
         <header>
+                <button class="hamburger-btn" onclick="toggleMobileNav()">&#9776;</button>
+                
             <div class="welcome">
                 <div>
                     <h2 id="student-welcome" style="margin-bottom:0.2rem;">¡Hola! 👋</h2>
@@ -481,6 +476,9 @@
                 <h3>Nota Media</h3>
                 <div id="avg-score-value" class="value">0.0</div>
                 <div id="avg-score-status" class="sub-text"></div>
+                <div style="margin-top:0.75rem; background:#f1f5f9; border-radius:999px; height:8px; overflow:hidden;">
+                    <div id="avg-score-bar" style="height:100%; border-radius:999px; width:0%; background:#94a3b8; transition:width 0.6s ease, background 0.4s;"></div>
+                </div>
             </div>
             <div class="stat-card border-orange" id="card-payments">
                 <div class="icon">💳</div>
@@ -590,9 +588,11 @@
                 const avg = parseFloat(stats.avgScore);
                 const avgEl = document.getElementById('avg-score-value');
                 avgEl.textContent = (!avg || isNaN(avg)) ? '0.0' : avg.toFixed(1);
-                if (avg >= 7) avgEl.style.color = 'var(--success)';
-                else if (avg >= 5) avgEl.style.color = 'var(--warning)';
-                else avgEl.style.color = 'var(--danger)';
+                const barEl = document.getElementById('avg-score-bar');
+                if (avg >= 8) { avgEl.style.color = 'var(--success)'; if (barEl) { barEl.style.width = (avg * 10) + '%'; barEl.style.background = '#10b981'; } }
+                else if (avg >= 6) { avgEl.style.color = '#eab308'; if (barEl) { barEl.style.width = (avg * 10) + '%'; barEl.style.background = '#eab308'; } }
+                else if (avg >= 4) { avgEl.style.color = 'var(--warning)'; if (barEl) { barEl.style.width = (avg * 10) + '%'; barEl.style.background = '#f59e0b'; } }
+                else { avgEl.style.color = 'var(--danger)'; if (barEl) { barEl.style.width = (avg * 10) + '%'; barEl.style.background = '#ef4444'; } }
 
                 document.getElementById('pending-payments-value').textContent = `${stats.pendingPayments} €`;
                 if (stats.pendingPayments > 0) {
@@ -689,14 +689,14 @@
                 });
                 const data = await response.json();
                 if (data.success) {
-                    alert('Cuenta eliminada correctamente.');
+                    showToast('Cuenta eliminada correctamente.', 'success');
                     localStorage.clear();
                     window.location.href = '/login';
                 } else {
-                    alert(data.error || 'Error al eliminar la cuenta');
+                    showToast(data.error || 'Error al eliminar la cuenta', 'error');
                 }
             } catch (err) {
-                alert('Error de conexión');
+                showToast('Error de conexión', 'error');
             }
         });
 
@@ -704,6 +704,8 @@
         initNotifications();
     </script>
 <script src="/help-assistant.js"></script>
+
+    <div class="mobile-nav-overlay" id="mobile-nav-overlay" onclick="closeMobileNav()"></div>
 </body>
 
 </html>

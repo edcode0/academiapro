@@ -482,6 +482,7 @@
         }
     </style>
     <link rel="stylesheet" href="/glassmorphism.css">
+    <link rel="stylesheet" href="/shared-dashboard.css">
     <script src="/global.js"></script>
 </head>
 
@@ -560,6 +561,8 @@
     <!-- ═══ Main Content ═══ -->
     <main>
         <div class="page-header">
+                <button class="hamburger-btn" onclick="toggleMobileNav()">&#9776;</button>
+                
             <h2>🗓️ Mi Calendario</h2>
             <div class="legend">
                 <div class="legend-item">
@@ -1055,15 +1058,6 @@
             return String(date.getHours()).padStart(2, '0') + ':' + String(date.getMinutes()).padStart(2, '0');
         }
 
-        function showToast(msg, type = 'success') {
-            const colors = { success: '#10b981', error: '#ef4444', warning: '#f59e0b' };
-            const t = document.getElementById('toast');
-            t.textContent = msg;
-            t.style.background = colors[type] || colors.success;
-            t.style.display = 'block';
-            setTimeout(() => t.style.display = 'none', 3500);
-        }
-
         // Close modals when clicking backdrop
         document.getElementById('createModal').addEventListener('click', function (e) {
             if (e.target === this) closeCreate();
@@ -1073,6 +1067,8 @@
         });
     </script>
 <script src="/help-assistant.js"></script>
+
+    <div class="mobile-nav-overlay" id="mobile-nav-overlay" onclick="closeMobileNav()"></div>
 </body>
 
 </html>

@@ -244,6 +244,7 @@
         }
     </style>
     <link rel="stylesheet" href="/glassmorphism.css">
+    <link rel="stylesheet" href="/shared-dashboard.css">
     <script src="/global.js"></script>
 </head>
 
@@ -321,6 +322,8 @@
 
     <main>
         <div class="header">
+                <button class="hamburger-btn" onclick="toggleMobileNav()">&#9776;</button>
+                
             <h2>Mi Calendario</h2>
             <p style="color: var(--text-muted);">Reserva tus sesiones con tu profesor o cancela con al menos 24 hs de
                 anticipación.</p>
@@ -552,14 +555,14 @@
             try {
                 const res = await fetch(`/api/calendar/slots/${selectedSlotId}/book`, { method: 'POST' });
                 if (res.ok) {
-                    alert('¡Reserva completada!');
+                    showToast('¡Reserva completada!', 'success');
                     calendar.refetchEvents();
                     closeModal();
                 } else {
                     const data = await res.json();
-                    alert(data.error || 'Error al reservar. Puede que alguien más ya lo haya tomado.');
+                    showToast(data.error || 'Error al reservar. Puede que alguien más ya lo haya tomado.', 'error');
                 }
-            } catch (e) { alert('Error de red'); }
+            } catch (e) { showToast('Error de red', 'error'); }
         }
 
         async function cancelSlot() {
@@ -567,17 +570,19 @@
             try {
                 const res = await fetch(`/api/calendar/slots/${selectedSlotId}/cancel`, { method: 'POST' });
                 if (res.ok) {
-                    alert('Clase cancelada exitosamente.');
+                    showToast('Clase cancelada exitosamente.', 'success');
                     calendar.refetchEvents();
                     closeModal();
                 } else {
                     const data = await res.json();
-                    alert(data.error || 'Error al cancelar. (Reuerda que requiere 24h)');
+                    showToast(data.error || 'Error al cancelar. (Recuerda que requiere 24h)', 'error');
                 }
-            } catch (e) { alert('Error de red'); }
+            } catch (e) { showToast('Error de red', 'error'); }
         }
     </script>
 <script src="/help-assistant.js"></script>
+
+    <div class="mobile-nav-overlay" id="mobile-nav-overlay" onclick="closeMobileNav()"></div>
 </body>
 
 </html>

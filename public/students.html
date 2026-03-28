@@ -401,6 +401,7 @@
         }
     </style>
     <link rel="stylesheet" href="/glassmorphism.css">
+    <link rel="stylesheet" href="/shared-dashboard.css">
     <script src="/global.js"></script>
 </head>
 
@@ -482,6 +483,8 @@
 
     <main>
         <div class="header">
+                <button class="hamburger-btn" onclick="toggleMobileNav()">&#9776;</button>
+                
             <h2>Estudiantes</h2>
             <button class="btn btn-primary" onclick="openModal('studentModal')">
                 <span>+</span> Nueva Inscripción
@@ -743,7 +746,7 @@
                     closeModal('deleteStudentModal');
                     loadStudents();
                 } else {
-                    alert('Error al eliminar alumno');
+                    showToast('Error al eliminar alumno', 'error');
                 }
             } catch (err) {
                 console.error(err);
@@ -776,7 +779,7 @@
                     closeModal('assignTeacherModal');
                     loadStudents();
                 } else {
-                    alert('Error al actualizar el profesor');
+                    showToast('Error al actualizar el profesor', 'error');
                 }
             } catch (err) {
                 console.error(err);
@@ -818,14 +821,6 @@
                 console.error(err);
             }
         });
-
-        function showToast(msg) {
-            const toast = document.getElementById('toast');
-            toast.textContent = msg;
-            toast.style.display = 'block';
-            toast.style.backgroundColor = '#10b981';
-            setTimeout(() => toast.style.display = 'none', 3000);
-        }
 
         async function loadUser() {
             const res = await fetch('/auth/me');
@@ -873,6 +868,8 @@
         }
         highlightActiveLink();
     </script>
+
+    <div class="mobile-nav-overlay" id="mobile-nav-overlay" onclick="closeMobileNav()"></div>
 </body>
 
 </html>

@@ -234,6 +234,7 @@
         }
     </style>
     <link rel="stylesheet" href="/glassmorphism.css">
+    <link rel="stylesheet" href="/shared-dashboard.css">
     <script src="/global.js"></script>
 </head>
 
@@ -311,6 +312,8 @@
 
     <main>
         <div class="header" style="display:flex; justify-content:space-between; align-items:center;">
+                <button class="hamburger-btn" onclick="toggleMobileNav()">&#9776;</button>
+                
             <div>
                 <h2>Mis Notas</h2>
                 <p style="color: var(--text-muted);">Sigue tu progreso académico.</p>
@@ -549,11 +552,11 @@
                 } else {
                     const errData = await res.json();
                     console.error('[ExamSave] Server error:', errData);
-                    alert('Error: ' + (errData.error || 'No se pudo guardar el examen'));
+                    showToast('Error: ' + (errData.error || 'No se pudo guardar el examen'), 'error');
                 }
             } catch (err) {
                 console.error('[ExamSave] Request failed:', err);
-                alert('Error de conexión al intentar guardar el examen');
+                showToast('Error de conexión al intentar guardar el examen', 'error');
             }
         };
 
@@ -561,7 +564,7 @@
             const score = prompt('Introduce la calificación (0-10):');
             if (score === null || score === '') return;
             const parsed = parseFloat(score);
-            if (isNaN(parsed) || parsed < 0 || parsed > 10) return alert('Por favor introduce un número válido entre 0 y 10.');
+            if (isNaN(parsed) || parsed < 0 || parsed > 10) return showToast('Por favor introduce un número válido entre 0 y 10.', 'error');
 
             fetch(`/api/exams/${id}/score`, {
                 method: 'PUT',
@@ -660,6 +663,8 @@
         loadExams();
         initSidebar();
     </script>
+
+    <div class="mobile-nav-overlay" id="mobile-nav-overlay" onclick="closeMobileNav()"></div>
 </body>
 
 </html>

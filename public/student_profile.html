@@ -398,6 +398,7 @@
         }
     </style>
     <link rel="stylesheet" href="/glassmorphism.css">
+    <link rel="stylesheet" href="/shared-dashboard.css">
     <script src="/global.js"></script>
 </head>
 
@@ -478,6 +479,8 @@
         </div>
 
         <div class="header-profile" id="profile-header">
+                <button class="hamburger-btn" onclick="toggleMobileNav()">&#9776;</button>
+                
             <div class="student-info">
                 <h2 id="student-name">Cargando...</h2>
                 <p id="student-course-subject"></p>
@@ -997,7 +1000,7 @@
                 if (res.ok) {
                     window.location.href = '/students';
                 } else {
-                    alert('Error al eliminar alumno');
+                    showToast('Error al eliminar alumno', 'error');
                 }
             } catch (e) {
                 console.error(e);
@@ -1170,18 +1173,6 @@
             }
         }
 
-        function showToast(message, type = 'success') {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.className = `toast-${type}`;
-            toast.style.display = 'block';
-            toast.style.backgroundColor = type === 'success' ? '#10b981' : (type === 'warning' ? '#f59e0b' : '#ef4444');
-
-            setTimeout(() => {
-                toast.style.display = 'none';
-            }, 5000);
-        }
-
         // Report Submission
         document.getElementById('reportForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -1189,7 +1180,7 @@
             const cooldownKey = `report_cooldown_${studentId}`;
             const lastGen = localStorage.getItem(cooldownKey);
             if (lastGen && Date.now() - parseInt(lastGen) < 3600000) {
-                alert("Por favor, espera 1 hora antes de generar otro informe para este alumno para evitar duplicados.");
+                showToast('Por favor, espera 1 hora antes de generar otro informe para este alumno para evitar duplicados.', 'info');
                 return;
             }
 
@@ -1217,7 +1208,7 @@
                 const result = await res.json();
 
                 if (!res.ok) {
-                    alert(result.error || 'Error al generar el informe');
+                    showToast(result.error || 'Error al generar el informe', 'error');
                     btn.textContent = originalText;
                     btn.disabled = false;
                     return;
@@ -1313,6 +1304,8 @@
         highlightActiveLink();
     </script>
     <div id="toast"></div>
+
+    <div class="mobile-nav-overlay" id="mobile-nav-overlay" onclick="closeMobileNav()"></div>
 </body>
 
 </html>

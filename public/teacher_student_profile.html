@@ -295,6 +295,7 @@
         }
     </style>
     <link rel="stylesheet" href="/glassmorphism.css">
+    <link rel="stylesheet" href="/shared-dashboard.css">
     <script src="/global.js"></script>
 </head>
 
@@ -373,6 +374,8 @@
         <a href="/teacher/dashboard" class="back-link">← Volver al Listado</a>
 
         <div class="header-profile">
+                <button class="hamburger-btn" onclick="toggleMobileNav()">&#9776;</button>
+                
             <div class="student-info">
                 <h2 id="student-name">...</h2>
                 <p id="student-course-subject"></p>
@@ -772,7 +775,7 @@
             const cooldownKey = `report_cooldown_${studentId}`;
             const lastGen = localStorage.getItem(cooldownKey);
             if (lastGen && Date.now() - parseInt(lastGen) < 3600000) {
-                alert("Por favor, espera 1 hora antes de generar otro informe para este alumno para evitar duplicados.");
+                showToast('Por favor, espera 1 hora antes de generar otro informe para este alumno para evitar duplicados.', 'info');
                 return;
             }
 
@@ -799,7 +802,7 @@
                 const result = await res.json();
 
                 if (!res.ok) {
-                    alert(result.error || 'Error al generar informe con IA.');
+                    showToast(result.error || 'Error al generar informe con IA.', 'error');
                 } else {
                     localStorage.setItem(cooldownKey, Date.now().toString());
                     const a = document.createElement('a');
@@ -811,10 +814,10 @@
                     a.remove();
                     closeModal('reportModal');
                     if (typeof showToast === 'function') showToast(`✅ ${result.message}`);
-                    else alert(result.message);
+                    else showToast(result.message, 'info');
                 }
             } catch (err) {
-                alert('No se pudo conectar con el servidor.');
+                showToast('No se pudo conectar con el servidor.', 'error');
             }
 
             btn.textContent = 'Generar PDF con IA';
@@ -823,6 +826,8 @@
 
         init();
     </script>
+
+    <div class="mobile-nav-overlay" id="mobile-nav-overlay" onclick="closeMobileNav()"></div>
 </body>
 
 </html>

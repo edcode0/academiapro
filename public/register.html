@@ -352,11 +352,13 @@
             const data = await res.json();
             if (data.success) {
                 if (role === 'admin') {
-                    alert('Códigos de Academia:\nProfesor: ' + data.teacher_code + '\nEstudiante: ' + data.student_code);
+                    showToast('Códigos — Profesor: ' + data.teacher_code + ' | Estudiante: ' + data.student_code, 'info');
+                    setTimeout(() => { window.location.href = data.redirect || '/login'; }, 3500);
+                } else {
+                    window.location.href = data.redirect || '/login';
                 }
-                window.location.href = data.redirect || '/login';
             } else {
-                alert(data.error);
+                showToast(data.error, 'error');
             }
         });
     </script>

@@ -359,6 +359,7 @@
         }
     </style>
     <link rel="stylesheet" href="/glassmorphism.css">
+    <link rel="stylesheet" href="/shared-dashboard.css">
 </head>
 
 <body>
@@ -448,6 +449,8 @@
             </div>
             <div id="chat-box" style="display: none; height: 100%; flex-direction: column;">
                 <header id="chat-header">
+                <button class="hamburger-btn" onclick="toggleMobileNav()">&#9776;</button>
+                
                     <div id="header-avatar" class="avatar"></div>
                     <div class="room-info">
                         <div id="header-name" class="room-name"></div>
@@ -804,6 +807,8 @@
         init();
     </script>
 <script src="/help-assistant.js"></script>
+
+    <div class="mobile-nav-overlay" id="mobile-nav-overlay" onclick="closeMobileNav()"></div>
 </body>
 
 </html>

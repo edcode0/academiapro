@@ -227,6 +227,7 @@
         }
     </style>
     <link rel="stylesheet" href="/glassmorphism.css">
+    <link rel="stylesheet" href="/shared-dashboard.css">
     <script src="/global.js"></script>
 </head>
 
@@ -304,6 +305,8 @@
 
     <main>
         <div class="header">
+                <button class="hamburger-btn" onclick="toggleMobileNav()">&#9776;</button>
+                
             <h2>Gestión de Exámenes</h2>
             <button class="btn btn-primary" onclick="openModal()">+ Registrar Examen</button>
         </div>
@@ -466,6 +469,8 @@
 
         init();
     </script>
+
+    <div class="mobile-nav-overlay" id="mobile-nav-overlay" onclick="closeMobileNav()"></div>
 </body>
 
 </html>

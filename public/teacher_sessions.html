@@ -424,6 +424,7 @@
         }
     </style>
     <link rel="stylesheet" href="/glassmorphism.css">
+    <link rel="stylesheet" href="/shared-dashboard.css">
     <script src="/global.js"></script>
 </head>
 
@@ -500,6 +501,8 @@
 
     <main>
         <div class="header">
+                <button class="hamburger-btn" onclick="toggleMobileNav()">&#9776;</button>
+                
             <h2>Gestión de Sesiones</h2>
             <button class="btn btn-primary" onclick="openModal('sessionModal')">+ Nueva Sesión</button>
         </div>
@@ -784,16 +787,11 @@
             }
         };
 
-        function showToast(m) {
-            const t = document.getElementById('toast');
-            t.textContent = m;
-            t.style.display = 'block';
-            setTimeout(() => t.style.display = 'none', 3000);
-        }
-
         init();
     </script>
 <script src="/help-assistant.js"></script>
+
+    <div class="mobile-nav-overlay" id="mobile-nav-overlay" onclick="closeMobileNav()"></div>
 </body>
 
 </html>

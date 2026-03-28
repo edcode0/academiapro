@@ -1,0 +1,281 @@
+/* =====================================================
+   shared-dashboard.css — Common styles for all dashboards
+   Linked by all 24 dashboard pages.
+   ===================================================== */
+
+/* ----- CSS VARIABLES ----- */
+:root {
+    --primary: #1e293b;
+    --accent: #3b82f6;
+    --background: #f8fafc;
+    --card-bg: #ffffff;
+    --text-main: #1e293b;
+    --text-muted: #94a3b8;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --border: #e2e8f0;
+}
+
+/* ----- RESET ----- */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', sans-serif;
+}
+
+/* ----- BODY LAYOUT ----- */
+body {
+    background-color: var(--background);
+    color: var(--text-main);
+    display: flex;
+    min-height: 100vh;
+}
+
+/* ----- SIDEBAR ----- */
+aside {
+    width: 260px;
+    background: var(--primary);
+    color: var(--text-muted);
+    padding: 2rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    z-index: 100;
+}
+
+aside h1 {
+    color: white;
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin-bottom: 2.5rem;
+}
+
+nav {
+    flex: 1;
+}
+
+nav a {
+    color: var(--text-muted);
+    text-decoration: none;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    transition: all 0.2s;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    position: relative;
+}
+
+nav a:hover,
+nav a.active {
+    background: var(--accent);
+    color: white;
+}
+
+.btn-logout {
+    color: #ef4444;
+    text-decoration: none;
+    font-weight: 600;
+    padding: 0.75rem 1rem;
+    display: block;
+    border-radius: 0.5rem;
+    transition: background 0.2s;
+}
+
+.unread-badge-sidebar {
+    position: absolute;
+    right: 0.75rem;
+    background: #ef4444;
+    color: white;
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 10px;
+    display: none;
+    font-weight: 600;
+}
+
+/* ----- MAIN CONTENT ----- */
+main {
+    flex: 1;
+    margin-left: 260px;
+    padding: 2.5rem;
+}
+
+/* ----- STAT CARDS ----- */
+.stat-card {
+    background: var(--card-bg);
+    padding: 1.5rem;
+    border-radius: 1rem;
+    border: 1px solid var(--border);
+    border-left-width: 4px;
+    position: relative;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.stat-card h3 {
+    color: #64748b;
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+}
+
+.stat-card .value {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.stat-card .icon {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    font-size: 1.5rem;
+    opacity: 0.2;
+}
+
+/* ----- BORDER ACCENT COLORS ----- */
+.border-blue   { border-left-color: #3b82f6; }
+.border-green  { border-left-color: #10b981; }
+.border-orange { border-left-color: #f59e0b; }
+.border-purple { border-left-color: #a855f7; }
+.border-red    { border-left-color: #ef4444; }
+
+/* ----- BADGES ----- */
+.badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.badge-active   { background: #dcfce7; color: #166534; }
+.badge-risk     { background: #fee2e2; color: #991b1b; }
+.badge-inactive { background: #f1f5f9; color: #64748b; }
+.badge-pending  { background: #fef9c3; color: #854d0e; }
+.badge-admin    { background: #10b981; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+.badge-teacher  { background: #3b82f6; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+.badge-student  { background: #8b5cf6; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+.badge-group      { padding: 0.2rem 0.55rem; border-radius: 9999px; font-size: 0.7rem; font-weight: 600; background: #ede9fe; color: #5b21b6; }
+.badge-individual { padding: 0.2rem 0.55rem; border-radius: 9999px; font-size: 0.7rem; font-weight: 600; background: #e0f2fe; color: #0369a1; }
+
+/* ----- MODAL ----- */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+}
+
+.modal {
+    background: white;
+    width: 500px;
+    border-radius: 1rem;
+    padding: 2rem;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+/* ----- FORM GROUPS ----- */
+.form-group {
+    margin-bottom: 1.25rem;
+}
+
+.form-group label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #64748b;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    outline: none;
+}
+
+/* ----- BUTTONS ----- */
+.btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-primary {
+    background: var(--accent);
+    color: white;
+}
+
+.btn-primary:hover { background: #2563eb; }
+
+.btn-ghost {
+    background: transparent;
+    color: var(--text-main);
+}
+
+.btn-danger {
+    background: #ef4444;
+    color: white;
+}
+
+/* ----- TABLE ----- */
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; padding: 0.75rem 1rem; color: #64748b; font-size: 0.875rem; font-weight: 500; border-bottom: 1px solid var(--border); }
+td { padding: 1rem; border-bottom: 1px solid var(--border); font-size: 0.875rem; }
+
+/* ----- NOTIFICATION BELL ----- */
+.notif-bell-wrap { position: relative; display: inline-flex; align-items: center; }
+.notif-bell { background: none; border: none; font-size: 1.4rem; cursor: pointer; position: relative; padding: 6px 8px; border-radius: 50%; transition: background 0.2s; }
+.notif-bell:hover { background: #f1f5f9; }
+.notif-badge { position: absolute; top: 2px; right: 2px; background: #ef4444; color: white; border-radius: 999px; font-size: 10px; font-weight: 700; padding: 1px 5px; min-width: 16px; text-align: center; line-height: 14px; }
+.notif-dropdown { display: none; position: absolute; right: 0; top: calc(100% + 8px); width: 360px; background: white; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.12); z-index: 1000; overflow: hidden; }
+.notif-dropdown.open { display: block; }
+.notif-dropdown-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-bottom: 1px solid #e2e8f0; font-weight: 600; font-size: 14px; color: #1e293b; }
+
+/* ----- CARD ----- */
+.card {
+    background: var(--card-bg);
+    padding: 1.5rem;
+    border-radius: 1rem;
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.card h4 {
+    font-size: 1.125rem;
+    margin-bottom: 1.5rem;
+}
+
+/* ----- RESPONSIVE ----- */
+@media (max-width: 1024px) {
+    aside { display: none; }
+    main { margin-left: 0; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+}
+
+@media (max-width: 640px) {
+    .stats-grid { grid-template-columns: 1fr !important; }
+    main { padding: 1.5rem; }
+    .modal { width: calc(100vw - 2rem); }
+}

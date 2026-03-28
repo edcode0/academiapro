@@ -230,6 +230,7 @@
         }
     </style>
     <link rel="stylesheet" href="/glassmorphism.css">
+    <link rel="stylesheet" href="/shared-dashboard.css">
     <script src="/global.js"></script>
 </head>
 
@@ -311,6 +312,8 @@
 
     <main>
         <div class="page-header">
+                <button class="hamburger-btn" onclick="toggleMobileNav()">&#9776;</button>
+                
             <h2>⚙️ Mi Configuración</h2>
             <p>Gestiona tu perfil y código personal de usuario.</p>
         </div>
@@ -486,13 +489,6 @@
             navigator.clipboard.writeText(code).then(() => showToast('📋 Código copiado al portapapeles'));
         }
 
-        function showToast(msg) {
-            const t = document.getElementById('toast');
-            t.textContent = msg;
-            t.style.display = 'block';
-            setTimeout(() => t.style.display = 'none', 3000);
-        }
-
         document.getElementById('delete-account-btn').addEventListener('click', async function () {
             const confirmed = confirm('¿Estás seguro? Esta acción eliminará tu cuenta permanentemente y no se puede deshacer.');
             if (!confirmed) return;
@@ -505,14 +501,14 @@
                 });
                 const data = await response.json();
                 if (data.success) {
-                    alert('Cuenta eliminada correctamente.');
+                    showToast('Cuenta eliminada correctamente.', 'success');
                     localStorage.clear();
                     window.location.href = '/login';
                 } else {
-                    alert(data.error || 'Error al eliminar la cuenta');
+                    showToast(data.error || 'Error al eliminar la cuenta', 'error');
                 }
             } catch (err) {
-                alert('Error de conexión');
+                showToast('Error de conexión', 'error');
             }
         });
 
@@ -647,6 +643,8 @@
         loadGmailStatus();
     </script>
 <script src="/help-assistant.js"></script>
+
+    <div class="mobile-nav-overlay" id="mobile-nav-overlay" onclick="closeMobileNav()"></div>
 </body>
 
 </html>

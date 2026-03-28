@@ -595,6 +595,7 @@
         }
     </style>
     <link rel="stylesheet" href="/glassmorphism.css">
+    <link rel="stylesheet" href="/shared-dashboard.css">
     <script src="/global.js"></script>
 </head>
 
@@ -675,6 +676,7 @@
     </aside>
 
     <main>
+        <button class="hamburger-btn" onclick="toggleMobileNav()">&#9776;</button>
         <a href="/admin/teachers" class="back-link">← Volver a Profesores</a>
 
         <!-- Profile Header -->
@@ -1135,14 +1137,6 @@
             if (res.ok) { showToast('Alumno desasignado'); loadTeacherData(); }
         }
 
-        function showToast(msg, isError = false) {
-            const t = document.getElementById('toast');
-            t.textContent = msg;
-            t.style.background = isError ? '#ef4444' : '#10b981';
-            t.style.display = 'block';
-            setTimeout(() => t.style.display = 'none', 3000);
-        }
-
         function closeModal(modalId) {
             document.getElementById(modalId).style.display = 'none';
         }
@@ -1168,7 +1162,7 @@
                 if (res.ok) {
                     window.location.href = '/admin/teachers';
                 } else {
-                    alert('Error al eliminar profesor');
+                    showToast('Error al eliminar profesor', 'error');
                 }
             } catch (err) {
                 console.error(err);
@@ -1180,6 +1174,8 @@
 
         init();
     </script>
+
+    <div class="mobile-nav-overlay" id="mobile-nav-overlay" onclick="closeMobileNav()"></div>
 </body>
 
 </html>

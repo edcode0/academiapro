@@ -246,6 +246,7 @@
         }
     </style>
     <link rel="stylesheet" href="/glassmorphism.css">
+    <link rel="stylesheet" href="/shared-dashboard.css">
     <script src="/global.js"></script>
 </head>
 
@@ -325,6 +326,8 @@
 
     <main>
         <div class="header">
+                <button class="hamburger-btn" onclick="toggleMobileNav()">&#9776;</button>
+                
             <h2>Configuración</h2>
         </div>
 
@@ -701,14 +704,6 @@
             saveSettings(['notify_risk', 'notify_payment', 'notify_monthly']);
         };
 
-        function showToast(msg) {
-            const toast = document.getElementById('toast');
-            toast.textContent = msg;
-            toast.style.display = 'block';
-            toast.style.backgroundColor = '#10b981';
-            setTimeout(() => toast.style.display = 'none', 3000);
-        }
-
         function highlightActiveLink() {
             const currentPath = window.location.pathname;
             document.querySelectorAll('#mainNav a').forEach(link => {
@@ -730,14 +725,14 @@
                 });
                 const data = await response.json();
                 if (data.success) {
-                    alert('Cuenta eliminada correctamente.');
+                    showToast('Cuenta eliminada correctamente.', 'success');
                     localStorage.clear();
                     window.location.href = '/login';
                 } else {
-                    alert(data.error || 'Error al eliminar la cuenta');
+                    showToast(data.error || 'Error al eliminar la cuenta', 'error');
                 }
             } catch (err) {
-                alert('Error de conexión');
+                showToast('Error de conexión', 'error');
             }
         });
 
@@ -860,6 +855,8 @@
         loadGmailStatus();
     </script>
 <script src="/help-assistant.js"></script>
+
+    <div class="mobile-nav-overlay" id="mobile-nav-overlay" onclick="closeMobileNav()"></div>
 </body>
 
 </html>

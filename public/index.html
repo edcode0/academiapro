@@ -321,14 +321,6 @@
         .academy-header { margin-bottom: 8px; }
         .academy-header .greeting { font-size: 1.6rem; font-weight: 700; margin: 0; }
 
-        /* Notification Bell */
-        .notif-bell-wrap { position: relative; display: inline-flex; align-items: center; }
-        .notif-bell { background: none; border: none; font-size: 1.4rem; cursor: pointer; position: relative; padding: 6px 8px; border-radius: 50%; transition: background 0.2s; }
-        .notif-bell:hover { background: #f1f5f9; }
-        .notif-badge { position: absolute; top: 2px; right: 2px; background: #ef4444; color: white; border-radius: 999px; font-size: 10px; font-weight: 700; padding: 1px 5px; min-width: 16px; text-align: center; line-height: 14px; }
-        .notif-dropdown { display: none; position: absolute; right: 0; top: calc(100% + 8px); width: 360px; background: white; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.12); z-index: 1000; overflow: hidden; }
-        .notif-dropdown.open { display: block; }
-        .notif-dropdown-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-bottom: 1px solid #e2e8f0; font-weight: 600; font-size: 14px; color: #1e293b; }
         .notif-mark-all { font-size: 12px; color: #6366f1; background: none; border: none; cursor: pointer; font-weight: 500; padding: 0; }
         .notif-mark-all:hover { text-decoration: underline; }
         .notif-list { max-height: 380px; overflow-y: auto; }
@@ -344,6 +336,7 @@
         .notif-empty { padding: 32px 16px; text-align: center; color: #94a3b8; font-size: 13px; }
     </style>
     <link rel="stylesheet" href="/glassmorphism.css">
+    <link rel="stylesheet" href="/shared-dashboard.css">
     <script src="/global.js"></script>
 </head>
 
@@ -425,6 +418,8 @@
 
     <main>
         <header>
+                <button class="hamburger-btn" onclick="toggleMobileNav()">&#9776;</button>
+                
             <div class="academy-header">
                 <p class="academy-name">🏫 <span id="academyNameDisplay">...</span></p>
                 <h1 class="greeting" id="welcome-title">¡Hola!</h1>
@@ -599,7 +594,9 @@
                 document.getElementById('total-students').textContent = students.length;
 
                 const table = document.getElementById('students-table');
-                table.innerHTML = students.slice(0, 5).map(s => `
+                table.innerHTML = students.length === 0
+                    ? `<tr><td colspan="4" style="text-align:center; padding:2rem; color:#94a3b8;">No hay alumnos registrados aún. <a href="#" onclick="openModal()" style="color:#6366f1;">Añade el primero →</a></td></tr>`
+                    : students.slice(0, 5).map(s => `
                     <tr>
                         <td style="font-weight: 500"><a href="/student/${s.id}" style="color: var(--accent); text-decoration: none; font-weight: 600;">${s.name}</a></td>
                         <td>${s.course}</td>
@@ -630,7 +627,10 @@
                 document.getElementById('avg-score').textContent = avg;
 
                 const activityList = document.getElementById('activity-list');
-                activityList.innerHTML = sessions.slice(-5).reverse().map(s => {
+                const recentSessions = sessions.slice(-5).reverse();
+                activityList.innerHTML = recentSessions.length === 0
+                    ? `<p style="text-align:center; padding:1.5rem; color:#94a3b8; font-size:0.875rem;">Sin actividad reciente.</p>`
+                    : recentSessions.map(s => {
                     const student = students.find(st => st.id === s.student_id);
                     return `
                         <div style="display: flex; gap: 1rem; padding: 1rem 0; border-bottom: 1px solid var(--border);">
@@ -823,6 +823,8 @@
 <!-- ─────────────────────────────────────────────────────────────────────── -->
 <script src="/notifications.js"></script>
 <script src="/help-assistant.js"></script>
+
+    <div class="mobile-nav-overlay" id="mobile-nav-overlay" onclick="closeMobileNav()"></div>
 </body>
 
 </html>

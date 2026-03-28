@@ -480,6 +480,7 @@
                 display: block;
             }
         }
+        a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible { outline: none !important; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.35) !important; border-radius: 0.25rem; }
     </style>
 </head>
 
@@ -604,9 +605,10 @@
                         <div id="email-error" class="input-error"></div>
                     </div>
 
-                    <div class="input-group">
+                    <div class="input-group" style="position:relative;">
                         <input type="password" id="password" placeholder=" " required>
                         <label for="password">Contraseña</label>
+                        <button type="button" onclick="togglePwd('password', this)" tabindex="-1" style="position:absolute; right:0.75rem; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:1rem; color:#94a3b8; padding:0; line-height:1;">👁</button>
                         <div id="password-error" class="input-error">Este campo es obligatorio</div>
                     </div>
 
@@ -628,6 +630,13 @@
     </div>
 
     <script>
+        function togglePwd(id, btn) {
+            const input = document.getElementById(id);
+            const isHidden = input.type === 'password';
+            input.type = isHidden ? 'text' : 'password';
+            btn.textContent = isHidden ? '🙈' : '👁';
+        }
+
         // Carousel logic
         let currentSlide = 0;
         const totalSlides = 4;

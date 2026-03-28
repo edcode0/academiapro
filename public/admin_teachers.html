@@ -500,6 +500,7 @@
         }
     </style>
     <link rel="stylesheet" href="/glassmorphism.css">
+    <link rel="stylesheet" href="/shared-dashboard.css">
     <script src="/global.js"></script>
 </head>
 
@@ -581,6 +582,8 @@
 
     <main>
         <div class="header">
+                <button class="hamburger-btn" onclick="toggleMobileNav()">&#9776;</button>
+                
             <div>
                 <h2>👨‍🏫 Profesores</h2>
                 <p style="color: var(--text-muted); margin-top: 0.25rem;">Gestiona tu equipo docente</p>
@@ -819,7 +822,7 @@
                         closeModal('deleteTeacherModal');
                         loadTeachers();
                     } else {
-                        alert('Error al eliminar profesor');
+                        showToast('Error al eliminar profesor', 'error');
                     }
                 } catch (err) {
                     console.error(err);
@@ -835,15 +838,10 @@
                 navigator.clipboard.writeText(code).then(() => showToast('¡Código copiado!'));
             }
 
-            function showToast(msg) {
-                const toast = document.getElementById('toast');
-                toast.textContent = msg;
-                toast.style.display = 'block';
-                setTimeout(() => toast.style.display = 'none', 3000);
-            }
-
             init();
         </script>
+
+    <div class="mobile-nav-overlay" id="mobile-nav-overlay" onclick="closeMobileNav()"></div>
 </body>
 
 </html>

@@ -497,6 +497,7 @@
                 display: block;
             }
         }
+        a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible { outline: none !important; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.35) !important; border-radius: 0.25rem; }
     </style>
 </head>
 
@@ -632,11 +633,13 @@
                             <label for="email">Correo electrónico</label>
                         </div>
 
-                        <div class="input-group">
+                        <div class="input-group" style="position:relative;">
                             <input type="password" name="password" id="password" required placeholder=" ">
                             <label for="password">Contraseña</label>
+                            <button type="button" onclick="togglePwd('password', this)" tabindex="-1" style="position:absolute; right:0.75rem; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:1rem; color:#94a3b8; padding:0; line-height:1;">👁</button>
                         </div>
 
+                        <div id="login-error-banner" style="display:none; background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; border-radius:0.5rem; padding:0.6rem 1rem; font-size:0.875rem; margin-bottom:0.5rem;"></div>
                         <button type="submit" class="btn-gradient">Iniciar Sesión</button>
 
                         <a href="/auth/google" class="google-btn" id="google-btn">
@@ -672,6 +675,13 @@
     </div>
 
     <script>
+        function togglePwd(id, btn) {
+            const input = document.getElementById(id);
+            const isHidden = input.type === 'password';
+            input.type = isHidden ? 'text' : 'password';
+            btn.textContent = isHidden ? '🙈' : '👁';
+        }
+
         // Carousel logic
         let currentSlide = 0;
         const totalSlides = 5;
@@ -816,10 +826,16 @@
                         else if (data.user.role === 'teacher') window.location.href = '/teacher';
                         else window.location.href = '/student';
                     } else {
-                        alert(data.error || 'Error al iniciar sesión');
+                        const banner = document.getElementById('login-error-banner');
+                        banner.textContent = data.error || 'Error al iniciar sesión';
+                        banner.style.display = 'block';
                     }
                 })
-                .catch(() => alert('Error de conexión'));
+                .catch(() => {
+                    const banner = document.getElementById('login-error-banner');
+                    banner.textContent = 'Error de conexión';
+                    banner.style.display = 'block';
+                });
         });
     </script>
 

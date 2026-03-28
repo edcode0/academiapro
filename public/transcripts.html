@@ -322,6 +322,7 @@
         }
     </style>
     <link rel="stylesheet" href="/glassmorphism.css">
+    <link rel="stylesheet" href="/shared-dashboard.css">
     <script src="/global.js"></script>
 </head>
 
@@ -370,6 +371,8 @@
 
     <main>
         <div class="header">
+                <button class="hamburger-btn" onclick="toggleMobileNav()">&#9776;</button>
+                
             <h2>📝 Procesador de Transcripciones de Clase</h2>
             <p>Sube la transcripción de una videollamada y la IA generará un resumen para el alumno</p>
         </div>
@@ -558,8 +561,8 @@
             const text = document.getElementById('transcriptText').value;
             const file = fileInput.files[0];
 
-            if (!student_id) return alert('Por favor selecciona un alumno.');
-            if (!file && text.trim().length < 10) return alert('Por favor pega la transcripción o sube un archivo.');
+            if (!student_id) return showToast('Por favor selecciona un alumno.', 'info');
+            if (!file && text.trim().length < 10) return showToast('Por favor pega la transcripción o sube un archivo.', 'info');
 
             document.getElementById('loadingOverlay').style.display = 'flex';
             document.getElementById('btnProcess').disabled = true;
@@ -590,12 +593,12 @@
                     document.getElementById('drop-text').textContent = 'Arrastra un archivo aquí o haz clic para subir';
                     document.getElementById('transcriptText').value = '';
                 } else {
-                    alert('Error: ' + (data.error || 'Error procesando transcripción.'));
+                    showToast('Error: ' + (data.error || 'Error procesando transcripción.'), 'error');
                 }
             } catch (e) {
                 document.getElementById('loadingOverlay').style.display = 'none';
                 document.getElementById('btnProcess').disabled = false;
-                alert('Hubo un error de conexión.');
+                showToast('Hubo un error de conexión.', 'error');
             }
         }
 
@@ -637,8 +640,8 @@
         }
 
         async function sendToChat() {
-            if (!lastProcessedJson) return alert('Error: procesa la transcripción primero');
-            if (!currentStudentId) return alert('Error: no hay alumno seleccionado');
+            if (!lastProcessedJson) return showToast('Error: procesa la transcripción primero', 'error');
+            if (!currentStudentId) return showToast('Error: no hay alumno seleccionado', 'error');
 
             if (!confirm('¿Estás seguro de enviar el resumen al chat directo del alumno?')) return;
 
@@ -654,17 +657,19 @@
 
                 const data = await res.json();
                 if (res.ok) {
-                    alert('✅ Resumen enviado al chat exitosamente.');
+                    showToast('✅ Resumen enviado al chat exitosamente.', 'success');
                 } else {
-                    alert('❌ Error enviando: ' + (data.error || 'Desconocido.'));
+                    showToast('❌ Error enviando: ' + (data.error || 'Desconocido.'), 'error');
                 }
             } catch (e) {
-                alert('Fallo de conexión.');
+                showToast('Fallo de conexión.', 'error');
             }
         }
 
         document.addEventListener('DOMContentLoaded', init);
     </script>
+
+    <div class="mobile-nav-overlay" id="mobile-nav-overlay" onclick="closeMobileNav()"></div>
 </body>
 
 </html>

@@ -352,6 +352,7 @@
         }
     </style>
     <link rel="stylesheet" href="/glassmorphism.css">
+    <link rel="stylesheet" href="/shared-dashboard.css">
     <script src="/global.js"></script>
 </head>
 
@@ -429,6 +430,8 @@
 
     <main>
         <div class="header">
+                <button class="hamburger-btn" onclick="toggleMobileNav()">&#9776;</button>
+                
             <h2>📝 Simulacro de Examen</h2>
             <div id="timerDisplay" class="timer" style="display:none;">00:00</div>
         </div>
@@ -607,10 +610,10 @@
                     switchStep(2);
                     startTimer();
                 } else {
-                    alert('Error generando simulacro. Intenta de nuevo.');
+                    showToast('Error generando simulacro. Intenta de nuevo.', 'error');
                 }
             } catch (err) {
-                alert('No se pudo conectar a la IA. Revisa tu conexión.');
+                showToast('No se pudo conectar a la IA. Revisa tu conexión.', 'error');
             } finally {
                 hideLoading(); //
             }
@@ -772,18 +775,18 @@
                 });
 
                 if (res.ok) {
-                    alert(`¡Resultado (${percentage}%) guardado con éxito! Tu profesor podrá revisarlo.`);
+                    showToast(`¡Resultado (${percentage}%) guardado con éxito! Tu profesor podrá revisarlo.`, 'success');
                     btn.textContent = '✅ Guardado';
                 } else {
                     const error = await res.json();
-                    alert('Error: ' + (error.error || 'No se pudo guardar'));
+                    showToast('Error: ' + (error.error || 'No se pudo guardar'), 'error');
                     btn.disabled = false;
                     btn.textContent = 'Guardar Resultado';
                 }
             } catch (e) {
                 btn.disabled = false;
                 btn.textContent = 'Guardar Resultado';
-                alert('No se pudo conectar con el servidor.');
+                showToast('No se pudo conectar con el servidor.', 'error');
             }
         }
 
@@ -802,7 +805,7 @@
             };
         }
         async function handlePdf(file) {
-            if (file.type !== 'application/pdf') { alert('Solo PDF.'); return; }
+            if (file.type !== 'application/pdf') { showToast('Solo PDF.', 'error'); return; }
             document.getElementById('pdf-loading').style.display = 'block';
             document.getElementById('pdf-success').style.display = 'none';
             const fd = new FormData(); fd.append('pdf', file);
@@ -814,8 +817,8 @@
                     document.getElementById('configPdfText').value = data.text;
                     document.getElementById('pdf-name').textContent = file.name;
                     document.getElementById('pdf-success').style.display = 'block';
-                } else alert(data.error);
-            } catch(e) { document.getElementById('pdf-loading').style.display = 'none'; alert('Error'); }
+                } else showToast(data.error, 'error');
+            } catch(e) { document.getElementById('pdf-loading').style.display = 'none'; showToast('Error', 'error'); }
         }
 
         // Helpers
@@ -853,6 +856,8 @@
 
         init();
     </script>
+
+    <div class="mobile-nav-overlay" id="mobile-nav-overlay" onclick="closeMobileNav()"></div>
 </body>
 
 </html>

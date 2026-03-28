@@ -583,6 +583,7 @@
         }
     </style>
     <link rel="stylesheet" href="/glassmorphism.css">
+    <link rel="stylesheet" href="/shared-dashboard.css">
     <script src="/global.js"></script>
 </head>
 
@@ -675,6 +676,8 @@
 
         <main>
             <div class="header">
+                <button class="hamburger-btn" onclick="toggleMobileNav()">&#9776;</button>
+                
                 <div class="header-title">🤖 Asistente IA</div>
                 <div id="current-chat-title" class="header-subtitle">Nueva sesión</div>
             </div>
@@ -968,7 +971,7 @@
             if (!file) return;
 
             if (file.size > 10 * 1024 * 1024) {
-                alert('El archivo PDF no puede exceder los 10MB.');
+                showToast('El archivo PDF no puede exceder los 10MB.', 'error');
                 return;
             }
 
@@ -1017,7 +1020,7 @@
                 a.click();
                 window.URL.revokeObjectURL(url);
             } else {
-                alert('No se pudo generar el PDF. Error en el servidor.');
+                showToast('No se pudo generar el PDF. Error en el servidor.', 'error');
             }
         }
 
@@ -1172,6 +1175,8 @@
 
         document.addEventListener('DOMContentLoaded', init);
     </script>
+
+    <div class="mobile-nav-overlay" id="mobile-nav-overlay" onclick="closeMobileNav()"></div>
 </body>
 
 </html>
