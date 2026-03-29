@@ -354,6 +354,12 @@
             background: var(--success);
         }
 
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+
         /* Session type toggle pills */
         .session-type-toggle {
             display: flex;
@@ -576,6 +582,16 @@
                     <label>Fecha</label>
                     <input type="date" id="m_date" required>
                 </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Hora inicio</label>
+                        <input type="time" id="m_start" step="900" oninput="autoCalcDuration()">
+                    </div>
+                    <div class="form-group">
+                        <label>Hora fin</label>
+                        <input type="time" id="m_end" step="900" oninput="autoCalcDuration()">
+                    </div>
+                </div>
                 <div class="form-group">
                     <label>Duración (minutos)</label>
                     <input type="number" id="m_duration" value="60" required>
@@ -590,6 +606,13 @@
                 <div class="form-group">
                     <label>Notas</label>
                     <textarea id="m_notes" placeholder="Resumen de la clase..."></textarea>
+                </div>
+                <div id="meet-link-row" class="form-group" style="display:none;">
+                    <label>Google Meet</label>
+                    <a id="meet-link-btn" href="#" target="_blank"
+                       style="display:inline-flex;align-items:center;gap:0.5rem;background:#0f172a;color:white;padding:0.5rem 1.1rem;border-radius:8px;font-size:0.875rem;text-decoration:none;font-weight:500;">
+                        🎥 Abrir Meet
+                    </a>
                 </div>
                 <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem;">
                     <button type="button" class="btn btn-ghost" onclick="closeModal('sessionModal')">Cancelar</button>
@@ -606,6 +629,7 @@
         let teacherUser = null;
         let allStudents = [];
         let currentSessionType = 'individual';
+        let calendarSlots = [];
 
         const ADMIN_NAV_HTML = `
             <div class="nav-section-title">Gestión de Academia</div>
@@ -656,6 +680,14 @@
 
             await loadTeacherStudents();
             await loadSessions();
+            await loadCalendarSlots();
+        }
+
+        async function loadCalendarSlots() {
+            try {
+                const res = await fetch('/api/calendar/slots');
+                if (res.ok) calendarSlots = await res.json();
+            } catch(e) { calendarSlots = []; }
         }
 
         async function loadTeacherStudents() {
@@ -672,6 +704,17 @@
                     ${s.name}
                 </label>
             `).join('');
+        }
+
+        function autoCalcDuration() {
+            const start = document.getElementById('m_start').value;
+            const end = document.getElementById('m_end').value;
+            if (start && end && end > start) {
+                const [sh, sm] = start.split(':').map(Number);
+                const [eh, em] = end.split(':').map(Number);
+                const mins = (eh * 60 + em) - (sh * 60 + sm);
+                if (mins > 0) document.getElementById('m_duration').value = mins;
+            }
         }
 
         function setSessionType(type) {
@@ -738,11 +781,28 @@
                 document.getElementById('m_duration').value = session.duration_minutes;
                 document.getElementById('m_homework').value = session.homework_done ? '1' : '0';
                 document.getElementById('m_notes').value = session.teacher_notes || '';
+                // Time fields — not stored on sessions; clear them
+                document.getElementById('m_start').value = '';
+                document.getElementById('m_end').value = '';
+                // Meet link — look up linked slot
+                const meetRow = document.getElementById('meet-link-row');
+                const meetBtn = document.getElementById('meet-link-btn');
+                const linkedSlot = session.slot_id ? calendarSlots.find(sl => sl.id === session.slot_id) : null;
+                const meetLink = linkedSlot?.meet_link || session.meet_link || null;
+                if (meetLink) {
+                    meetBtn.href = meetLink;
+                    meetRow.style.display = 'block';
+                } else {
+                    meetRow.style.display = 'none';
+                }
             } else {
                 document.getElementById('modalTitle').textContent = 'Nueva Sesión';
                 document.getElementById('sessionForm').reset();
                 document.getElementById('sessionIdField').value = '';
                 document.getElementById('m_date').value = new Date().toISOString().split('T')[0];
+                document.getElementById('m_start').value = '';
+                document.getElementById('m_end').value = '';
+                document.getElementById('meet-link-row').style.display = 'none';
                 setSessionType('individual');
             }
         }

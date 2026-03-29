@@ -627,6 +627,28 @@
                 <textarea id="c_notes" rows="2" placeholder="Ej: Repaso de termodinámica..."></textarea>
             </div>
 
+            <div class="form-group">
+                <label>Tipo de sesión</label>
+                <div class="type-toggle">
+                    <button class="type-btn active" id="btn-session-individual" onclick="setSessionTypeSlot('individual')">👤 Individual</button>
+                    <button class="type-btn" id="btn-session-group" onclick="setSessionTypeSlot('group')">👥 Grupal</button>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Duración (min)</label>
+                    <input type="number" id="c_duration" value="60" min="1">
+                </div>
+                <div class="form-group">
+                    <label>¿Tareas hechas?</label>
+                    <select id="c_homework">
+                        <option value="0">No</option>
+                        <option value="1">Sí</option>
+                    </select>
+                </div>
+            </div>
+
             <div class="modal-actions">
                 <button class="btn btn-ghost" onclick="closeCreate()">Cancelar</button>
                 <button class="btn btn-primary" onclick="submitCreate()">Crear disponibilidad</button>
@@ -696,6 +718,7 @@
         let selectedSlotId = null;
         let selectedSlotData = null;
         let slotType = 'libre';
+        let slotSessionType = 'individual';
         let pendingSelectInfo = null;
         let myStudents = [];
 
@@ -781,7 +804,7 @@
 
             calendar = new FullCalendar.Calendar(calendarEl, {
                 height: 'auto',
-                initialView: 'timeGridWeek',
+                initialView: 'dayGridMonth',
                 locale: 'es',
                 firstDay: 1,
                 slotMinTime: '08:00:00',
@@ -870,6 +893,13 @@
             document.getElementById('c_notes').value = '';
             document.getElementById('time-error').style.display = 'none';
             setType('libre');
+            setSessionTypeSlot('individual');
+            document.getElementById('c_homework').value = '0';
+            calcSlotDuration();
+
+            // Wire up duration auto-calc on time change
+            document.getElementById('c_start').oninput = calcSlotDuration;
+            document.getElementById('c_end').oninput = calcSlotDuration;
 
             document.getElementById('createModal').style.display = 'flex';
         }
@@ -884,6 +914,23 @@
             document.getElementById('btn-libre').classList.toggle('active', type === 'libre');
             document.getElementById('btn-asignar').classList.toggle('active', type === 'asignar');
             document.getElementById('student-selector-group').style.display = type === 'asignar' ? 'block' : 'none';
+        }
+
+        function setSessionTypeSlot(type) {
+            slotSessionType = type;
+            document.getElementById('btn-session-individual').classList.toggle('active', type === 'individual');
+            document.getElementById('btn-session-group').classList.toggle('active', type === 'group');
+        }
+
+        function calcSlotDuration() {
+            const start = document.getElementById('c_start').value;
+            const end = document.getElementById('c_end').value;
+            if (start && end && end > start) {
+                const [sh, sm] = start.split(':').map(Number);
+                const [eh, em] = end.split(':').map(Number);
+                const mins = (eh * 60 + em) - (sh * 60 + sm);
+                if (mins > 0) document.getElementById('c_duration').value = mins;
+            }
         }
 
         async function submitCreate() {
@@ -919,16 +966,19 @@
                 if (res.ok) {
                     // If student assigned, also create a session automatically
                     if (studentId && studentId !== '') {
-                        const durationMins = (new Date(endDatetime) - new Date(startDatetime)) / 60000;
+                        const autoDuration = Math.round((new Date(endDatetime) - new Date(startDatetime)) / 60000);
+                        const manualDuration = parseInt(document.getElementById('c_duration').value);
+                        const durationMins = manualDuration > 0 ? manualDuration : autoDuration;
                         await fetch('/api/sessions', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
                                 student_id: studentId,
                                 date: dateStr,
-                                duration_minutes: Math.round(durationMins),
+                                duration_minutes: durationMins,
                                 teacher_notes: notes || 'Sesión desde calendario',
-                                homework_done: false
+                                homework_done: document.getElementById('c_homework').value === '1',
+                                session_type: slotSessionType
                             })
                         });
                         showToast('✅ Disponibilidad creada y sesión registrada', 'success');
