@@ -894,8 +894,11 @@
                 events: fetchSlots,
 
                 select: function (info) {
-                    const now = new Date();
-                    if (new Date(info.startStr) < now) {
+                    const selectedDate = new Date(info.startStr);
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    selectedDate.setHours(0, 0, 0, 0);
+                    if (selectedDate < today) {
                         showToast('No puedes crear disponibilidad en el pasado.', 'warning');
                         calendar.unselect();
                         return;
@@ -903,6 +906,10 @@
                     pendingSelectInfo = info;
                     openCreate(info);
                     calendar.unselect();
+                },
+
+                dateClick: function (info) {
+                    calendar.changeView('timeGridDay', info.dateStr);
                 },
 
                 eventClick: function (info) {
@@ -934,7 +941,9 @@
                     let color = '#10b981'; // green = free
                     let title = '🟢 Libre';
                     if (s.is_booked) { color = '#3b82f6'; title = `🔵 ${s.student_name || 'Asignado'}`; }
-                    if (new Date(startLocal) < now) { color = '#94a3b8'; }
+                    const evDate = new Date(startLocal); evDate.setHours(0, 0, 0, 0);
+                    const todayD = new Date(); todayD.setHours(0, 0, 0, 0);
+                    if (evDate < todayD) { color = '#94a3b8'; }
                     if (s.notes) title += ` · ${s.notes}`;
                     return {
                         id: s.id,
@@ -943,12 +952,14 @@
                         end: endLocal,
                         backgroundColor: color,
                         borderColor: color,
+                        displayEventTime: true,
+                        displayEventEnd: true,
                         extendedProps: {
                             is_booked: s.is_booked,
                             student_name: s.student_name,
                             student_id: s.student_id,
                             notes: s.notes,
-                            is_past: new Date(startLocal) < now,
+                            is_past: evDate < todayD,
                             meet_link: s.meet_link || null
                         }
                     };
