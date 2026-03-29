@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Política de Privacidad — AcademiaPro</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f8f7f4;
+      --text: #1a1a1a;
+      --accent: #2563eb;
+      --dark: #0f172a;
+      --border: #e2e0d8;
+      --muted: #64748b;
+      --radius-btn: 8px;
+    }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.7;
+    }
+    h1, h2, h3 { font-family: 'Fraunces', Georgia, serif; }
+
+    /* NAV */
+    nav {
+      position: sticky; top: 0; z-index: 200;
+      background: rgba(248,247,244,0.92);
+      backdrop-filter: blur(8px);
+      border-bottom: 0.5px solid var(--border);
+      padding: 0 48px;
+      height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-logo {
+      font-family: 'Fraunces', serif;
+      font-size: 1.1rem; font-weight: 600;
+      color: var(--dark); text-decoration: none;
+    }
+    .nav-logo span { color: var(--accent); }
+    .nav-back {
+      font-size: 13px; color: var(--muted);
+      text-decoration: none; font-weight: 500;
+      padding: 7px 14px;
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius-btn);
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .nav-back:hover { color: var(--dark); border-color: var(--dark); }
+
+    /* MAIN */
+    main {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 64px 48px 96px;
+    }
+    .page-label {
+      font-size: 12px; font-weight: 500;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 16px;
+    }
+    .page-title {
+      font-size: clamp(1.8rem, 4vw, 2.5rem);
+      font-weight: 600; color: var(--dark);
+      line-height: 1.2; margin-bottom: 12px;
+    }
+    .page-meta {
+      font-size: 13px; color: var(--muted);
+      margin-bottom: 48px;
+      padding-bottom: 32px;
+      border-bottom: 0.5px solid var(--border);
+    }
+
+    /* CONTENT */
+    .section { margin-bottom: 40px; }
+    h2 {
+      font-size: 1.15rem; font-weight: 600;
+      color: var(--dark); margin-bottom: 12px;
+      margin-top: 40px;
+    }
+    h3 {
+      font-size: 0.95rem; font-weight: 500;
+      color: var(--dark); margin-bottom: 8px;
+      margin-top: 20px;
+    }
+    p { margin-bottom: 12px; font-size: 15px; color: #374151; }
+    ul {
+      margin: 8px 0 12px 20px;
+      font-size: 15px; color: #374151;
+    }
+    ul li { margin-bottom: 6px; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .highlight-box {
+      background: white;
+      border: 0.5px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin: 24px 0;
+      font-size: 14px; color: #374151;
+    }
+    .highlight-box strong { color: var(--dark); }
+
+    .rights-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+      margin: 16px 0;
+    }
+    .right-card {
+      background: white;
+      border: 0.5px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+    .right-card .right-title {
+      font-size: 13px; font-weight: 500;
+      color: var(--dark); margin-bottom: 4px;
+    }
+    .right-card p {
+      font-size: 12px; color: var(--muted); margin-bottom: 0;
+    }
+
+    /* FOOTER */
+    footer {
+      border-top: 0.5px solid var(--border);
+      max-width: 1100px; margin: 0 auto;
+      padding: 32px 48px;
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 8px;
+    }
+    .footer-logo-text {
+      font-family: 'Fraunces', serif;
+      font-size: 15px; color: #94a3b8;
+    }
+    .footer-links {
+      display: flex; gap: 24px;
+      font-size: 13px; color: var(--muted);
+    }
+    .footer-links a { color: var(--muted); text-decoration: none; }
+    .footer-links a:hover { color: var(--dark); }
+    .footer-right { font-size: 13px; color: #94a3b8; }
+
+    @media (max-width: 640px) {
+      nav { padding: 0 20px; }
+      main { padding: 40px 24px 64px; }
+      footer { padding: 24px 20px; flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo">Academia<span>Pro</span></a>
+  <a href="/" class="nav-back">← Volver al inicio</a>
+</nav>
+
+<main>
+  <p class="page-label">Legal</p>
+  <h1 class="page-title">Política de Privacidad</h1>
+  <p class="page-meta">Última actualización: 29 de marzo de 2026 · Responsable: AcademiaPro</p>
+
+  <div class="highlight-box">
+    <strong>Resumen rápido:</strong> Recogemos los datos mínimos necesarios para prestarte el servicio. No vendemos tu información a terceros. Puedes ejercer tus derechos en cualquier momento escribiendo a <a href="mailto:support@tuacademia.app">support@tuacademia.app</a>.
+  </div>
+
+  <h2>1. Responsable del tratamiento</h2>
+  <p>El responsable del tratamiento de tus datos personales es <strong>AcademiaPro</strong>, con correo de contacto <a href="mailto:support@tuacademia.app">support@tuacademia.app</a>.</p>
+
+  <h2>2. Datos que recopilamos</h2>
+  <p>Dependiendo del uso que hagas de la plataforma, podemos tratar las siguientes categorías de datos:</p>
+  <ul>
+    <li><strong>Datos de cuenta:</strong> nombre completo, dirección de correo electrónico y contraseña (almacenada de forma cifrada con bcrypt).</li>
+    <li><strong>Datos de perfil:</strong> rol (admin / profesor / alumno), academia asociada, código de usuario.</li>
+    <li><strong>Datos académicos:</strong> sesiones de clase, calificaciones de exámenes, historial de pagos, apuntes del profesor.</li>
+    <li><strong>Comunicaciones:</strong> mensajes de chat entre usuarios dentro de la plataforma, transcripciones de clases procesadas automáticamente.</li>
+    <li><strong>Datos de uso:</strong> fechas de acceso, IP de origen (para seguridad y límites de velocidad), historial de conversaciones con el Tutor IA.</li>
+    <li><strong>Datos de integración:</strong> tokens OAuth de Google (Gmail y Google Calendar) cuando el usuario los autoriza voluntariamente.</li>
+  </ul>
+
+  <h2>3. Finalidad del tratamiento</h2>
+  <p>Tratamos tus datos para las siguientes finalidades:</p>
+  <ul>
+    <li>Prestación del servicio: gestión de alumnos, sesiones, pagos, calendarios y comunicación interna.</li>
+    <li>Autenticación y seguridad: verificar identidades, prevenir accesos no autorizados y abusos.</li>
+    <li>Tutor IA: generar respuestas personalizadas a través del modelo de lenguaje de Groq AI.</li>
+    <li>Notificaciones: informar al usuario de eventos relevantes (nuevas sesiones, pagos, transcripciones).</li>
+    <li>Mejora del servicio: análisis interno anónimo de uso para mejorar funcionalidades.</li>
+    <li>Cumplimiento legal: atender requerimientos de autoridades competentes cuando sea obligatorio.</li>
+  </ul>
+
+  <h2>4. Base jurídica del tratamiento</h2>
+  <ul>
+    <li><strong>Ejecución de contrato (Art. 6.1.b RGPD):</strong> los datos necesarios para prestar el servicio contratado.</li>
+    <li><strong>Consentimiento (Art. 6.1.a RGPD):</strong> integraciones opcionales con Google (Gmail, Calendar), cookies no esenciales.</li>
+    <li><strong>Interés legítimo (Art. 6.1.f RGPD):</strong> seguridad, prevención de fraude y mejora del servicio.</li>
+    <li><strong>Obligación legal (Art. 6.1.c RGPD):</strong> cumplimiento de obligaciones fiscales y legales aplicables.</li>
+  </ul>
+
+  <h2>5. Plazos de conservación</h2>
+  <p>Los datos se conservan durante el tiempo necesario para cada finalidad:</p>
+  <ul>
+    <li><strong>Datos de cuenta activa:</strong> mientras la cuenta esté activa.</li>
+    <li><strong>Datos académicos:</strong> hasta 3 años tras la última actividad, salvo solicitud de supresión.</li>
+    <li><strong>Mensajes de chat:</strong> hasta 1 año desde su envío.</li>
+    <li><strong>Tokens OAuth de Google:</strong> hasta que el usuario revoque el acceso o elimine la integración.</li>
+    <li><strong>Registros de seguridad:</strong> máximo 12 meses.</li>
+  </ul>
+  <p>Transcurridos los plazos indicados, los datos se eliminan o anonomizan de forma irreversible.</p>
+
+  <h2>6. Derechos de los usuarios</h2>
+  <p>Como afectado, tienes los siguientes derechos reconocidos por el RGPD:</p>
+  <div class="rights-grid">
+    <div class="right-card">
+      <div class="right-title">Acceso</div>
+      <p>Conocer qué datos tuyos tratamos y obtener una copia.</p>
+    </div>
+    <div class="right-card">
+      <div class="right-title">Rectificación</div>
+      <p>Corregir datos inexactos o incompletos.</p>
+    </div>
+    <div class="right-card">
+      <div class="right-title">Supresión</div>
+      <p>Solicitar el borrado de tus datos ("derecho al olvido").</p>
+    </div>
+    <div class="right-card">
+      <div class="right-title">Portabilidad</div>
+      <p>Recibir tus datos en formato estructurado y legible por máquina.</p>
+    </div>
+    <div class="right-card">
+      <div class="right-title">Limitación</div>
+      <p>Suspender el tratamiento mientras se resuelve una reclamación.</p>
+    </div>
+    <div class="right-card">
+      <div class="right-title">Oposición</div>
+      <p>Oponerte al tratamiento basado en interés legítimo.</p>
+    </div>
+  </div>
+  <p>Para ejercer cualquier derecho, escribe a <a href="mailto:support@tuacademia.app">support@tuacademia.app</a> indicando tu nombre, correo y el derecho que deseas ejercer. Responderemos en un plazo máximo de 30 días. También puedes presentar una reclamación ante la <a href="https://www.aepd.es" target="_blank" rel="noopener">Agencia Española de Protección de Datos (AEPD)</a>.</p>
+
+  <h2>7. Cookies</h2>
+  <p>AcademiaPro utiliza únicamente cookies esenciales para el funcionamiento del servicio:</p>
+  <ul>
+    <li><strong>token</strong> (HTTP-only): cookie de sesión JWT que autentica al usuario. Duración: sesión del navegador.</li>
+    <li><strong>cookie_consent</strong> (localStorage): almacena si el usuario ha aceptado esta política. Duración: 365 días.</li>
+  </ul>
+  <p>No usamos cookies de seguimiento, publicidad ni análisis de terceros.</p>
+
+  <h2>8. Transferencias a terceros</h2>
+  <p>Para prestar el servicio colaboramos con los siguientes proveedores, que actúan como encargados del tratamiento o responsables independientes:</p>
+  <ul>
+    <li><strong>Railway (USA):</strong> infraestructura de alojamiento y base de datos PostgreSQL. <a href="https://railway.app/legal/privacy" target="_blank" rel="noopener">Política de privacidad</a>. Transferencia basada en cláusulas contractuales tipo (CCT) aprobadas por la CE.</li>
+    <li><strong>Google LLC (USA):</strong> autenticación OAuth 2.0, Gmail (lectura de transcripciones cuando se autoriza) y Google Calendar (cuando se autoriza). <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Política de privacidad de Google</a>. Transferencia amparada en CCT.</li>
+    <li><strong>Groq Inc. (USA):</strong> procesamiento de consultas del Tutor IA. Los mensajes se envían a la API de Groq para generar respuestas. <a href="https://groq.com/privacy-policy" target="_blank" rel="noopener">Política de privacidad de Groq</a>.</li>
+    <li><strong>Resend (USA):</strong> envío de correos electrónicos transaccionales (notificaciones, informes). <a href="https://resend.com/legal/privacy-policy" target="_blank" rel="noopener">Política de privacidad de Resend</a>.</li>
+    <li><strong>Sentry (USA):</strong> monitorización de errores técnicos. Solo transmite trazas de errores, nunca datos personales de alumnos. <a href="https://sentry.io/privacy/" target="_blank" rel="noopener">Política de privacidad de Sentry</a>.</li>
+  </ul>
+  <p>No cedemos datos a terceros con fines publicitarios o comerciales ajenos al servicio.</p>
+
+  <h2>9. Seguridad</h2>
+  <p>Adoptamos medidas técnicas y organizativas apropiadas para proteger tus datos:</p>
+  <ul>
+    <li>Contraseñas almacenadas mediante hash bcrypt (factor de coste ≥ 10).</li>
+    <li>Comunicaciones cifradas con TLS 1.2+.</li>
+    <li>Autenticación basada en JWT firmados con clave secreta de entorno.</li>
+    <li>Limitación de intentos de login (<em>rate limiting</em>) para prevenir ataques de fuerza bruta.</li>
+    <li>Acceso a la base de datos restringido al entorno de Railway mediante SSL.</li>
+  </ul>
+
+  <h2>10. Menores de edad</h2>
+  <p>AcademiaPro no está dirigida a menores de 14 años que actúen de forma autónoma. En los casos en que alumnos menores accedan al portal de estudiantes, corresponde al centro académico (responsable del tratamiento de sus alumnos) obtener el consentimiento parental conforme a la legislación aplicable.</p>
+
+  <h2>11. Cambios en esta política</h2>
+  <p>Podemos actualizar esta política para reflejar cambios en el servicio o en la normativa aplicable. Notificaremos los cambios relevantes por correo electrónico o mediante un aviso en la plataforma con al menos 15 días de antelación.</p>
+
+  <h2>12. Contacto</h2>
+  <p>Para cualquier consulta sobre privacidad o para ejercer tus derechos, contáctanos en: <a href="mailto:support@tuacademia.app">support@tuacademia.app</a></p>
+</main>
+
+<footer>
+  <span class="footer-logo-text">AcademiaPro</span>
+  <div class="footer-links">
+    <a href="/privacy.html">Privacidad</a>
+    <a href="/terms.html">Términos</a>
+  </div>
+  <span class="footer-right">© 2026 · AcademiaPro</span>
+</footer>
+
+</body>
+</html>

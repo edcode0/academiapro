@@ -2,6 +2,11 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AcademiaPro — La plataforma inteligente para academias</title>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
@@ -519,6 +524,9 @@
       font-size: 16px; color: #94a3b8;
       font-weight: 300;
     }
+    .footer-links { display: flex; gap: 20px; }
+    .footer-links a { font-size: 13px; color: #94a3b8; text-decoration: none; transition: color 0.15s; }
+    .footer-links a:hover { color: #64748b; }
     .footer-right { font-size: 13px; color: #94a3b8; }
 
     /* ─── CURSOR GLOW ─── */
@@ -957,6 +965,10 @@
 <!-- ═══ FOOTER ═══ -->
 <footer>
   <span class="footer-logo-text">AcademiaPro</span>
+  <div class="footer-links">
+    <a href="/privacy.html">Política de Privacidad</a>
+    <a href="/terms.html">Términos de Servicio</a>
+  </div>
   <span class="footer-right">© 2026 · Hecho con IA, para academias con alma</span>
 </footer>
 
@@ -1045,6 +1057,83 @@
       proNote.textContent = '';
       acadNote.textContent = '';
     }
+  }
+</script>
+
+<!-- ═══ COOKIE CONSENT BANNER ═══ -->
+<div id="cookie-banner" style="display:none" role="dialog" aria-label="Aviso de cookies">
+  <style>
+    #cookie-banner {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      z-index: 9999;
+      background: white;
+      border: 0.5px solid #e2e0d8;
+      border-radius: 12px;
+      padding: 16px 20px;
+      display: flex; align-items: center; gap: 16px;
+      max-width: 680px; width: calc(100% - 48px);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      font-family: 'DM Sans', sans-serif;
+      opacity: 1;
+      transition: opacity 0.35s ease, transform 0.35s ease;
+    }
+    #cookie-banner.hiding {
+      opacity: 0;
+      transform: translateX(-50%) translateY(12px);
+    }
+    #cookie-banner p {
+      font-size: 13px; color: #374151;
+      line-height: 1.5; flex: 1; margin: 0;
+    }
+    .cookie-actions { display: flex; gap: 8px; flex-shrink: 0; }
+    .cookie-accept {
+      padding: 8px 18px;
+      background: #0f172a; color: white;
+      border: none; cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px; font-weight: 500;
+      border-radius: 8px;
+      transition: opacity 0.15s;
+      white-space: nowrap;
+    }
+    .cookie-accept:hover { opacity: 0.85; }
+    .cookie-policy {
+      padding: 8px 14px;
+      background: transparent; color: #64748b;
+      border: 0.5px solid #e2e0d8; cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px; font-weight: 500;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: color 0.15s, border-color 0.15s;
+      white-space: nowrap;
+      display: inline-flex; align-items: center;
+    }
+    .cookie-policy:hover { color: #0f172a; border-color: #0f172a; }
+    @media (max-width: 540px) {
+      #cookie-banner { flex-direction: column; align-items: flex-start; gap: 12px; }
+      .cookie-actions { width: 100%; }
+      .cookie-accept { flex: 1; text-align: center; }
+    }
+  </style>
+  <p>Usamos cookies esenciales para el funcionamiento de la app. Al continuar, aceptas nuestra política de privacidad.</p>
+  <div class="cookie-actions">
+    <button class="cookie-accept" onclick="cookieAccept()">Aceptar</button>
+    <a href="/privacy.html" class="cookie-policy">Ver política</a>
+  </div>
+</div>
+<script>
+  (function() {
+    if (!localStorage.getItem('cookie_consent')) {
+      var banner = document.getElementById('cookie-banner');
+      banner.style.display = 'flex';
+    }
+  })();
+  function cookieAccept() {
+    localStorage.setItem('cookie_consent', '1');
+    var banner = document.getElementById('cookie-banner');
+    banner.classList.add('hiding');
+    setTimeout(function() { banner.style.display = 'none'; }, 360);
   }
 </script>
 

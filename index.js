@@ -1,15 +1,31 @@
 require('dotenv').config();
 
+// ─── Sentry error tracking (must be first) ───────────────────────────────────
+const Sentry = require('@sentry/node');
+if (process.env.SENTRY_DSN) {
+    Sentry.init({
+        dsn: process.env.SENTRY_DSN,
+        environment: process.env.NODE_ENV || 'production',
+        tracesSampleRate: 0.1
+    });
+    console.log('[Sentry] Initialized for environment:', process.env.NODE_ENV || 'production');
+} else {
+    console.log('[Sentry] SENTRY_DSN not set — error tracking disabled');
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 console.log('=== DB CHECK ===');
 console.log('Database configured:', !!process.env.DATABASE_URL);
 
 process.on('uncaughtException', (err) => {
     console.error('UNCAUGHT EXCEPTION:', err.message, err.stack);
+    Sentry.captureException(err);
     process.exit(1);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
     console.error('UNHANDLED REJECTION:', reason);
+    Sentry.captureException(reason instanceof Error ? reason : new Error(String(reason)));
     process.exit(1);
 });
 
@@ -29,6 +45,7 @@ async function initializeDatabase() {
         console.log('Database initialized successfully using db.js schema');
     } catch (err) {
         console.error('Database initialization error:', err.message);
+        Sentry.captureException(err);
     }
 }
 initializeDatabase();
@@ -144,6 +161,7 @@ async function createCalendarEvent(teacher, slot) {
         return { google_event_id: response.data.id, meet_link: meetLink || null };
     } catch (err) {
         console.error('[Calendar] createCalendarEvent error:', err.message);
+        Sentry.captureException(err);
         return null;
     }
 }
@@ -161,6 +179,7 @@ async function deleteCalendarEvent(teacher, googleEventId) {
         console.log('[Calendar] Event deleted:', googleEventId);
     } catch (err) {
         console.error('[Calendar] deleteCalendarEvent error:', err.message);
+        Sentry.captureException(err);
     }
 }
 
@@ -347,6 +366,7 @@ async function checkAndProcessTranscripts(teacher) {
             console.log(`[Gmail] Processed transcript for student ${student.name}`);
         } catch (err) {
             console.error('[Gmail] Error processing email:', err.message);
+            Sentry.captureException(err);
         }
     }
 
@@ -446,6 +466,10 @@ const requireTeacherOrAdmin = (req, res, next) => {
 };
 
 app.get('/landing', (req, res) => res.sendFile(path.join(__dirname, 'public', 'landing.html')));
+app.get('/privacy', (req, res) => res.sendFile(path.join(__dirname, 'public', 'privacy.html')));
+app.get('/privacy.html', (req, res) => res.sendFile(path.join(__dirname, 'public', 'privacy.html')));
+app.get('/terms', (req, res) => res.sendFile(path.join(__dirname, 'public', 'terms.html')));
+app.get('/terms.html', (req, res) => res.sendFile(path.join(__dirname, 'public', 'terms.html')));
 
 // Auth Routes
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public/login.html')));
@@ -531,6 +555,7 @@ app.post('/api/ai-tutor/extract-pdf', authenticateJWT, async (req, res) => {
             res.json({ text, pages: data.numpages, filename: req.file.originalname });
         } catch (e) {
             console.error('pdf-parse error:', e);
+            Sentry.captureException(e);
             res.status(500).json({ error: 'Error leyendo PDF: ' + e.message });
         }
     });
@@ -598,6 +623,7 @@ app.post('/api/ai-tutor/chat', authenticateJWT, async (req, res) => {
         res.json({ response: aiResponse, conversationId });
     } catch (e) {
         console.error('[ai-tutor/chat] ERROR:', e.message, e.stack);
+        Sentry.captureException(e);
         res.status(500).json({ error: 'Error interno del servidor' });
     }
 });
@@ -618,6 +644,7 @@ app.get('/api/ai-tutor/history', authenticateJWT, async (req, res) => {
     res.json({ messages: messagesResult.rows || [], conversationId: conv.id });
   } catch(err) {
     console.error('History error:', err.message);
+    Sentry.captureException(err);
     res.json({ messages: [], conversationId: null });
   }
 });
@@ -642,6 +669,7 @@ app.post('/api/ai-tutor/generate-pdf', authenticateJWT, (req, res) => {
         doc.end();
     } catch (err) {
         console.error('PDF gen error:', err);
+        Sentry.captureException(err);
         res.status(500).json({ error: 'Failed to generate PDF' });
     }
 });
@@ -694,6 +722,7 @@ app.get('/api/gmail/callback', async (req, res) => {
         res.redirect('/teacher/settings?gmail=connected');
     } catch (err) {
         console.error('[Gmail] Callback error:', err.message);
+        Sentry.captureException(err);
         res.redirect('/teacher/settings?gmail=error');
     }
 });
@@ -735,6 +764,7 @@ app.post('/api/gmail/check-transcripts', authenticateJWT, requireTeacherOrAdmin,
         res.json({ success: true, processed });
     } catch (err) {
         console.error('[Gmail] check-transcripts error:', err.message);
+        Sentry.captureException(err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -824,6 +854,7 @@ ${transcriptForAI}`;
             });
         } catch (e) {
             console.error('Groq API error:', e.message, e.status, e.error);
+            Sentry.captureException(e);
             return res.status(500).json({ error: 'Error al contactar la IA: ' + e.message });
         }
 
@@ -846,6 +877,7 @@ ${transcriptForAI}`;
         res.json(jsonContent);
     } catch (err) {
         console.error('Transcript error:', err);
+        Sentry.captureException(err);
         res.status(500).json({ error: 'Error procesando la transcripción', details: err.message });
     }
 });
@@ -987,6 +1019,7 @@ app.post('/api/transcripts/send-to-chat', authenticateJWT, async (req, res) => {
 
     } catch (err) {
         console.error('send-to-chat error:', err);
+        Sentry.captureException(err);
         res.status(500).json({ error: 'Error al enviar el mensaje' });
     }
 });
