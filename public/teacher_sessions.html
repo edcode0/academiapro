@@ -298,48 +298,175 @@
             cursor: help;
         }
 
-        /* Modal */
+        /* ── Unified Session Modal ── */
         .modal-overlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.45);
             display: none;
             justify-content: center;
             align-items: center;
             z-index: 1000;
             backdrop-filter: blur(4px);
         }
-
         .modal {
-            background: white;
-            width: 500px;
-            border-radius: 1rem;
-            padding: 2rem;
+            background: #fff;
+            width: 420px;
+            max-width: calc(100vw - 2rem);
+            border-radius: 12px;
+            overflow: hidden;
+            max-height: 90vh;
+            overflow-y: auto;
         }
-
-        .form-group {
-            margin-bottom: 1rem;
+        .modal-header-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px 20px;
+            border-bottom: 0.5px solid #e2e0d8;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #0f172a;
+            position: sticky;
+            top: 0;
+            background: #fff;
+            z-index: 1;
         }
-
-        .form-group label {
+        .modal-close-btn {
+            background: none;
+            border: none;
+            font-size: 1.3rem;
+            cursor: pointer;
+            color: #94a3b8;
+            line-height: 1;
+            padding: 0;
+        }
+        .modal-section {
+            padding: 13px 20px;
+        }
+        .modal-divider {
+            border: none;
+            border-top: 0.5px solid #e2e0d8;
+            margin: 0;
+        }
+        .field-label {
             display: block;
-            font-size: 0.875rem;
-            color: var(--text-muted);
-            margin-bottom: 0.25rem;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            color: #94a3b8;
+            margin-bottom: 6px;
+            text-transform: uppercase;
         }
-
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
+        .field-input {
             width: 100%;
-            padding: 0.75rem;
-            border: 1px solid var(--border);
-            border-radius: 0.5rem;
-            font-size: 1rem;
+            padding: 9px 12px;
+            border: 0.5px solid #e2e0d8;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-family: inherit;
+            color: #0f172a;
             outline: none;
+            background: #fff;
+            box-sizing: border-box;
+        }
+        .field-input:focus { border-color: #0f172a; }
+        .field-textarea { height: 72px; resize: none; }
+        .form-row-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        /* Session type toggle */
+        .session-type-toggle {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            border: 0.5px solid #e2e0d8;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .type-pill {
+            padding: 8px 0;
+            border: none;
+            background: transparent;
+            color: #94a3b8;
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-family: inherit;
+        }
+        .type-pill:first-child { border-right: 0.5px solid #e2e0d8; }
+        .type-pill.active { background: #0f172a; color: #fff; font-weight: 600; }
+        /* Group students list */
+        #group-students-container {
+            border: 0.5px solid #e2e0d8;
+            border-radius: 8px;
+            max-height: 160px;
+            overflow-y: auto;
+        }
+        .group-student-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            font-size: 0.875rem;
+            color: #0f172a;
+            cursor: pointer;
+            border-bottom: 0.5px solid #e2e0d8;
+        }
+        .group-student-item:last-child { border-bottom: none; }
+        .group-student-item:hover { background: #f8fafc; }
+        .group-student-item input[type="checkbox"] { width: auto; margin: 0; cursor: pointer; }
+        /* Meet button */
+        .meet-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            padding: 9px 12px;
+            border: 0.5px solid #e2e0d8;
+            border-radius: 8px;
+            background: #fff;
+            color: #0f172a;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            justify-content: center;
+            transition: background 0.15s;
+            font-family: inherit;
+        }
+        .meet-btn:hover { background: #f8fafc; }
+        /* Modal footer */
+        .modal-footer {
+            display: flex;
+            gap: 8px;
+            padding: 13px 20px;
+            border-top: 0.5px solid #e2e0d8;
+            justify-content: flex-end;
+        }
+        .btn-cancel {
+            padding: 8px 16px;
+            border: 0.5px solid #e2e0d8;
+            border-radius: 8px;
+            background: #fff;
+            color: #64748b;
+            font-size: 0.875rem;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .btn-save {
+            padding: 8px 18px;
+            border: none;
+            border-radius: 8px;
+            background: #0f172a;
+            color: #fff;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
         }
 
         #toast {
@@ -352,63 +479,6 @@
             display: none;
             z-index: 2000;
             background: var(--success);
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0.75rem;
-        }
-
-        /* Session type toggle pills */
-        .session-type-toggle {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 0.25rem;
-        }
-        .session-type-toggle button {
-            flex: 1;
-            padding: 0.5rem 1rem;
-            border: 1px solid var(--border);
-            border-radius: 9999px;
-            background: white;
-            color: var(--text-muted);
-            font-size: 0.875rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .session-type-toggle button.active {
-            background: var(--secondary);
-            color: white;
-            border-color: var(--secondary);
-        }
-
-        /* Group students checkbox list */
-        #group-students-container {
-            max-height: 180px;
-            overflow-y: auto;
-            border: 1px solid var(--border);
-            border-radius: 0.5rem;
-            padding: 0.5rem;
-            display: none;
-        }
-        .group-student-item {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.35rem 0.5rem;
-            border-radius: 0.375rem;
-            cursor: pointer;
-            font-size: 0.875rem;
-        }
-        .group-student-item:hover {
-            background: #f1f5f9;
-        }
-        .group-student-item input[type="checkbox"] {
-            width: auto;
-            margin: 0;
-            cursor: pointer;
         }
 
         /* Session type badges in table */
@@ -560,63 +630,68 @@
     <!-- Session Modal -->
     <div id="sessionModal" class="modal-overlay">
         <div class="modal">
-            <h3 id="modalTitle">Nueva Sesión</h3>
+            <div class="modal-header-bar">
+                <span id="modalTitle">Nueva Sesión</span>
+                <button type="button" class="modal-close-btn" onclick="closeModal('sessionModal')">×</button>
+            </div>
             <form id="sessionForm">
                 <input type="hidden" id="sessionIdField">
-                <div class="form-group">
-                    <label>Tipo de sesión</label>
+
+                <div class="modal-section">
+                    <label class="field-label">Tipo de sesión</label>
                     <div class="session-type-toggle">
-                        <button type="button" id="btn-type-individual" class="active" onclick="setSessionType('individual')">👤 Individual</button>
-                        <button type="button" id="btn-type-group" onclick="setSessionType('group')">👥 Grupal</button>
+                        <button type="button" id="btn-type-individual" class="type-pill active" onclick="setSessionType('individual')">Individual</button>
+                        <button type="button" id="btn-type-group" class="type-pill" onclick="setSessionType('group')">Grupal</button>
                     </div>
                 </div>
-                <div class="form-group" id="individual-student-group">
-                    <label>Alumno</label>
-                    <select id="m_student"></select>
+                <hr class="modal-divider">
+
+                <div class="modal-section">
+                    <label class="field-label">Fecha</label>
+                    <input type="date" id="m_date" class="field-input" required>
                 </div>
-                <div class="form-group" id="group-student-group" style="display:none;">
-                    <label>Alumnos (selecciona uno o más)</label>
+                <hr class="modal-divider">
+
+                <div class="modal-section">
+                    <div class="form-row-2">
+                        <div>
+                            <label class="field-label">Hora inicio</label>
+                            <input type="time" id="m_start" class="field-input" step="900">
+                        </div>
+                        <div>
+                            <label class="field-label">Hora fin</label>
+                            <input type="time" id="m_end" class="field-input" step="900">
+                        </div>
+                    </div>
+                </div>
+                <hr class="modal-divider">
+
+                <div class="modal-section" id="individual-student-group">
+                    <label class="field-label">Alumno</label>
+                    <select id="m_student" class="field-input" onchange="updateMeetVisibility()"></select>
+                </div>
+                <div class="modal-section" id="group-student-group" style="display:none;">
+                    <label class="field-label">Alumnos</label>
                     <div id="group-students-container"></div>
                 </div>
-                <div class="form-group">
-                    <label>Fecha</label>
-                    <input type="date" id="m_date" required>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Hora inicio</label>
-                        <input type="time" id="m_start" step="900" oninput="autoCalcDuration()">
-                    </div>
-                    <div class="form-group">
-                        <label>Hora fin</label>
-                        <input type="time" id="m_end" step="900" oninput="autoCalcDuration()">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Duración (minutos)</label>
-                    <input type="number" id="m_duration" value="60" required>
-                </div>
-                <div class="form-group">
-                    <label>¿Tareas hechas?</label>
-                    <select id="m_homework">
-                        <option value="1">Sí</option>
-                        <option value="0">No</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Notas</label>
-                    <textarea id="m_notes" placeholder="Resumen de la clase..."></textarea>
-                </div>
-                <div id="meet-link-row" class="form-group" style="display:none;">
-                    <label>Google Meet</label>
-                    <a id="meet-link-btn" href="#" target="_blank"
-                       style="display:inline-flex;align-items:center;gap:0.5rem;background:#0f172a;color:white;padding:0.5rem 1.1rem;border-radius:8px;font-size:0.875rem;text-decoration:none;font-weight:500;">
-                        🎥 Abrir Meet
+                <hr class="modal-divider">
+
+                <div class="modal-section" id="meet-link-section" style="display:none;">
+                    <a id="meet-link-btn" href="#" target="_blank" class="meet-btn">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 10l4.553-2.069A1 1 0 0121 8.876V15.124a1 1 0 01-1.447.945L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg>
+                        Abrir Meet
                     </a>
                 </div>
-                <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem;">
-                    <button type="button" class="btn btn-ghost" onclick="closeModal('sessionModal')">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Guardar</button>
+                <hr class="modal-divider" id="meet-divider" style="display:none;">
+
+                <div class="modal-section">
+                    <label class="field-label">Notas</label>
+                    <textarea id="m_notes" class="field-input field-textarea" placeholder="Resumen de la clase..."></textarea>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" onclick="closeModal('sessionModal')">Cancelar</button>
+                    <button type="submit" class="btn-save">Guardar sesión</button>
                 </div>
             </form>
         </div>
@@ -706,15 +781,25 @@
             `).join('');
         }
 
-        function autoCalcDuration() {
+        function calcDurationFromTimes() {
             const start = document.getElementById('m_start').value;
             const end = document.getElementById('m_end').value;
             if (start && end && end > start) {
                 const [sh, sm] = start.split(':').map(Number);
                 const [eh, em] = end.split(':').map(Number);
                 const mins = (eh * 60 + em) - (sh * 60 + sm);
-                if (mins > 0) document.getElementById('m_duration').value = mins;
+                return mins > 0 ? mins : 60;
             }
+            return 60;
+        }
+
+        function updateMeetVisibility() {
+            const btn = document.getElementById('meet-link-btn');
+            const section = document.getElementById('meet-link-section');
+            const divider = document.getElementById('meet-divider');
+            const hasLink = btn.href && btn.href !== '#' && !btn.href.endsWith('#');
+            section.style.display = hasLink ? 'block' : 'none';
+            divider.style.display = hasLink ? 'block' : 'none';
         }
 
         function setSessionType(type) {
@@ -723,8 +808,6 @@
             document.getElementById('btn-type-group').classList.toggle('active', type === 'group');
             document.getElementById('individual-student-group').style.display = type === 'individual' ? 'block' : 'none';
             document.getElementById('group-student-group').style.display = type === 'group' ? 'block' : 'none';
-            document.getElementById('group-students-container').style.display = type === 'group' ? 'block' : 'none';
-            // individual select required only when individual
             document.getElementById('m_student').required = (type === 'individual');
         }
 
@@ -778,23 +861,15 @@
                 document.getElementById('sessionIdField').value = session.id;
                 document.getElementById('m_student').value = session.student_id;
                 document.getElementById('m_date').value = session.date;
-                document.getElementById('m_duration').value = session.duration_minutes;
-                document.getElementById('m_homework').value = session.homework_done ? '1' : '0';
                 document.getElementById('m_notes').value = session.teacher_notes || '';
-                // Time fields — not stored on sessions; clear them
                 document.getElementById('m_start').value = '';
                 document.getElementById('m_end').value = '';
                 // Meet link — look up linked slot
-                const meetRow = document.getElementById('meet-link-row');
                 const meetBtn = document.getElementById('meet-link-btn');
                 const linkedSlot = session.slot_id ? calendarSlots.find(sl => sl.id === session.slot_id) : null;
                 const meetLink = linkedSlot?.meet_link || session.meet_link || null;
-                if (meetLink) {
-                    meetBtn.href = meetLink;
-                    meetRow.style.display = 'block';
-                } else {
-                    meetRow.style.display = 'none';
-                }
+                meetBtn.href = meetLink || '#';
+                updateMeetVisibility();
             } else {
                 document.getElementById('modalTitle').textContent = 'Nueva Sesión';
                 document.getElementById('sessionForm').reset();
@@ -802,7 +877,9 @@
                 document.getElementById('m_date').value = new Date().toISOString().split('T')[0];
                 document.getElementById('m_start').value = '';
                 document.getElementById('m_end').value = '';
-                document.getElementById('meet-link-row').style.display = 'none';
+                document.getElementById('meet-link-btn').href = '#';
+                document.getElementById('meet-link-section').style.display = 'none';
+                document.getElementById('meet-divider').style.display = 'none';
                 setSessionType('individual');
             }
         }
@@ -817,11 +894,13 @@
         document.getElementById('sessionForm').onsubmit = async (e) => {
             e.preventDefault();
             const id = document.getElementById('sessionIdField').value;
+            const duration_minutes = calcDurationFromTimes();
             const commonFields = {
                 date: document.getElementById('m_date').value,
-                duration_minutes: document.getElementById('m_duration').value,
-                homework_done: document.getElementById('m_homework').value === '1',
-                teacher_notes: document.getElementById('m_notes').value
+                duration_minutes,
+                teacher_notes: document.getElementById('m_notes').value,
+                start_time: document.getElementById('m_start').value || undefined,
+                end_time: document.getElementById('m_end').value || undefined
             };
 
             let data;

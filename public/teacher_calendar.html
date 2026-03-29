@@ -210,10 +210,11 @@
 
         .modal-box {
             background: white;
-            border-radius: 1.25rem;
-            padding: 2rem;
-            width: 480px;
+            border-radius: 12px;
+            width: 420px;
             max-width: 95vw;
+            max-height: 90vh;
+            overflow-y: auto;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
             animation: modalIn 0.2s ease;
         }
@@ -304,31 +305,78 @@
             gap: 0.75rem;
         }
 
-        /* Type toggle */
-        .type-toggle {
-            display: flex;
-            gap: 0.5rem;
+        /* ── Unified session-type toggle for create modal ── */
+        .session-type-toggle {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            border: 0.5px solid #e2e0d8;
+            border-radius: 8px;
+            overflow: hidden;
         }
-
-        .type-btn {
-            flex: 1;
-            padding: 0.65rem;
-            border: 2px solid var(--border);
-            border-radius: 0.6rem;
-            background: white;
+        .type-pill {
+            padding: 8px 0;
+            border: none;
+            background: transparent;
+            color: #94a3b8;
+            font-size: 0.8rem;
+            font-weight: 500;
             cursor: pointer;
-            font-size: 0.85rem;
+            transition: all 0.15s;
+            font-family: inherit;
+        }
+        .type-pill:first-child { border-right: 0.5px solid #e2e0d8; }
+        .type-pill.active { background: #0f172a; color: #fff; font-weight: 600; }
+        /* Field label */
+        .field-label {
+            display: block;
+            font-size: 11px;
             font-weight: 600;
-            color: var(--text-muted);
-            transition: all 0.2s;
-            text-align: center;
+            letter-spacing: 0.06em;
+            color: #94a3b8;
+            margin-bottom: 6px;
+            text-transform: uppercase;
         }
-
-        .type-btn.active {
-            border-color: var(--secondary);
-            background: #eff6ff;
-            color: var(--secondary);
+        /* Meet button */
+        .meet-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            padding: 9px 12px;
+            border: 0.5px solid #e2e0d8;
+            border-radius: 8px;
+            background: #fff;
+            color: #0f172a;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            justify-content: center;
+            transition: background 0.15s;
+            font-family: inherit;
+            box-sizing: border-box;
         }
+        .meet-btn:hover { background: #f8fafc; }
+        /* Group students list for create modal */
+        #c_group_students_container {
+            border: 0.5px solid #e2e0d8;
+            border-radius: 8px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        .group-student-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            font-size: 0.875rem;
+            color: #0f172a;
+            cursor: pointer;
+            border-bottom: 0.5px solid #e2e0d8;
+        }
+        .group-student-item:last-child { border-bottom: none; }
+        .group-student-item:hover { background: #f8fafc; }
+        .group-student-item input[type="checkbox"] { width: auto; margin: 0; cursor: pointer; }
 
         .modal-actions {
             display: flex;
@@ -586,72 +634,75 @@
     <!-- ═══ CREATE SLOT MODAL ═══ -->
     <div id="createModal" class="modal-overlay">
         <div class="modal-box">
-            <div class="modal-header">
-                <h3>➕ Crear disponibilidad</h3>
+            <div class="modal-header" style="padding:15px 20px;border-bottom:0.5px solid #e2e0d8;margin-bottom:0;">
+                <h3 style="font-size:0.9rem;font-weight:600;color:#0f172a;">Nueva sesión</h3>
                 <button class="modal-close" onclick="closeCreate()">×</button>
             </div>
 
-            <div class="form-group">
-                <label>Fecha</label>
-                <input type="text" id="c_date" readonly>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Hora inicio</label>
-                    <input type="time" id="c_start" step="900">
-                </div>
-                <div class="form-group">
-                    <label>Hora fin</label>
-                    <input type="time" id="c_end" step="900">
+            <div style="padding:13px 20px;">
+                <label class="field-label">Tipo de sesión</label>
+                <div class="session-type-toggle">
+                    <button class="type-pill active" id="btn-session-individual" onclick="setSessionTypeSlot('individual')">Individual</button>
+                    <button class="type-pill" id="btn-session-group" onclick="setSessionTypeSlot('group')">Grupal</button>
                 </div>
             </div>
-            <div id="time-error" class="validation-error">⚠️ La hora de fin debe ser posterior a la de inicio.</div>
+            <hr style="border:none;border-top:0.5px solid #e2e0d8;margin:0;">
 
-            <div class="form-group">
-                <label>Tipo de disponibilidad</label>
-                <div class="type-toggle">
-                    <button class="type-btn active" id="btn-libre" onclick="setType('libre')">🟢 Hora libre</button>
-                    <button class="type-btn" id="btn-asignar" onclick="setType('asignar')">🔵 Asignar alumno</button>
-                </div>
+            <div style="padding:13px 20px;">
+                <label class="field-label">Fecha</label>
+                <input type="text" id="c_date" readonly
+                    style="width:100%;padding:9px 12px;border:0.5px solid #e2e0d8;border-radius:8px;font-size:0.875rem;font-family:inherit;color:#0f172a;background:#f8fafc;outline:none;box-sizing:border-box;">
             </div>
+            <hr style="border:none;border-top:0.5px solid #e2e0d8;margin:0;">
 
-            <div id="student-selector-group" class="form-group" style="display:none;">
-                <label>Seleccionar alumno</label>
-                <select id="c_student">
-                    <option value="">— Selecciona un alumno —</option>
+            <div style="padding:13px 20px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                    <div>
+                        <label class="field-label">Hora inicio</label>
+                        <input type="time" id="c_start" step="900"
+                            style="width:100%;padding:9px 12px;border:0.5px solid #e2e0d8;border-radius:8px;font-size:0.875rem;font-family:inherit;color:#0f172a;outline:none;background:#fff;box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label class="field-label">Hora fin</label>
+                        <input type="time" id="c_end" step="900"
+                            style="width:100%;padding:9px 12px;border:0.5px solid #e2e0d8;border-radius:8px;font-size:0.875rem;font-family:inherit;color:#0f172a;outline:none;background:#fff;box-sizing:border-box;">
+                    </div>
+                </div>
+                <div id="time-error" class="validation-error" style="margin-top:6px;">⚠️ La hora de fin debe ser posterior a la de inicio.</div>
+            </div>
+            <hr style="border:none;border-top:0.5px solid #e2e0d8;margin:0;">
+
+            <div id="c_individual_student_group" style="padding:13px 20px;">
+                <label class="field-label">Alumno (opcional)</label>
+                <select id="c_student"
+                    style="width:100%;padding:9px 12px;border:0.5px solid #e2e0d8;border-radius:8px;font-size:0.875rem;font-family:inherit;color:#0f172a;outline:none;background:#fff;box-sizing:border-box;"
+                    onchange="onCalStudentChange()">
+                    <option value="">— Hora libre —</option>
                 </select>
             </div>
+            <div id="c_group_student_group" style="display:none;padding:13px 20px;">
+                <label class="field-label">Alumnos</label>
+                <div id="c_group_students_container"></div>
+            </div>
+            <hr style="border:none;border-top:0.5px solid #e2e0d8;margin:0;">
 
-            <div class="form-group">
-                <label>Notas (opcional)</label>
-                <textarea id="c_notes" rows="2" placeholder="Ej: Repaso de termodinámica..."></textarea>
+            <div id="c_meet_section" style="display:none;padding:13px 20px;">
+                <button type="button" class="meet-btn" onclick="window.open('https://meet.google.com/new','_blank')">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 10l4.553-2.069A1 1 0 0121 8.876V15.124a1 1 0 01-1.447.945L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg>
+                    Crear enlace de Meet
+                </button>
+            </div>
+            <hr id="c_meet_divider" style="display:none;border:none;border-top:0.5px solid #e2e0d8;margin:0;">
+
+            <div style="padding:13px 20px;">
+                <label class="field-label">Notas (opcional)</label>
+                <textarea id="c_notes" rows="2" placeholder="Ej: Repaso de termodinámica..."
+                    style="width:100%;padding:9px 12px;border:0.5px solid #e2e0d8;border-radius:8px;font-size:0.875rem;font-family:inherit;color:#0f172a;outline:none;background:#fff;resize:none;height:72px;box-sizing:border-box;"></textarea>
             </div>
 
-            <div class="form-group">
-                <label>Tipo de sesión</label>
-                <div class="type-toggle">
-                    <button class="type-btn active" id="btn-session-individual" onclick="setSessionTypeSlot('individual')">👤 Individual</button>
-                    <button class="type-btn" id="btn-session-group" onclick="setSessionTypeSlot('group')">👥 Grupal</button>
-                </div>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Duración (min)</label>
-                    <input type="number" id="c_duration" value="60" min="1">
-                </div>
-                <div class="form-group">
-                    <label>¿Tareas hechas?</label>
-                    <select id="c_homework">
-                        <option value="0">No</option>
-                        <option value="1">Sí</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="modal-actions">
-                <button class="btn btn-ghost" onclick="closeCreate()">Cancelar</button>
-                <button class="btn btn-primary" onclick="submitCreate()">Crear disponibilidad</button>
+            <div style="display:flex;gap:8px;padding:13px 20px;border-top:0.5px solid #e2e0d8;justify-content:flex-end;">
+                <button style="padding:8px 16px;border:0.5px solid #e2e0d8;border-radius:8px;background:#fff;color:#64748b;font-size:0.875rem;cursor:pointer;font-family:inherit;" onclick="closeCreate()">Cancelar</button>
+                <button style="padding:8px 18px;border:none;border-radius:8px;background:#0f172a;color:#fff;font-size:0.875rem;font-weight:600;cursor:pointer;font-family:inherit;" onclick="submitCreate()">Guardar sesión</button>
             </div>
         </div>
     </div>
@@ -717,7 +768,6 @@
         let calendar;
         let selectedSlotId = null;
         let selectedSlotData = null;
-        let slotType = 'libre';
         let slotSessionType = 'individual';
         let pendingSelectInfo = null;
         let myStudents = [];
@@ -782,8 +832,14 @@
                 if (sRes.ok) {
                     myStudents = await sRes.json();
                     const opts = myStudents.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
-                    document.getElementById('c_student').innerHTML = '<option value="">— Selecciona un alumno —</option>' + opts;
+                    document.getElementById('c_student').innerHTML = '<option value="">— Hora libre —</option>' + opts;
                     document.getElementById('d_assign_student').innerHTML = '<option value="">— Selecciona —</option>' + opts;
+                    // Group checkboxes for create modal
+                    document.getElementById('c_group_students_container').innerHTML = myStudents.map(s => `
+                        <label class="group-student-item">
+                            <input type="checkbox" name="c_group_student" value="${s.id}" onchange="onCalStudentChange()">
+                            ${s.name}
+                        </label>`).join('');
                 }
             } catch (e) { }
 
@@ -892,14 +948,11 @@
             document.getElementById('c_end').value = toTimeStr(end);
             document.getElementById('c_notes').value = '';
             document.getElementById('time-error').style.display = 'none';
-            setType('libre');
+            document.getElementById('c_student').value = '';
+            document.querySelectorAll('#c_group_students_container input[type="checkbox"]').forEach(cb => cb.checked = false);
+            document.getElementById('c_meet_section').style.display = 'none';
+            document.getElementById('c_meet_divider').style.display = 'none';
             setSessionTypeSlot('individual');
-            document.getElementById('c_homework').value = '0';
-            calcSlotDuration();
-
-            // Wire up duration auto-calc on time change
-            document.getElementById('c_start').oninput = calcSlotDuration;
-            document.getElementById('c_end').oninput = calcSlotDuration;
 
             document.getElementById('createModal').style.display = 'flex';
         }
@@ -909,17 +962,21 @@
             pendingSelectInfo = null;
         }
 
-        function setType(type) {
-            slotType = type;
-            document.getElementById('btn-libre').classList.toggle('active', type === 'libre');
-            document.getElementById('btn-asignar').classList.toggle('active', type === 'asignar');
-            document.getElementById('student-selector-group').style.display = type === 'asignar' ? 'block' : 'none';
-        }
-
         function setSessionTypeSlot(type) {
             slotSessionType = type;
             document.getElementById('btn-session-individual').classList.toggle('active', type === 'individual');
             document.getElementById('btn-session-group').classList.toggle('active', type === 'group');
+            document.getElementById('c_individual_student_group').style.display = type === 'individual' ? 'block' : 'none';
+            document.getElementById('c_group_student_group').style.display = type === 'group' ? 'block' : 'none';
+            onCalStudentChange();
+        }
+
+        function onCalStudentChange() {
+            const hasStudent = slotSessionType === 'group'
+                ? document.querySelectorAll('#c_group_students_container input[type="checkbox"]:checked').length > 0
+                : document.getElementById('c_student').value !== '';
+            document.getElementById('c_meet_section').style.display = hasStudent ? 'block' : 'none';
+            document.getElementById('c_meet_divider').style.display = hasStudent ? 'block' : 'none';
         }
 
         function calcSlotDuration() {
@@ -929,18 +986,27 @@
                 const [sh, sm] = start.split(':').map(Number);
                 const [eh, em] = end.split(':').map(Number);
                 const mins = (eh * 60 + em) - (sh * 60 + sm);
-                if (mins > 0) document.getElementById('c_duration').value = mins;
+                return mins > 0 ? mins : 60;
             }
+            return 60;
         }
 
         async function submitCreate() {
             if (!pendingSelectInfo) return;
 
-            const dateStr = pendingSelectInfo.start.toISOString().split('T')[0]; // YYYY-MM-DD
+            const dateStr = pendingSelectInfo.start.toISOString().split('T')[0];
             const startTime = document.getElementById('c_start').value;
             const endTime = document.getElementById('c_end').value;
             const notes = document.getElementById('c_notes').value.trim();
-            const studentId = slotType === 'asignar' ? document.getElementById('c_student').value : null;
+
+            // Resolve student(s)
+            let studentId = null;
+            let groupStudentIds = [];
+            if (slotSessionType === 'group') {
+                groupStudentIds = Array.from(document.querySelectorAll('#c_group_students_container input[type="checkbox"]:checked')).map(cb => parseInt(cb.value));
+            } else {
+                studentId = document.getElementById('c_student').value || null;
+            }
 
             // Validate times
             if (startTime >= endTime) {
@@ -951,45 +1017,57 @@
 
             const startDatetime = `${dateStr}T${startTime}:00`;
             const endDatetime = `${dateStr}T${endTime}:00`;
+            const durationMins = calcSlotDuration();
 
             try {
-                const payload = { start_datetime: startDatetime, end_datetime: endDatetime };
-                if (notes) payload.notes = notes;
-                if (studentId) payload.student_id = studentId;
+                // For group: create a slot for each student; for individual: one slot
+                const studentsToProcess = slotSessionType === 'group' && groupStudentIds.length > 0
+                    ? groupStudentIds
+                    : (studentId ? [studentId] : [null]);
 
-                const res = await fetch('/api/calendar/slots', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
+                let slotCreated = false;
+                for (const sid of studentsToProcess) {
+                    const payload = { start_datetime: startDatetime, end_datetime: endDatetime };
+                    if (notes) payload.notes = notes;
+                    if (sid) payload.student_id = sid;
 
-                if (res.ok) {
-                    // If student assigned, also create a session automatically
-                    if (studentId && studentId !== '') {
-                        const autoDuration = Math.round((new Date(endDatetime) - new Date(startDatetime)) / 60000);
-                        const manualDuration = parseInt(document.getElementById('c_duration').value);
-                        const durationMins = manualDuration > 0 ? manualDuration : autoDuration;
-                        await fetch('/api/sessions', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                student_id: studentId,
-                                date: dateStr,
-                                duration_minutes: durationMins,
-                                teacher_notes: notes || 'Sesión desde calendario',
-                                homework_done: document.getElementById('c_homework').value === '1',
-                                session_type: slotSessionType
-                            })
-                        });
-                        showToast('✅ Disponibilidad creada y sesión registrada', 'success');
+                    const res = await fetch('/api/calendar/slots', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (res.ok) slotCreated = true;
+                }
+
+                // If student(s) assigned, also create sessions
+                const hasStudents = slotSessionType === 'group' ? groupStudentIds.length > 0 : !!studentId;
+                if (slotCreated && hasStudents) {
+                    const sessionPayload = {
+                        date: dateStr,
+                        duration_minutes: durationMins,
+                        teacher_notes: notes || 'Sesión desde calendario',
+                        session_type: slotSessionType,
+                        start_time: startTime,
+                        end_time: endTime
+                    };
+                    if (slotSessionType === 'group') {
+                        sessionPayload.students = groupStudentIds;
                     } else {
-                        showToast('✅ Disponibilidad creada correctamente', 'success');
+                        sessionPayload.student_id = studentId;
                     }
-                    calendar.refetchEvents();
-                    closeCreate();
+                    await fetch('/api/sessions', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(sessionPayload)
+                    });
+                    showToast('✅ Sesión y disponibilidad registradas', 'success');
+                } else if (slotCreated) {
+                    showToast('✅ Disponibilidad creada correctamente', 'success');
                 } else {
                     showToast('❌ Error al crear la disponibilidad', 'error');
                 }
+                calendar.refetchEvents();
+                closeCreate();
             } catch (e) {
                 showToast('❌ Error de conexión', 'error');
             }
