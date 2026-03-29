@@ -882,7 +882,11 @@
                 allDaySlot: false,
                 selectable: true,
                 selectMirror: true,
+                selectMinDistance: 10,
                 nowIndicator: true,
+                displayEventTime: true,
+                displayEventEnd: true,
+                eventTimeFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
                 dayMaxEvents: 3,
                 moreLinkClick: 'day',
                 headerToolbar: {
@@ -952,8 +956,6 @@
                         end: endLocal,
                         backgroundColor: color,
                         borderColor: color,
-                        displayEventTime: true,
-                        displayEventEnd: true,
                         extendedProps: {
                             is_booked: s.is_booked,
                             student_name: s.student_name,
