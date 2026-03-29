@@ -692,11 +692,17 @@
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 10l4.553-2.069A1 1 0 0121 8.876V15.124a1 1 0 01-1.447.945L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg>
                     Crear enlace de Meet
                 </button>
-                <!-- shown after link is created -->
-                <a id="c_meet_link" href="#" target="_blank" style="display:none;align-items:center;gap:8px;width:100%;padding:9px 12px;border-radius:8px;background:#10b981;color:#fff;font-size:0.875rem;font-weight:600;text-decoration:none;justify-content:center;box-sizing:border-box;">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 10l4.553-2.069A1 1 0 0121 8.876V15.124a1 1 0 01-1.447.945L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg>
-                    Unirse a Meet →
-                </a>
+                <!-- shown after link is created — readonly text so teacher can copy, not open -->
+                <div id="c_meet_result" style="display:none;">
+                    <div style="font-size:11px;font-weight:600;letter-spacing:0.06em;color:#94a3b8;margin-bottom:6px;text-transform:uppercase;">Enlace de Meet creado ✓</div>
+                    <div style="display:flex;gap:6px;align-items:center;">
+                        <input id="c_meet_url" type="text" readonly
+                            style="flex:1;padding:7px 10px;border:0.5px solid #e2e0d8;border-radius:8px;font-size:0.8rem;color:#0f172a;background:#f8fafc;outline:none;cursor:text;font-family:monospace;">
+                        <button type="button" onclick="copyCalMeetLink()"
+                            style="padding:7px 12px;border:0.5px solid #e2e0d8;border-radius:8px;background:#fff;color:#0f172a;font-size:0.8rem;cursor:pointer;font-family:inherit;white-space:nowrap;"
+                            id="c_copy_btn">Copiar</button>
+                    </div>
+                </div>
             </div>
             <hr id="c_meet_divider" style="display:none;border:none;border-top:0.5px solid #e2e0d8;margin:0;">
 
@@ -983,21 +989,31 @@
         function resetCalMeetBtn() {
             pendingMeetLink = null;
             const btn = document.getElementById('c_meet_btn');
-            const link = document.getElementById('c_meet_link');
-            btn.style.display = 'flex';
-            btn.textContent = '';
+            const result = document.getElementById('c_meet_result');
+            btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 10l4.553-2.069A1 1 0 0121 8.876V15.124a1 1 0 01-1.447.945L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg> Crear enlace de Meet`;
             btn.disabled = false;
             btn.style.color = '';
-            // Re-insert SVG icon
-            btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 10l4.553-2.069A1 1 0 0121 8.876V15.124a1 1 0 01-1.447.945L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg> Crear enlace de Meet`;
-            link.style.display = 'none';
-            link.href = '#';
+            btn.style.display = 'flex';
+            result.style.display = 'none';
+            document.getElementById('c_meet_url').value = '';
+        }
+
+        function copyCalMeetLink() {
+            const url = document.getElementById('c_meet_url').value;
+            if (!url) return;
+            navigator.clipboard.writeText(url).then(() => {
+                const btn = document.getElementById('c_copy_btn');
+                btn.textContent = '¡Copiado!';
+                setTimeout(() => { btn.textContent = 'Copiar'; }, 1500);
+            }).catch(() => {
+                document.getElementById('c_meet_url').select();
+                document.execCommand('copy');
+            });
         }
 
         async function createCalMeetLink() {
             if (!pendingSelectInfo) return;
             const btn = document.getElementById('c_meet_btn');
-            const link = document.getElementById('c_meet_link');
             btn.innerHTML = 'Creando enlace...';
             btn.disabled = true;
 
@@ -1016,8 +1032,8 @@
                 if (res.ok && data.meet_link) {
                     pendingMeetLink = data.meet_link;
                     btn.style.display = 'none';
-                    link.href = data.meet_link;
-                    link.style.display = 'flex';
+                    document.getElementById('c_meet_url').value = data.meet_link;
+                    document.getElementById('c_meet_result').style.display = 'block';
                 } else {
                     btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 10l4.553-2.069A1 1 0 0121 8.876V15.124a1 1 0 01-1.447.945L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg> ${data.error || 'Error al crear enlace'}`;
                     btn.style.color = '#ef4444';
