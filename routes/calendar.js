@@ -54,7 +54,7 @@ router.get('/api/calendar/slots', authenticateJWT, (req, res) => {
 // Teacher creates slots
 router.post('/api/calendar/slots', authenticateJWT, requireTeacherOrAdmin, async (req, res) => {
     try {
-        const { start_datetime, end_datetime, student_id, notes } = req.body;
+        const { start_datetime, end_datetime, student_id, notes, meet_link: providedMeetLink } = req.body;
         const isBooked = !!student_id;
         const insertSql = isPostgres
             ? 'INSERT INTO available_slots (teacher_id, academy_id, start_datetime, end_datetime, is_booked, student_id, notes) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id'
@@ -62,26 +62,88 @@ router.post('/api/calendar/slots', authenticateJWT, requireTeacherOrAdmin, async
         const result = await db.query(insertSql, [req.user.id, req.user.academy_id, start_datetime, end_datetime, isBooked, student_id || null, notes || null]);
         const slotId = isPostgres ? result.rows[0].id : result.lastID;
 
-        // Create Google Calendar event if teacher has OAuth connected
-        try {
-            const teacherRes = await db.query('SELECT * FROM users WHERE id = $1', [req.user.id]);
-            const teacher = teacherRes.rows[0];
-            if (teacher?.calendar_access_token) {
-                const calResult = await createCalendarEvent(teacher, { start_datetime, end_datetime, student_name: null, student_email: null });
-                if (calResult) {
-                    await db.query(
-                        'UPDATE available_slots SET google_event_id = $1, meet_link = $2 WHERE id = $3',
-                        [calResult.google_event_id, calResult.meet_link, slotId]
-                    );
+        if (providedMeetLink) {
+            // Meet link was already created on-demand — just save it
+            await db.query('UPDATE available_slots SET meet_link = $1 WHERE id = $2', [providedMeetLink, slotId]);
+        } else {
+            // Auto-create Google Calendar event if teacher has OAuth connected
+            try {
+                const teacherRes = await db.query('SELECT * FROM users WHERE id = $1', [req.user.id]);
+                const teacher = teacherRes.rows[0];
+                if (teacher?.calendar_access_token) {
+                    const calResult = await createCalendarEvent(teacher, { start_datetime, end_datetime, student_name: null, student_email: null });
+                    if (calResult) {
+                        await db.query(
+                            'UPDATE available_slots SET google_event_id = $1, meet_link = $2 WHERE id = $3',
+                            [calResult.google_event_id, calResult.meet_link, slotId]
+                        );
+                    }
                 }
+            } catch (calErr) {
+                console.error('[Calendar] Slot create calendar error:', calErr.message);
             }
-        } catch (calErr) {
-            console.error('[Calendar] Slot create calendar error:', calErr.message);
         }
 
         res.json({ success: true, is_booked: isBooked });
     } catch (err) {
         res.status(500).json({ error: err.message });
+    }
+});
+
+// Create a Google Meet link on demand for a session or slot
+router.post('/api/calendar/meet', authenticateJWT, requireTeacherOrAdmin, async (req, res) => {
+    try {
+        const { student_id, date, start_time, end_time, slot_id, session_id } = req.body;
+        if (!date || !start_time || !end_time) {
+            return res.status(400).json({ error: 'Se requieren fecha, hora inicio y hora fin' });
+        }
+
+        const teacherRes = await db.query('SELECT * FROM users WHERE id = $1', [req.user.id]);
+        const teacher = teacherRes.rows[0];
+        if (!teacher?.calendar_access_token) {
+            return res.status(400).json({ error: 'Google Calendar no conectado. Ve a Configuración > Integraciones para conectarlo.' });
+        }
+
+        let studentName = 'Alumno';
+        if (student_id) {
+            const sr = await db.query('SELECT name FROM students WHERE id = $1 AND academy_id = $2', [student_id, req.user.academy_id]);
+            if (sr.rows[0]) studentName = sr.rows[0].name;
+        }
+
+        const startDatetime = `${date}T${start_time}:00`;
+        const endDatetime   = `${date}T${end_time}:00`;
+
+        const calResult = await createCalendarEvent(teacher, {
+            start_datetime: startDatetime,
+            end_datetime:   endDatetime,
+            student_name:   studentName
+        });
+
+        if (!calResult?.meet_link) {
+            return res.status(500).json({ error: 'No se pudo generar el enlace de Meet. Verifica que Google Calendar esté conectado.' });
+        }
+
+        // Persist to slot if provided
+        if (slot_id) {
+            await db.query(
+                'UPDATE available_slots SET google_event_id = $1, meet_link = $2 WHERE id = $3 AND academy_id = $4',
+                [calResult.google_event_id, calResult.meet_link, slot_id, req.user.academy_id]
+            );
+        }
+
+        // Persist to session if provided
+        if (session_id) {
+            await db.query(
+                `UPDATE sessions SET meet_link = $1 WHERE id = $2
+                 AND student_id IN (SELECT id FROM students WHERE academy_id = $3)`,
+                [calResult.meet_link, session_id, req.user.academy_id]
+            );
+        }
+
+        res.json({ meet_link: calResult.meet_link, event_id: calResult.google_event_id });
+    } catch (err) {
+        console.error('[Calendar] Meet create error:', err.message);
+        res.status(500).json({ error: 'Error al crear el enlace de Meet' });
     }
 });
 

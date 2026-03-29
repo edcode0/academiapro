@@ -668,7 +668,7 @@
 
                 <div class="modal-section" id="individual-student-group">
                     <label class="field-label">Alumno</label>
-                    <select id="m_student" class="field-input" onchange="updateMeetVisibility()"></select>
+                    <select id="m_student" class="field-input"></select>
                 </div>
                 <div class="modal-section" id="group-student-group" style="display:none;">
                     <label class="field-label">Alumnos</label>
@@ -677,10 +677,16 @@
                 <hr class="modal-divider">
 
                 <div class="modal-section" id="meet-link-section" style="display:none;">
-                    <a id="meet-link-btn" href="#" target="_blank" class="meet-btn">
+                    <!-- Shown when meet_link already exists -->
+                    <a id="meet-link-open" href="#" target="_blank" style="display:none;align-items:center;gap:8px;width:100%;padding:9px 12px;border-radius:8px;background:#10b981;color:#fff;font-size:0.875rem;font-weight:600;text-decoration:none;justify-content:center;box-sizing:border-box;">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 10l4.553-2.069A1 1 0 0121 8.876V15.124a1 1 0 01-1.447.945L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg>
-                        Abrir Meet
+                        Unirse a Meet →
                     </a>
+                    <!-- Shown when no meet_link yet (edit mode only) -->
+                    <button type="button" id="meet-link-create" class="meet-btn" onclick="createSessionMeetLink()" style="display:none;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 10l4.553-2.069A1 1 0 0121 8.876V15.124a1 1 0 01-1.447.945L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg>
+                        Crear enlace de Meet
+                    </button>
                 </div>
                 <hr class="modal-divider" id="meet-divider" style="display:none;">
 
@@ -705,6 +711,7 @@
         let allStudents = [];
         let currentSessionType = 'individual';
         let calendarSlots = [];
+        let currentEditingSession = null;
 
         const ADMIN_NAV_HTML = `
             <div class="nav-section-title">Gestión de Academia</div>
@@ -793,13 +800,48 @@
             return 60;
         }
 
-        function updateMeetVisibility() {
-            const btn = document.getElementById('meet-link-btn');
-            const section = document.getElementById('meet-link-section');
-            const divider = document.getElementById('meet-divider');
-            const hasLink = btn.href && btn.href !== '#' && !btn.href.endsWith('#');
-            section.style.display = hasLink ? 'block' : 'none';
-            divider.style.display = hasLink ? 'block' : 'none';
+        async function createSessionMeetLink() {
+            if (!currentEditingSession) return;
+            const createBtn = document.getElementById('meet-link-create');
+            createBtn.innerHTML = 'Creando enlace...';
+            createBtn.disabled = true;
+
+            const date      = document.getElementById('m_date').value;
+            const startTime = document.getElementById('m_start').value;
+            const endTime   = document.getElementById('m_end').value;
+
+            // Need at least date; times are optional (use 00:00 → 01:00 as fallback)
+            const start = startTime || '09:00';
+            const end   = endTime   || '10:00';
+
+            try {
+                const res = await fetch('/api/calendar/meet', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        student_id: currentEditingSession.student_id,
+                        date,
+                        start_time: start,
+                        end_time:   end,
+                        session_id: currentEditingSession.id,
+                        slot_id:    currentEditingSession.slot_id || undefined
+                    })
+                });
+                const data = await res.json();
+                if (res.ok && data.meet_link) {
+                    // Update local session record so re-open works
+                    currentEditingSession = { ...currentEditingSession, meet_link: data.meet_link };
+                    setMeetSectionState(data.meet_link, true);
+                } else {
+                    createBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 10l4.553-2.069A1 1 0 0121 8.876V15.124a1 1 0 01-1.447.945L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg> ${data.error || 'Error al crear enlace'}`;
+                    createBtn.style.color = '#ef4444';
+                    createBtn.disabled = false;
+                }
+            } catch (e) {
+                createBtn.innerHTML = 'Error de conexión';
+                createBtn.style.color = '#ef4444';
+                createBtn.disabled = false;
+            }
         }
 
         function setSessionType(type) {
@@ -857,6 +899,7 @@
         function openModal(id, session = null) {
             document.getElementById(id).style.display = 'flex';
             if (session) {
+                currentEditingSession = session;
                 document.getElementById('modalTitle').textContent = 'Editar Sesión';
                 document.getElementById('sessionIdField').value = session.id;
                 document.getElementById('m_student').value = session.student_id;
@@ -864,23 +907,48 @@
                 document.getElementById('m_notes').value = session.teacher_notes || '';
                 document.getElementById('m_start').value = '';
                 document.getElementById('m_end').value = '';
-                // Meet link — look up linked slot
-                const meetBtn = document.getElementById('meet-link-btn');
+                // Meet link — check session or linked slot
                 const linkedSlot = session.slot_id ? calendarSlots.find(sl => sl.id === session.slot_id) : null;
                 const meetLink = linkedSlot?.meet_link || session.meet_link || null;
-                meetBtn.href = meetLink || '#';
-                updateMeetVisibility();
+                setMeetSectionState(meetLink, true);
             } else {
+                currentEditingSession = null;
                 document.getElementById('modalTitle').textContent = 'Nueva Sesión';
                 document.getElementById('sessionForm').reset();
                 document.getElementById('sessionIdField').value = '';
                 document.getElementById('m_date').value = new Date().toISOString().split('T')[0];
                 document.getElementById('m_start').value = '';
                 document.getElementById('m_end').value = '';
-                document.getElementById('meet-link-btn').href = '#';
-                document.getElementById('meet-link-section').style.display = 'none';
-                document.getElementById('meet-divider').style.display = 'none';
+                setMeetSectionState(null, false);
                 setSessionType('individual');
+            }
+        }
+
+        function setMeetSectionState(meetLink, isEdit) {
+            const section  = document.getElementById('meet-link-section');
+            const divider  = document.getElementById('meet-divider');
+            const openLink = document.getElementById('meet-link-open');
+            const createBtn = document.getElementById('meet-link-create');
+
+            if (meetLink) {
+                openLink.href = meetLink;
+                openLink.style.display = 'flex';
+                createBtn.style.display = 'none';
+                section.style.display = 'block';
+                divider.style.display = 'block';
+            } else if (isEdit) {
+                // Edit mode, no link yet — show create button
+                openLink.style.display = 'none';
+                createBtn.textContent = '';
+                createBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 10l4.553-2.069A1 1 0 0121 8.876V15.124a1 1 0 01-1.447.945L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg> Crear enlace de Meet`;
+                createBtn.disabled = false;
+                createBtn.style.color = '';
+                createBtn.style.display = 'flex';
+                section.style.display = 'block';
+                divider.style.display = 'block';
+            } else {
+                section.style.display = 'none';
+                divider.style.display = 'none';
             }
         }
 

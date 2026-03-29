@@ -687,10 +687,16 @@
             <hr style="border:none;border-top:0.5px solid #e2e0d8;margin:0;">
 
             <div id="c_meet_section" style="display:none;padding:13px 20px;">
-                <button type="button" class="meet-btn" onclick="window.open('https://meet.google.com/new','_blank')">
+                <!-- shown while pending -->
+                <button type="button" id="c_meet_btn" class="meet-btn" onclick="createCalMeetLink()">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 10l4.553-2.069A1 1 0 0121 8.876V15.124a1 1 0 01-1.447.945L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg>
                     Crear enlace de Meet
                 </button>
+                <!-- shown after link is created -->
+                <a id="c_meet_link" href="#" target="_blank" style="display:none;align-items:center;gap:8px;width:100%;padding:9px 12px;border-radius:8px;background:#10b981;color:#fff;font-size:0.875rem;font-weight:600;text-decoration:none;justify-content:center;box-sizing:border-box;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 10l4.553-2.069A1 1 0 0121 8.876V15.124a1 1 0 01-1.447.945L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg>
+                    Unirse a Meet →
+                </a>
             </div>
             <hr id="c_meet_divider" style="display:none;border:none;border-top:0.5px solid #e2e0d8;margin:0;">
 
@@ -769,6 +775,7 @@
         let selectedSlotId = null;
         let selectedSlotData = null;
         let slotSessionType = 'individual';
+        let pendingMeetLink = null;
         let pendingSelectInfo = null;
         let myStudents = [];
 
@@ -952,6 +959,7 @@
             document.querySelectorAll('#c_group_students_container input[type="checkbox"]').forEach(cb => cb.checked = false);
             document.getElementById('c_meet_section').style.display = 'none';
             document.getElementById('c_meet_divider').style.display = 'none';
+            resetCalMeetBtn();
             setSessionTypeSlot('individual');
 
             document.getElementById('createModal').style.display = 'flex';
@@ -960,6 +968,7 @@
         function closeCreate() {
             document.getElementById('createModal').style.display = 'none';
             pendingSelectInfo = null;
+            pendingMeetLink = null;
         }
 
         function setSessionTypeSlot(type) {
@@ -969,6 +978,56 @@
             document.getElementById('c_individual_student_group').style.display = type === 'individual' ? 'block' : 'none';
             document.getElementById('c_group_student_group').style.display = type === 'group' ? 'block' : 'none';
             onCalStudentChange();
+        }
+
+        function resetCalMeetBtn() {
+            pendingMeetLink = null;
+            const btn = document.getElementById('c_meet_btn');
+            const link = document.getElementById('c_meet_link');
+            btn.style.display = 'flex';
+            btn.textContent = '';
+            btn.disabled = false;
+            btn.style.color = '';
+            // Re-insert SVG icon
+            btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 10l4.553-2.069A1 1 0 0121 8.876V15.124a1 1 0 01-1.447.945L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg> Crear enlace de Meet`;
+            link.style.display = 'none';
+            link.href = '#';
+        }
+
+        async function createCalMeetLink() {
+            if (!pendingSelectInfo) return;
+            const btn = document.getElementById('c_meet_btn');
+            const link = document.getElementById('c_meet_link');
+            btn.innerHTML = 'Creando enlace...';
+            btn.disabled = true;
+
+            const dateStr = pendingSelectInfo.start.toISOString().split('T')[0];
+            const startTime = document.getElementById('c_start').value;
+            const endTime   = document.getElementById('c_end').value;
+            const studentId = slotSessionType !== 'group' ? (document.getElementById('c_student').value || null) : null;
+
+            try {
+                const res = await fetch('/api/calendar/meet', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ student_id: studentId, date: dateStr, start_time: startTime, end_time: endTime })
+                });
+                const data = await res.json();
+                if (res.ok && data.meet_link) {
+                    pendingMeetLink = data.meet_link;
+                    btn.style.display = 'none';
+                    link.href = data.meet_link;
+                    link.style.display = 'flex';
+                } else {
+                    btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 10l4.553-2.069A1 1 0 0121 8.876V15.124a1 1 0 01-1.447.945L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg> ${data.error || 'Error al crear enlace'}`;
+                    btn.style.color = '#ef4444';
+                    btn.disabled = false;
+                }
+            } catch (e) {
+                btn.innerHTML = 'Error de conexión';
+                btn.style.color = '#ef4444';
+                btn.disabled = false;
+            }
         }
 
         function onCalStudentChange() {
@@ -1030,6 +1089,7 @@
                     const payload = { start_datetime: startDatetime, end_datetime: endDatetime };
                     if (notes) payload.notes = notes;
                     if (sid) payload.student_id = sid;
+                    if (pendingMeetLink) payload.meet_link = pendingMeetLink;
 
                     const res = await fetch('/api/calendar/slots', {
                         method: 'POST',
