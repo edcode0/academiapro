@@ -874,6 +874,7 @@
             calendar = new FullCalendar.Calendar(calendarEl, {
                 height: 'auto',
                 initialView: 'dayGridMonth',
+                timeZone: 'local',
                 locale: 'es',
                 firstDay: 1,
                 slotMinTime: '08:00:00',
@@ -882,6 +883,8 @@
                 selectable: true,
                 selectMirror: true,
                 nowIndicator: true,
+                dayMaxEvents: 3,
+                moreLinkClick: 'day',
                 headerToolbar: {
                     left: 'prev,next today',
                     center: 'title',
@@ -913,22 +916,31 @@
         });
 
         // ── Fetch slots ───────────────────────────────────────────
+        // Strip timezone suffix so FullCalendar treats datetimes as LOCAL time,
+        // preventing UTC→local shift that moves events to wrong day/hour.
+        function toLocalDtStr(dt) {
+            if (!dt) return dt;
+            return String(dt).replace(/(\.\d+)?(Z|[+-]\d{2}:\d{2})$/, '');
+        }
+
         async function fetchSlots(fetchInfo, successCallback, failureCallback) {
             try {
                 const res = await fetch('/api/calendar/slots');
                 const slots = await res.json();
                 const now = new Date();
                 const events = slots.map(s => {
+                    const startLocal = toLocalDtStr(s.start_datetime);
+                    const endLocal   = toLocalDtStr(s.end_datetime);
                     let color = '#10b981'; // green = free
                     let title = '🟢 Libre';
                     if (s.is_booked) { color = '#3b82f6'; title = `🔵 ${s.student_name || 'Asignado'}`; }
-                    if (new Date(s.end_datetime) < now) { color = '#94a3b8'; }
+                    if (new Date(startLocal) < now) { color = '#94a3b8'; }
                     if (s.notes) title += ` · ${s.notes}`;
                     return {
                         id: s.id,
                         title,
-                        start: s.start_datetime,
-                        end: s.end_datetime,
+                        start: startLocal,
+                        end: endLocal,
                         backgroundColor: color,
                         borderColor: color,
                         extendedProps: {
@@ -936,7 +948,7 @@
                             student_name: s.student_name,
                             student_id: s.student_id,
                             notes: s.notes,
-                            is_past: new Date(s.end_datetime) < now,
+                            is_past: new Date(startLocal) < now,
                             meet_link: s.meet_link || null
                         }
                     };
