@@ -23,8 +23,8 @@ async function createCalendarEvent(teacher, slot) {
         const event = {
             summary:     `Clase - ${slot.student_name || 'Alumno'}`,
             description: 'Clase programada en AcademiaPro',
-            start:       { dateTime: new Date(slot.start_datetime).toISOString(), timeZone: 'Europe/Madrid' },
-            end:         { dateTime: new Date(slot.end_datetime).toISOString(),   timeZone: 'Europe/Madrid' },
+            start:       { dateTime: slot.start_datetime, timeZone: 'Europe/Madrid' },
+            end:         { dateTime: slot.end_datetime,   timeZone: 'Europe/Madrid' },
             conferenceData: {
                 createRequest: {
                     requestId:            `academiapro-${Date.now()}`,

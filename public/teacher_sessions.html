@@ -749,7 +749,7 @@
             });
 
             const now = new Date();
-            document.getElementById('monthFilter').value = now.toISOString().slice(0, 7);
+            document.getElementById('monthFilter').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
 
             // Unread
             const urRes = await fetch('/api/chat/unread-count');
@@ -916,7 +916,7 @@
                 document.getElementById('modalTitle').textContent = 'Nueva Sesión';
                 document.getElementById('sessionForm').reset();
                 document.getElementById('sessionIdField').value = '';
-                document.getElementById('m_date').value = new Date().toISOString().split('T')[0];
+                const _n = new Date(); document.getElementById('m_date').value = `${_n.getFullYear()}-${String(_n.getMonth()+1).padStart(2,'0')}-${String(_n.getDate()).padStart(2,'0')}`;
                 document.getElementById('m_start').value = '';
                 document.getElementById('m_end').value = '';
                 setMeetSectionState(null, false);

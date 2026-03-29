@@ -29,7 +29,11 @@ router.post('/api/sessions', authenticateJWT, async (req, res) => {
             if (session) {
                 checkStudentRisk(sid);
                 const slotTeacherId = studentRecord.assigned_teacher_id || req.user.id;
-                const slotStart = date || new Date().toISOString();
+                // Build local-time datetime strings to avoid UTC midnight shift
+                const startTimeStr = req.body.start_time || null;
+                const slotStart = date
+                    ? (date.includes('T') ? date : `${date}T${startTimeStr || '09:00'}:00`)
+                    : new Date().toISOString();
                 const slotEnd = new Date(new Date(slotStart).getTime() + durationVal * 60000).toISOString();
                 db.query(
                     `SELECT id FROM available_slots WHERE academy_id=$1 AND start_datetime=$2 AND student_id=$3`,
@@ -39,7 +43,7 @@ router.post('/api/sessions', authenticateJWT, async (req, res) => {
                         db.query(`SELECT user_id, name, academy_id FROM students WHERE id = $1`, [sid], (err, r) => {
                             const st = r?.rows?.[0];
                             if (!err && st?.user_id) {
-                                const dateStr = session.date ? new Date(session.date).toLocaleDateString('es-ES') : 'hoy';
+                                const dateStr = session.date ? new Date(session.date).toLocaleDateString('es-ES', { timeZone: 'Europe/Madrid' }) : 'hoy';
                                 createNotification(st.user_id, st.academy_id, 'session',
                                     '📅 Nueva sesión registrada',
                                     `Se ha registrado una sesión el ${dateStr} (${session.duration_minutes} min).`,
@@ -129,7 +133,7 @@ router.get('/api/sessions-list', authenticateJWT, (req, res) => {
             avgDuration: thisMonth.length > 0 ? Math.round(thisMonth.reduce((acc, s) => acc + s.duration_minutes, 0) / thisMonth.length) : 0,
             homeworkRate: thisMonth.length > 0 ? Math.round((thisMonth.filter(s => s.homework_done).length / thisMonth.length) * 100) : 0,
             sessionsThisWeek: rows.filter(s => {
-                const sDate = new Date(s.date);
+                const sDate = new Date(typeof s.date === 'string' && !s.date.includes('T') ? s.date + 'T12:00:00' : s.date);
                 const diff = (now - sDate) / (1000 * 60 * 60 * 24);
                 return diff >= 0 && diff <= 7;
             }).length

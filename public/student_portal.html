@@ -580,8 +580,8 @@
 
                 // Stats
                 if (stats.nextSession) {
-                    const d = new Date(stats.nextSession.date);
-                    document.getElementById('next-session-value').textContent = d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short' });
+                    const d = new Date(stats.nextSession.date + (stats.nextSession.date.includes('T') ? '' : 'T12:00:00'));
+                    document.getElementById('next-session-value').textContent = d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short', timeZone: 'Europe/Madrid' });
                     document.getElementById('next-session-teacher').textContent = `Con ${stats.nextSession.teacher_name || 'Profesor'}`;
                 }
 
@@ -615,7 +615,7 @@
                         <div class="list-item">
                             <div class="item-info">
                                 <h5>${e.subject}</h5>
-                                <span>${new Date(e.date).toLocaleDateString('es-ES')}</span>
+                                <span>${new Date(typeof e.date === 'string' && !e.date.includes('T') ? e.date + 'T12:00:00' : e.date).toLocaleDateString('es-ES', { timeZone: 'Europe/Madrid' })}</span>
                             </div>
                             <div class="score-badge ${e.score >= 7 ? 'score-high' : e.score >= 5 ? 'score-mid' : 'score-low'}">
                                 ${e.score}
@@ -626,7 +626,8 @@
 
                 // Upcoming Sessions
                 const sessionsDiv = document.getElementById('upcoming-sessions');
-                const soon = data.sessions.filter(s => new Date(s.date) >= new Date()).reverse();
+                const _now = new Date(); const _todayStr = `${_now.getFullYear()}-${String(_now.getMonth()+1).padStart(2,'0')}-${String(_now.getDate()).padStart(2,'0')}`;
+                const soon = data.sessions.filter(s => (s.date || '').slice(0, 10) >= _todayStr).reverse();
                 if (soon.length === 0) {
                     sessionsDiv.innerHTML = '<p style="color: #64748b; font-size: 0.875rem;">No hay sesiones programadas.</p>';
                 } else {
@@ -634,7 +635,7 @@
                         <div class="list-item">
                             <div class="item-info">
                                 <h5>Sesión de ${s.duration_minutes} min</h5>
-                                <span>${new Date(s.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}</span>
+                                <span>${new Date(typeof s.date === 'string' && !s.date.includes('T') ? s.date + 'T12:00:00' : s.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', timeZone: 'Europe/Madrid' })}</span>
                             </div>
                             ${s.meet_link
                                 ? `<a href="${s.meet_link}" target="_blank" rel="noopener"

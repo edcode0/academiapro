@@ -1017,7 +1017,8 @@
             btn.innerHTML = 'Creando enlace...';
             btn.disabled = true;
 
-            const dateStr = pendingSelectInfo.start.toISOString().split('T')[0];
+            const _s0 = pendingSelectInfo.start;
+            const dateStr = `${_s0.getFullYear()}-${String(_s0.getMonth()+1).padStart(2,'0')}-${String(_s0.getDate()).padStart(2,'0')}`;
             const startTime = document.getElementById('c_start').value;
             const endTime   = document.getElementById('c_end').value;
             const studentId = slotSessionType !== 'group' ? (document.getElementById('c_student').value || null) : null;
@@ -1069,7 +1070,8 @@
         async function submitCreate() {
             if (!pendingSelectInfo) return;
 
-            const dateStr = pendingSelectInfo.start.toISOString().split('T')[0];
+            const _s = pendingSelectInfo.start;
+            const dateStr = `${_s.getFullYear()}-${String(_s.getMonth()+1).padStart(2,'0')}-${String(_s.getDate()).padStart(2,'0')}`;
             const startTime = document.getElementById('c_start').value;
             const endTime = document.getElementById('c_end').value;
             const notes = document.getElementById('c_notes').value.trim();
