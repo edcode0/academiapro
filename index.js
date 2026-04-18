@@ -1622,7 +1622,7 @@ app.post('/api/generate-report', authenticateJWT, async (req, res) => {
                 const resend = new Resend(process.env.RESEND_API_KEY);
                 const pdfBuffer = fs.readFileSync(filePath);
                 await resend.emails.send({
-                    from: 'AcademiaPro <onboarding@resend.dev>',
+                    from: 'AcademiaPro <no-reply@academiapro.academy>',
                     to: student.parent_email,
                     subject: `Informe mensual de ${student.name} — ${monthText} ${yearNum}`,
                     html: `<div style="font-family:Inter,sans-serif;max-width:500px;margin:0 auto;"><div style="background:linear-gradient(135deg,#6366f1,#8b5cf6);padding:32px;border-radius:12px 12px 0 0;text-align:center;"><h1 style="color:white;margin:0;font-size:22px;">🎓 AcademiaPro</h1></div><div style="background:white;padding:32px;border:1px solid #e2e8f0;border-radius:0 0 12px 12px;"><p style="color:#1e293b">Estimada familia,</p><p style="color:#64748b">Adjunto encontrarás el informe mensual de <strong>${student.name}</strong> correspondiente a <strong>${monthText} ${yearNum}</strong>.</p><p style="color:#94a3b8;font-size:13px;margin-top:24px;">AcademiaPro · La plataforma inteligente para academias</p></div></div>`,
@@ -1847,6 +1847,10 @@ Responde siempre en español, de forma clara y concisa.`
     res.status(500).json({ error: 'Error del asistente', response: 'Lo siento, ocurrió un error. Inténtalo de nuevo.' });
   }
 });
+
+// ─── Sentry express error handler (must be after all routes) ─────────────────
+Sentry.setupExpressErrorHandler(app);
+// ─────────────────────────────────────────────────────────────────────────────
 
 db.initDb().then(async () => {
     try {

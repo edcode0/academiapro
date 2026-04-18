@@ -191,7 +191,7 @@ router.post('/api/admin/send-monthly-report', authenticateJWT, requireAdmin, asy
             method: 'POST',
             headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                from: 'AcademiaPro <onboarding@resend.dev>',
+                from: 'AcademiaPro <no-reply@academiapro.academy>',
                 to: req.user.email,
                 subject: `Resumen mensual de profesores - ${month}/${year}`,
                 html: `<h2>Resumen mensual</h2>${tableHtml}`

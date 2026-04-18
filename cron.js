@@ -39,7 +39,7 @@ function runDailyJobs() {
                         method: 'POST',
                         headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            from: 'AcademiaPro <onboarding@resend.dev>',
+                            from: 'AcademiaPro <no-reply@academiapro.academy>',
                             to: p.parent_email,
                             subject: `Aviso: Pago vencido de ${p.student_name}`,
                             html: `<p>Hola, le informamos que el pago correspondiente a ${p.amount}€ en la academia ${p.academy_name} se encuentra vencido desde ${p.due_date}. Por favor, póngase al corriente.</p>`
@@ -81,7 +81,7 @@ function runDailyJobs() {
                                     method: 'POST',
                                     headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
                                     body: JSON.stringify({
-                                        from: 'AcademiaPro <onboarding@resend.dev>',
+                                        from: 'AcademiaPro <no-reply@academiapro.academy>',
                                         to: adminEmail,
                                         subject: `Resumen mensual de profesores - ${acad.name} - ${month}/${year}`,
                                         html: `<h2>Resumen mensual</h2>${tableHtml}`
