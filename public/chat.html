@@ -361,6 +361,27 @@
                 border-radius: 0;
                 border: none;
             }
+
+            /* Conversation list takes full width on mobile */
+            #conversation-list {
+                width: 100% !important;
+                display: flex;
+            }
+
+            /* Chat area hidden by default on mobile */
+            #active-chat {
+                display: none;
+            }
+
+            /* When a room is selected, show chat area and hide list */
+            #active-chat.active {
+                display: flex !important;
+                width: 100% !important;
+            }
+
+            #conversation-list.hidden {
+                display: none !important;
+            }
         }
     </style>
     <link rel="stylesheet" href="/glassmorphism.css">
@@ -455,7 +476,8 @@
             <div id="chat-box" style="display: none; height: 100%; flex-direction: column;">
                 <header id="chat-header">
                 <button class="hamburger-btn" onclick="toggleMobileNav()">&#9776;</button>
-                
+                <button id="back-btn" onclick="showListMobile()" style="display:none; background:none; border:none; cursor:pointer; font-size:1.1rem; padding:0.25rem 0.5rem; margin-right:0.5rem; color:var(--accent); font-weight:600;">&#8592; Volver</button>
+
                     <div id="header-avatar" class="avatar"></div>
                     <div class="room-info">
                         <div id="header-name" class="room-name"></div>
@@ -681,9 +703,26 @@
             }).join('');
         }
 
+        function showChatMobile() {
+            if (window.innerWidth <= 768) {
+                document.getElementById('conversation-list').classList.add('hidden');
+                document.getElementById('active-chat').classList.add('active');
+                document.getElementById('back-btn').style.display = 'inline-block';
+            }
+        }
+
+        function showListMobile() {
+            if (window.innerWidth <= 768) {
+                document.getElementById('conversation-list').classList.remove('hidden');
+                document.getElementById('active-chat').classList.remove('active');
+                document.getElementById('back-btn').style.display = 'none';
+            }
+        }
+
         async function selectRoom(room) {
             activeRoom = room;
             currentRoomId = room.id;
+            showChatMobile();
             document.getElementById('empty-state').style.display = 'none';
             document.getElementById('chat-box').style.display = 'flex';
             document.getElementById('header-name').textContent = room.name || 'Chat';
@@ -812,6 +851,7 @@
         init();
     </script>
 <script src="/help-assistant.js"></script>
+<script src="/global.js"></script>
 
     <div class="mobile-nav-overlay" id="mobile-nav-overlay" onclick="closeMobileNav()"></div>
 </body>

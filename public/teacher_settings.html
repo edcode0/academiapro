@@ -396,6 +396,15 @@
             </div>
         </div>
 
+        <div class="settings-card">
+            <h3>🔗 Enlaces de Invitación</h3>
+            <div style="display:flex;gap:1rem;margin-bottom:1rem;">
+                <button onclick="generateInviteLink('teacher')" class="btn btn-primary">Generar enlace Profesor</button>
+                <button onclick="generateInviteLink('student')" class="btn btn-ghost" style="background:#6366f1;color:white;border:none;">Generar enlace Alumno</button>
+            </div>
+            <div id="invite-links-list"></div>
+        </div>
+
         <div class="danger-zone"
             style="margin-top: 2rem; border: 1px solid #fee2e2; border-radius: 12px; padding: 1.5rem; background: #fff5f5;">
             <h3 style="color: #dc2626; margin-bottom: 0.5rem;">⚠️ Zona de peligro</h3>
@@ -646,6 +655,24 @@
 
         loadCalendarStatus();
         loadGmailStatus();
+
+        async function generateInviteLink(role) {
+            const res = await fetch('/api/academy/invite', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+                body: JSON.stringify({ role })
+            });
+            const data = await res.json();
+            if (data.url) {
+                const div = document.getElementById('invite-links-list');
+                const item = document.createElement('div');
+                item.style.cssText = 'background:#f3f4f6;padding:0.75rem;border-radius:0.5rem;margin-top:0.5rem;display:flex;align-items:center;gap:0.5rem;';
+                item.innerHTML = `<span style="flex:1;font-size:0.85rem;word-break:break-all;">${data.url}</span><span style="font-size:0.75rem;color:#6b7280;">Expira: ${new Date(data.expires_at).toLocaleDateString()}</span><button onclick="navigator.clipboard.writeText('${data.url}');this.textContent='✓'" style="padding:0.25rem 0.75rem;background:#6366f1;color:white;border:none;border-radius:0.375rem;cursor:pointer;">Copiar</button>`;
+                div.prepend(item);
+            } else {
+                showToast(data.error || 'Error al generar enlace', 'error');
+            }
+        }
     </script>
 <script src="/help-assistant.js"></script>
 

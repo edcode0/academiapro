@@ -40,12 +40,23 @@ module.exports = function makeGmailService(io) {
 
         const messagesRes = await gmail.users.messages.list({ userId: 'me', q: searchQuery, maxResults: 10 });
         const messages    = messagesRes.data.messages || [];
-        console.log(`[Gmail] Found ${messages.length} transcript emails for teacher ${teacher.id}`);
+        if (!messages.length) {
+            console.log('[Gmail] No new transcript emails found');
+        } else {
+            console.log(`[Gmail] Found ${messages.length} transcript emails for teacher ${teacher.id}`);
+        }
 
         let processed = 0;
 
         for (const msg of messages) {
             try {
+                // Deduplication: skip already-processed messages
+                const existing = await db.query('SELECT id FROM transcripts WHERE gmail_msg_id = $1', [msg.id]);
+                if ((existing.rows || []).length > 0) {
+                    console.log('[Gmail] Skipping duplicate transcript for message:', msg.id);
+                    continue;
+                }
+
                 const email = await gmail.users.messages.get({ userId: 'me', id: msg.id, format: 'full' });
 
                 function extractText(payload) {
@@ -99,10 +110,14 @@ module.exports = function makeGmailService(io) {
                 }
 
                 // Match student by name
-                const student = students.find(s =>
+                const exactMatch = students.find(s =>
                     s.name.toLowerCase().includes((analysisData.student_name || '').toLowerCase()) ||
                     (analysisData.student_name || '').toLowerCase().includes(s.name.toLowerCase())
-                ) || students[0];
+                );
+                if (!exactMatch && students.length > 0) {
+                    console.warn('[Gmail] Ambiguous student match, falling back to first student:', students[0]?.name);
+                }
+                const student = exactMatch || students[0];
 
                 if (!student) continue;
 
@@ -164,11 +179,12 @@ module.exports = function makeGmailService(io) {
                     [roomId, teacher.id, teacher.academy_id, chatMessage]
                 );
 
-                // Save transcript record
+                // Save transcript record (with gmail_msg_id for deduplication)
                 await db.query(
-                    'INSERT INTO transcripts (academy_id, teacher_id, student_id, raw_text, processed_json) VALUES ($1, $2, $3, $4, $5)',
-                    [teacher.academy_id, teacher.id, student.id, body.substring(0, 5000), JSON.stringify(analysisData)]
+                    'INSERT INTO transcripts (academy_id, teacher_id, student_id, raw_text, processed_json, gmail_msg_id) VALUES ($1, $2, $3, $4, $5, $6)',
+                    [teacher.academy_id, teacher.id, student.id, body.substring(0, 5000), JSON.stringify(analysisData), msg.id]
                 );
+                console.log('[Gmail] Transcript saved for student:', student.name);
 
                 // Notify student
                 if (student.user_id) {

@@ -511,7 +511,21 @@ async function initDb() {
     "ALTER TABLE sessions ADD COLUMN IF NOT EXISTS session_type VARCHAR(20) DEFAULT 'individual'",
 
     // Group hourly rate per teacher
-    "ALTER TABLE users ADD COLUMN IF NOT EXISTS group_hourly_rate NUMERIC DEFAULT 0"
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS group_hourly_rate NUMERIC DEFAULT 0",
+
+    // Invitation links
+    `CREATE TABLE IF NOT EXISTS invitation_links (
+      id SERIAL PRIMARY KEY,
+      academy_id INTEGER NOT NULL,
+      role TEXT NOT NULL,
+      token TEXT UNIQUE NOT NULL,
+      expires_at TIMESTAMP NOT NULL,
+      created_by INTEGER NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`,
+
+    // Deduplication column for Gmail transcript emails
+    "ALTER TABLE transcripts ADD COLUMN IF NOT EXISTS gmail_msg_id TEXT"
   ];
 
   for (const sql of migrations) {

@@ -154,15 +154,25 @@ router.delete('/api/calendar/slots/:id', authenticateJWT, async (req, res) => {
         const slotRes = await db.query('SELECT * FROM available_slots WHERE id = $1 AND academy_id = $2', [req.params.id, req.user.academy_id]);
         const slot = slotRes.rows[0];
         if (!slot) return res.status(404).json({ error: 'Slot not found' });
-        await db.query('DELETE FROM available_slots WHERE id = $1 AND is_booked = false AND academy_id = $2', [req.params.id, req.user.academy_id]);
+
+        // If slot is booked, delete associated sessions first
+        let sessionsDeleted = 0;
+        if (slot.is_booked) {
+            const delSessions = await db.query('DELETE FROM sessions WHERE slot_id = $1', [req.params.id]);
+            sessionsDeleted = delSessions.rowCount || 0;
+        }
+
         // Delete from Google Calendar (non-blocking)
-        if (slot?.google_event_id) {
+        if (slot.google_event_id) {
             const teacherRes = await db.query('SELECT calendar_access_token, calendar_refresh_token FROM users WHERE id = $1', [req.user.id]);
             deleteCalendarEvent(teacherRes.rows[0], slot.google_event_id).catch(e =>
                 console.error('[Calendar] Delete event error:', e.message)
             );
         }
-        res.json({ success: true });
+
+        // Delete the slot
+        await db.query('DELETE FROM available_slots WHERE id = $1 AND academy_id = $2', [req.params.id, req.user.academy_id]);
+        res.json({ success: true, sessionsDeleted });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

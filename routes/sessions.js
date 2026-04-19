@@ -7,6 +7,7 @@ const { authenticateJWT }    = require('../middleware/auth');
 const { requireTeacherOrAdmin } = require('../middleware/roles');
 const { checkStudentRisk }   = require('../services/risk');
 const { createNotification } = require('../notifications');
+const { deleteCalendarEvent } = require('../services/calendar');
 
 router.post('/api/sessions', authenticateJWT, async (req, res) => {
     try {
@@ -111,7 +112,18 @@ router.get('/api/sessions', authenticateJWT, (req, res) => {
 });
 
 router.get('/api/sessions-list', authenticateJWT, (req, res) => {
-    let sql = 'SELECT s.*, st.name as student_name FROM sessions s JOIN students st ON s.student_id = st.id WHERE st.academy_id = $1';
+    // LEFT JOIN with available_slots to pick up the slot time when available.
+    // DISTINCT ON prevents duplicate rows when multiple slots share the same date+student.
+    let sql = `SELECT DISTINCT ON (s.id) s.*, st.name as student_name,
+               asl.start_datetime as slot_start_datetime,
+               asl.end_datetime   as slot_end_datetime
+               FROM sessions s
+               JOIN students st ON s.student_id = st.id
+               LEFT JOIN available_slots asl
+                   ON asl.student_id = s.student_id
+                  AND DATE(asl.start_datetime AT TIME ZONE 'UTC') = s.date
+                  AND asl.academy_id = st.academy_id
+               WHERE st.academy_id = $1`;
     let params = [req.user.academy_id];
 
     if (req.user.role === 'teacher') {
@@ -119,7 +131,7 @@ router.get('/api/sessions-list', authenticateJWT, (req, res) => {
         params.push(req.user.id);
     }
 
-    db.query(sql + ' ORDER BY s.date DESC', params, (err, result) => {
+    db.query(sql + ' ORDER BY s.id DESC, s.date DESC', params, (err, result) => {
         if (err) return res.status(500).json({ error: err.message });
         const rows = result.rows;
 
@@ -159,10 +171,33 @@ router.put('/api/sessions/:id', authenticateJWT, requireTeacherOrAdmin, async (r
 
 router.delete('/api/sessions/:id', authenticateJWT, requireTeacherOrAdmin, async (req, res) => {
     try {
-        await db.query(
-            'DELETE FROM sessions WHERE id=$1 AND student_id IN (SELECT id FROM students WHERE academy_id=$2)',
+        // Get the session first to find its slot_id
+        const sessionRes = await db.query(
+            'SELECT * FROM sessions WHERE id=$1 AND student_id IN (SELECT id FROM students WHERE academy_id=$2)',
             [req.params.id, req.user.academy_id]
         );
+        const session = sessionRes.rows[0];
+        if (!session) return res.json({ success: true }); // already gone
+
+        // If session has a slot, clean up the slot
+        if (session.slot_id) {
+            const slotRes = await db.query('SELECT * FROM available_slots WHERE id=$1', [session.slot_id]);
+            const slot = slotRes.rows[0];
+            if (slot) {
+                // Delete Google Calendar event if exists (non-blocking)
+                if (slot.google_event_id) {
+                    const teacherRes = await db.query('SELECT calendar_access_token, calendar_refresh_token FROM users WHERE id=$1', [slot.teacher_id]);
+                    deleteCalendarEvent(teacherRes.rows[0], slot.google_event_id).catch(e =>
+                        console.error('[Sessions] Delete calendar event error:', e.message)
+                    );
+                }
+                // Unbook the slot instead of deleting it
+                await db.query('UPDATE available_slots SET is_booked=false, student_id=NULL WHERE id=$1', [session.slot_id]);
+            }
+        }
+
+        // Delete the session
+        await db.query('DELETE FROM sessions WHERE id=$1', [req.params.id]);
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });

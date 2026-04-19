@@ -537,6 +537,7 @@
                         <th>Duración</th>
                         <th>Tareas</th>
                         <th>Notas</th>
+                        <th style="text-align:center;">Meet</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
@@ -643,6 +644,10 @@
                 const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
                 const avatarColor = colors[s.student_id % colors.length];
 
+                const meetCell = s.meet_link
+                    ? `<a href="${s.meet_link}" target="_blank" title="Unirse a Meet" style="color:#10b981;text-decoration:none;font-size:1.1rem;">🎥</a>`
+                    : '<span style="color:#cbd5e1;font-size:0.75rem;">—</span>';
+
                 return `
                 <tr>
                     <td>
@@ -655,6 +660,7 @@
                     <td>${s.duration_minutes} min</td>
                     <td><span class="badge ${s.homework_done ? 'badge-yes' : 'badge-no'}">${s.homework_done ? 'Sí' : 'No'}</span></td>
                     <td><div class="notes-text" title="${s.teacher_notes || ''}">${s.teacher_notes || '-'}</div></td>
+                    <td style="text-align:center;">${meetCell}</td>
                     <td>
                         <div class="actions">
                             <button class="action-btn btn-edit" title="Editar" onclick="editSession(${s.id})">✏️</button>
@@ -663,7 +669,7 @@
                     </td>
                 </tr>
                 `;
-            }).join('') || '<tr><td colspan="6" style="text-align:center; padding: 2rem;">No se encontraron sesiones</td></tr>';
+            }).join('') || '<tr><td colspan="7" style="text-align:center; padding: 2rem;">No se encontraron sesiones</td></tr>';
         }
 
         function filterTable() {

@@ -661,11 +661,11 @@
                     <div class="form-row-2">
                         <div>
                             <label class="field-label">Hora inicio</label>
-                            <input type="time" id="m_start" class="field-input" step="900">
+                            <input type="time" id="m_start" class="field-input" step="60">
                         </div>
                         <div>
                             <label class="field-label">Hora fin</label>
-                            <input type="time" id="m_end" class="field-input" step="900">
+                            <input type="time" id="m_end" class="field-input" step="60">
                         </div>
                     </div>
                 </div>
@@ -698,6 +698,14 @@
                 <div class="modal-section">
                     <label class="field-label">Notas</label>
                     <textarea id="m_notes" class="field-input field-textarea" placeholder="Resumen de la clase..."></textarea>
+                </div>
+
+                <div class="modal-section" id="m_meet_create_section" style="display:none;">
+                    <hr class="modal-divider" style="margin-bottom:13px;">
+                    <label style="display:flex;align-items:center;gap:8px;font-size:0.875rem;color:#0f172a;cursor:pointer;">
+                        <input type="checkbox" id="m_create_meet" style="width:auto;cursor:pointer;">
+                        Crear enlace de Google Meet
+                    </label>
                 </div>
 
                 <div class="modal-footer">
@@ -893,7 +901,8 @@
                     <td><span class="badge ${s.homework_done ? 'badge-yes' : 'badge-no'}">${s.homework_done ? 'Sí' : 'No'}</span></td>
                     <td><div class="notes-text" title="${s.teacher_notes || ''}">${s.teacher_notes || '-'}</div></td>
                     <td>
-                        <button style="border:none; background:none; cursor:pointer;" onclick="editSession(${s.id})">✏️</button>
+                        <button style="border:none; background:none; cursor:pointer; margin-right:4px;" onclick="editSession(${s.id})" title="Editar">✏️</button>
+                        <button style="border:none; background:none; cursor:pointer; color:#ef4444;" onclick="deleteSession(${s.id})" title="Eliminar">🗑️</button>
                     </td>
                 </tr>`;
             }).join('') || '<tr><td colspan="7" style="text-align:center; padding: 2rem; color:var(--text-muted);">Sin sesiones.</td></tr>';
@@ -916,6 +925,8 @@
                 const linkedSlot = session.slot_id ? calendarSlots.find(sl => sl.id === session.slot_id) : null;
                 const meetLink = linkedSlot?.meet_link || session.meet_link || null;
                 setMeetSectionState(meetLink, true);
+                // Hide the "create meet" checkbox in edit mode
+                document.getElementById('m_meet_create_section').style.display = 'none';
             } else {
                 currentEditingSession = null;
                 document.getElementById('modalTitle').textContent = 'Nueva Sesión';
@@ -926,6 +937,9 @@
                 document.getElementById('m_end').value = '';
                 setMeetSectionState(null, false);
                 setSessionType('individual');
+                // Show the "create meet" checkbox in create mode
+                document.getElementById('m_meet_create_section').style.display = 'block';
+                document.getElementById('m_create_meet').checked = false;
             }
         }
 
@@ -964,16 +978,38 @@
             openModal('sessionModal', s);
         }
 
+        async function deleteSession(id) {
+            if (!confirm('¿Eliminar esta sesión?')) return;
+            try {
+                const res = await fetch(`/api/sessions/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+                });
+                if (res.ok) {
+                    showToast('Sesión eliminada');
+                    loadSessions();
+                } else {
+                    showToast('Error al eliminar la sesión');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Error de conexión');
+            }
+        }
+
         document.getElementById('sessionForm').onsubmit = async (e) => {
             e.preventDefault();
             const id = document.getElementById('sessionIdField').value;
             const duration_minutes = calcDurationFromTimes();
+            const sessionDate = document.getElementById('m_date').value;
+            const startTime = document.getElementById('m_start').value || undefined;
+            const endTime = document.getElementById('m_end').value || undefined;
             const commonFields = {
-                date: document.getElementById('m_date').value,
+                date: sessionDate,
                 duration_minutes,
                 teacher_notes: document.getElementById('m_notes').value,
-                start_time: document.getElementById('m_start').value || undefined,
-                end_time: document.getElementById('m_end').value || undefined
+                start_time: startTime,
+                end_time: endTime
             };
 
             let data;
@@ -993,7 +1029,44 @@
             });
 
             if (res.ok) {
-                showToast('Guardado correctamente');
+                const savedData = await res.json();
+                // If creating a new session and Meet checkbox is checked, create Meet link
+                if (!id) {
+                    const createMeet = document.getElementById('m_create_meet');
+                    if (createMeet && createMeet.checked && sessionDate && startTime && endTime) {
+                        // Get session id from response (array for group, object for individual)
+                        const newSession = Array.isArray(savedData) ? savedData[0] : savedData;
+                        if (newSession && newSession.id) {
+                            try {
+                                const meetRes = await fetch('/api/calendar/meet', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+                                    body: JSON.stringify({
+                                        date: sessionDate,
+                                        start_time: startTime,
+                                        end_time: endTime,
+                                        session_id: newSession.id,
+                                        student_id: newSession.student_id
+                                    })
+                                });
+                                const meetData = await meetRes.json();
+                                if (meetData.meet_link) {
+                                    showToast('Sesión guardada con enlace de Meet');
+                                } else {
+                                    showToast('Sesión guardada (sin enlace de Meet: ' + (meetData.error || 'error') + ')');
+                                }
+                            } catch (me) {
+                                showToast('Sesión guardada (error al crear Meet)');
+                            }
+                        } else {
+                            showToast('Guardado correctamente');
+                        }
+                    } else {
+                        showToast('Guardado correctamente');
+                    }
+                } else {
+                    showToast('Guardado correctamente');
+                }
                 closeModal('sessionModal');
                 loadSessions();
             }

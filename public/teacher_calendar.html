@@ -664,12 +664,12 @@
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
                     <div>
                         <label class="field-label">Hora inicio</label>
-                        <input type="time" id="c_start" step="900"
+                        <input type="time" id="c_start" step="60"
                             style="width:100%;padding:9px 12px;border:0.5px solid #e2e0d8;border-radius:8px;font-size:0.875rem;font-family:inherit;color:#0f172a;outline:none;background:#fff;box-sizing:border-box;">
                     </div>
                     <div>
                         <label class="field-label">Hora fin</label>
-                        <input type="time" id="c_end" step="900"
+                        <input type="time" id="c_end" step="60"
                             style="width:100%;padding:9px 12px;border:0.5px solid #e2e0d8;border-radius:8px;font-size:0.875rem;font-family:inherit;color:#0f172a;outline:none;background:#fff;box-sizing:border-box;">
                     </div>
                 </div>
@@ -781,6 +781,12 @@
 
     <div id="toast"></div>
 
+    <!-- Floating "+" button — shown only in day view -->
+    <button id="dayViewAddBtn" onclick="openCreateForDayView()"
+        style="display:none;position:fixed;bottom:2.5rem;right:2.5rem;width:52px;height:52px;border-radius:50%;background:#3b82f6;color:white;border:none;font-size:1.6rem;cursor:pointer;box-shadow:0 4px 16px rgba(59,130,246,0.5);z-index:500;align-items:center;justify-content:center;line-height:1;">
+        +
+    </button>
+
     <script>
         let calendar;
         let selectedSlotId = null;
@@ -884,6 +890,7 @@
                 firstDay: 1,
                 slotMinTime: '08:00:00',
                 slotMaxTime: '22:00:00',
+                slotDuration: '00:15:00',
                 allDaySlot: false,
                 selectable: true,
                 selectMirror: true,
@@ -900,9 +907,24 @@
                     right: 'dayGridMonth,timeGridWeek,timeGridDay'
                 },
                 buttonText: { today: 'Hoy', month: 'Mes', week: 'Semana', day: 'Día' },
-                events: fetchSlots,
+                events: [fetchSlots, fetchSessionEvents],
+
+                datesSet: function (info) {
+                    const btn = document.getElementById('dayViewAddBtn');
+                    if (info.view.type === 'timeGridDay') {
+                        btn.style.display = 'flex';
+                    } else {
+                        btn.style.display = 'none';
+                    }
+                },
 
                 select: function (info) {
+                    // In month view, a single-day click triggers select with no time — navigate to day view
+                    if (info.view.type === 'dayGridMonth' && !info.startStr.includes('T')) {
+                        calendar.changeView('timeGridDay', info.startStr);
+                        calendar.unselect();
+                        return;
+                    }
                     const selectedDate = new Date(info.startStr);
                     const today = new Date();
                     today.setHours(0, 0, 0, 0);
@@ -918,10 +940,34 @@
                 },
 
                 dateClick: function (info) {
-                    calendar.changeView('timeGridDay', info.dateStr);
+                    // In month view: navigate to day view
+                    if (info.view.type === 'dayGridMonth') {
+                        calendar.changeView('timeGridDay', info.dateStr);
+                        return;
+                    }
+                    // In timeGrid views: open create modal pre-filled with clicked time
+                    const startDate = info.date;
+                    const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
+                    const fakeInfo = {
+                        start: startDate,
+                        end: endDate,
+                        startStr: info.dateStr
+                    };
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const clickedDay = new Date(startDate);
+                    clickedDay.setHours(0, 0, 0, 0);
+                    if (clickedDay < today) {
+                        showToast('No puedes crear disponibilidad en el pasado.', 'warning');
+                        return;
+                    }
+                    pendingSelectInfo = fakeInfo;
+                    openCreate(fakeInfo);
                 },
 
                 eventClick: function (info) {
+                    // Ignore clicks on session events (they are read-only markers)
+                    if (info.event.extendedProps.type === 'session') return;
                     selectedSlotId = info.event.id;
                     selectedSlotData = info.event.extendedProps;
                     openDetail(info.event);
@@ -973,6 +1019,69 @@
                 });
                 successCallback(events);
             } catch (e) { failureCallback(e); }
+        }
+
+        // ── Fetch session events (second event source) ────────────
+        async function fetchSessionEvents(fetchInfo, successCallback, failureCallback) {
+            try {
+                const res = await fetch('/api/sessions-list');
+                const data = await res.json();
+                const sessions = data.sessions || [];
+                const events = sessions.map(s => {
+                    // Use slot datetimes when available, otherwise show as all-day event
+                    if (s.slot_start_datetime) {
+                        const startDt = toLocalDtStr(s.slot_start_datetime);
+                        const endDt = s.slot_end_datetime
+                            ? toLocalDtStr(s.slot_end_datetime)
+                            : toLocalDtStr(new Date(new Date(s.slot_start_datetime).getTime() + (s.duration_minutes || 60) * 60000).toISOString());
+                        return {
+                            id: `sess-${s.id}`,
+                            title: `📘 ${s.student_name || 'Sesión'}`,
+                            start: startDt,
+                            end: endDt,
+                            backgroundColor: '#f59e0b',
+                            borderColor: '#d97706',
+                            textColor: '#fff',
+                            extendedProps: { type: 'session', session_id: s.id }
+                        };
+                    } else {
+                        return {
+                            id: `sess-${s.id}`,
+                            title: `📘 ${s.student_name || 'Sesión'}`,
+                            start: s.date,
+                            allDay: true,
+                            backgroundColor: '#f59e0b',
+                            borderColor: '#d97706',
+                            textColor: '#fff',
+                            extendedProps: { type: 'session', session_id: s.id }
+                        };
+                    }
+                });
+                successCallback(events);
+            } catch (e) { failureCallback(e); }
+        }
+
+        // ── Open create modal from day-view "+" button ────────────
+        function openCreateForDayView() {
+            const view = calendar.view;
+            const viewDate = view.currentStart; // start of the day being viewed
+            // Default to current time rounded to next 15-min slot, or 09:00
+            const now = new Date();
+            const isToday = viewDate.toDateString() === now.toDateString();
+            let startHour = isToday ? now.getHours() : 9;
+            let startMin = isToday ? Math.ceil(now.getMinutes() / 15) * 15 : 0;
+            if (startMin >= 60) { startHour += 1; startMin = 0; }
+            const startDate = new Date(viewDate.getFullYear(), viewDate.getMonth(), viewDate.getDate(), startHour, startMin, 0);
+            const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            const clickedDay = new Date(startDate); clickedDay.setHours(0, 0, 0, 0);
+            if (clickedDay < today) {
+                showToast('No puedes crear disponibilidad en el pasado.', 'warning');
+                return;
+            }
+            const fakeInfo = { start: startDate, end: endDate };
+            pendingSelectInfo = fakeInfo;
+            openCreate(fakeInfo);
         }
 
         // ── Create modal ──────────────────────────────────────────
@@ -1239,9 +1348,10 @@
                 assignSection.style.display = 'none';
             }
 
-            // Delete button: only for future slots
+            // Delete button: only for future slots; label changes based on whether booked
             const deleteBtn = document.getElementById('d_delete_btn');
             deleteBtn.style.display = props.is_past ? 'none' : 'inline-flex';
+            deleteBtn.innerHTML = props.is_booked ? '🗑 Eliminar sesión' : '🗑 Eliminar';
 
             document.getElementById('detailModal').style.display = 'flex';
         }
@@ -1276,11 +1386,18 @@
 
         async function deleteSlot() {
             if (!selectedSlotId) return;
-            if (!confirm('¿Eliminar este hueco de disponibilidad?')) return;
+            const isBooked = selectedSlotData && selectedSlotData.is_booked;
+            const confirmMsg = isBooked
+                ? '¿Eliminar esta sesión y el slot? Se eliminará la sesión del alumno también.'
+                : '¿Eliminar este hueco de disponibilidad?';
+            if (!confirm(confirmMsg)) return;
             try {
-                const res = await fetch(`/api/calendar/slots/${selectedSlotId}`, { method: 'DELETE' });
+                const res = await fetch(`/api/calendar/slots/${selectedSlotId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+                });
                 if (res.ok) {
-                    showToast('🗑 Disponibilidad eliminada', 'success');
+                    showToast(isBooked ? '🗑 Sesión y slot eliminados' : '🗑 Disponibilidad eliminada', 'success');
                     calendar.refetchEvents();
                     closeDetail();
                 } else {

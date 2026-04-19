@@ -288,6 +288,15 @@
         </div>
     </div>
     <script>
+        // If an invite token is present, redirect to join.html which handles the full invite flow
+        (function checkInviteToken() {
+            const params = new URLSearchParams(window.location.search);
+            const inviteToken = params.get('invite');
+            if (inviteToken) {
+                window.location.href = '/join.html?invite=' + encodeURIComponent(inviteToken);
+            }
+        })();
+
         function toggleRegRole() {
             const role = document.querySelector('input[name="role"]:checked').value;
             const acadName = document.getElementById('academy_name');

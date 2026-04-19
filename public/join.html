@@ -674,12 +674,70 @@
         // Start auto-slide
         slideInterval = setInterval(nextSlide, 3000);
 
+        // Invitation link state
+        window._inviteAcademyId = null;
+        window._inviteRole = null;
+
         // Pre-fill from URL params (Google OAuth redirect: ?role=teacher&email=...&google=true)
+        // Also handles ?invite=<token> for invitation links
         (function prefillFromUrl() {
             const params = new URLSearchParams(window.location.search);
             const urlRole = params.get('role');
             const urlEmail = params.get('email');
             const isGoogle = params.get('google') === 'true';
+            const inviteToken = params.get('invite');
+
+            // Handle invitation link token
+            if (inviteToken) {
+                fetch('/api/auth/invite/' + inviteToken)
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.error) {
+                            // Show error below the subtitle
+                            const subtitle = document.querySelector('.form-subtitle');
+                            if (subtitle) {
+                                subtitle.textContent = 'Enlace de invitación inválido o expirado';
+                                subtitle.style.color = '#ef4444';
+                            }
+                        } else {
+                            // Store invite data
+                            window._inviteAcademyId = data.academy_id;
+                            window._inviteRole = data.role;
+
+                            // Update subtitle with academy info
+                            const subtitle = document.querySelector('.form-subtitle');
+                            if (subtitle) {
+                                const roleLabel = data.role === 'teacher' ? 'profesor' : 'alumno';
+                                subtitle.textContent = 'Unirse a: ' + data.academy_name + ' como ' + roleLabel;
+                                subtitle.style.color = '#10b981';
+                                subtitle.style.fontWeight = '600';
+                            }
+
+                            // Select the role from the invite
+                            const roleBtn = document.getElementById('btn-role-' + data.role);
+                            if (roleBtn) selectRole(data.role, roleBtn);
+
+                            // Hide role selector (role is fixed by the invite)
+                            const roleSelector = document.getElementById('role-selector');
+                            if (roleSelector) roleSelector.style.display = 'none';
+
+                            // Hide the academy code input group
+                            const codeInput = document.getElementById('academy_code');
+                            if (codeInput) {
+                                const group = codeInput.closest('.input-group');
+                                if (group) group.style.display = 'none';
+                                codeInput.removeAttribute('required');
+                            }
+                        }
+                    })
+                    .catch(() => {
+                        const subtitle = document.querySelector('.form-subtitle');
+                        if (subtitle) {
+                            subtitle.textContent = 'Enlace de invitación inválido o expirado';
+                            subtitle.style.color = '#ef4444';
+                        }
+                    });
+            }
 
             if (urlRole && (urlRole === 'teacher' || urlRole === 'student')) {
                 const btn = document.getElementById('btn-role-' + urlRole);
@@ -748,9 +806,10 @@
             const name = document.getElementById('name')?.value?.trim();
             const email = document.getElementById('email')?.value?.trim();
             const password = document.getElementById('password')?.value?.trim();
-            const role = selectedRole;
+            // Use invite role if available, otherwise use the manually selected role
+            const role = window._inviteRole || selectedRole;
 
-            console.log('Join attempt:', { academy_code, name, email, role, hasPassword: !!password });
+            console.log('Join attempt:', { academy_code, name, email, role, hasPassword: !!password, inviteAcademyId: window._inviteAcademyId });
 
             // Clear previous errors
             document.querySelectorAll('.field-error').forEach(el => el.remove());
@@ -762,7 +821,8 @@
                 showJoinError('Selecciona si eres Profesor o Alumno');
                 return;
             }
-            if (!academy_code) { showFieldError('academy_code', 'Campo obligatorio'); return; }
+            // Only require academy_code when not using an invite link
+            if (!window._inviteAcademyId && !academy_code) { showFieldError('academy_code', 'Campo obligatorio'); return; }
             if (!name) { showFieldError('name', 'Campo obligatorio'); return; }
             if (!email) { showFieldError('email', 'Campo obligatorio'); return; }
             if (!password && !window._googleOAuth) { showFieldError('password', 'Campo obligatorio'); return; }
@@ -773,10 +833,18 @@
             this.disabled = true;
 
             try {
+                const payload = { name, email, password, role };
+                if (window._inviteAcademyId) {
+                    // Invite flow: pass academy_id directly; backend will use it to find the right code
+                    payload.academy_id = window._inviteAcademyId;
+                } else {
+                    payload.academy_code = academy_code;
+                }
+
                 const response = await fetch('/api/auth/join', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ academy_code, name, email, password, role })
+                    body: JSON.stringify(payload)
                 });
                 const data = await response.json();
                 console.log('Join response:', data);

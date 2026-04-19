@@ -5,9 +5,11 @@ const router   = express.Router();
 const bcrypt   = require('bcryptjs');
 const jwt      = require('jsonwebtoken');
 const passport = require('passport');
+const crypto   = require('crypto');
 const { Resend } = require('resend');
 const db       = require('../db');
 const { authenticateJWT } = require('../middleware/auth');
+const { requireTeacherOrAdmin } = require('../middleware/roles');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -227,31 +229,45 @@ router.post('/auth/login', async (req, res) => {
 
 router.post('/api/auth/join', async (req, res) => {
     try {
-        const { academy_code, name, email, password, role } = req.body;
+        const { academy_code, academy_id, name, email, password, role } = req.body;
 
-        if (!academy_code || !name || !email || !password || !role) {
+        if ((!academy_code && !academy_id) || !name || !email || !password || !role) {
             return res.status(400).json({ error: 'Todos los campos son obligatorios' });
         }
 
-        // Find academy using teacher_code or student_code
-        const codeColumn = role === 'teacher' ? 'teacher_code' : 'student_code';
-        const academyResult = await db.query(
-            `SELECT * FROM academies WHERE UPPER(${codeColumn}) = UPPER($1)`,
-            [academy_code.trim()]
-        );
+        let academy;
 
-        console.log('Looking for teacher_code:', academy_code);
-        console.log('Query result:', JSON.stringify(academyResult));
-        console.log('Rows:', academyResult.rows || academyResult);
+        if (academy_id) {
+            // Invite link flow — look up by academy_id directly
+            const academyResult = await db.query(
+                'SELECT * FROM academies WHERE id = $1',
+                [academy_id]
+            );
+            academy = academyResult.rows?.[0] || academyResult[0];
+            if (!academy) {
+                return res.status(404).json({ error: 'Academia no encontrada' });
+            }
+        } else {
+            // Classic code flow
+            const codeColumn = role === 'teacher' ? 'teacher_code' : 'student_code';
+            const academyResult = await db.query(
+                `SELECT * FROM academies WHERE UPPER(${codeColumn}) = UPPER($1)`,
+                [academy_code.trim()]
+            );
 
-        const academy = academyResult.rows?.[0] || academyResult[0];
+            console.log('Looking for teacher_code:', academy_code);
+            console.log('Query result:', JSON.stringify(academyResult));
+            console.log('Rows:', academyResult.rows || academyResult);
 
-        if (!academy) {
-            return res.status(404).json({
-                error: role === 'teacher'
-                    ? 'Código de profesor no válido'
-                    : 'Código de alumno no válido'
-            });
+            academy = academyResult.rows?.[0] || academyResult[0];
+
+            if (!academy) {
+                return res.status(404).json({
+                    error: role === 'teacher'
+                        ? 'Código de profesor no válido'
+                        : 'Código de alumno no válido'
+                });
+            }
         }
 
         // Check if email already exists
@@ -506,5 +522,67 @@ router.delete('/api/auth/delete-account', authenticateJWT, async (req, res) => {
         res.status(500).json({ error: 'Error al eliminar la cuenta' });
     }
 });
+
+// ─── Invitation Links ─────────────────────────────────────────────────────────
+
+// POST /api/academy/invite — generate an invitation link (teacher or admin only)
+router.post('/api/academy/invite', authenticateJWT, requireTeacherOrAdmin, async (req, res) => {
+    try {
+        const { role } = req.body;
+        if (!role || !['teacher', 'student'].includes(role)) {
+            return res.status(400).json({ error: 'role must be teacher or student' });
+        }
+
+        const academy_id = req.user.academy_id;
+        if (!academy_id) {
+            return res.status(400).json({ error: 'User is not associated with an academy' });
+        }
+
+        const token = crypto.randomBytes(32).toString('hex');
+        const appUrl = process.env.APP_URL || '';
+        const url = `${appUrl}/join.html?invite=${token}`;
+
+        const result = await db.query(
+            `INSERT INTO invitation_links (academy_id, role, token, expires_at, created_by)
+             VALUES ($1, $2, $3, NOW() + INTERVAL '7 days', $4)
+             RETURNING expires_at`,
+            [academy_id, role, token, req.user.id]
+        );
+
+        const expires_at = result.rows ? result.rows[0].expires_at : null;
+
+        res.json({ token, url, expires_at, role });
+    } catch (err) {
+        console.error('[Invite] Error generating invite link:', err.message);
+        res.status(500).json({ error: 'Error generating invitation link' });
+    }
+});
+
+// GET /api/auth/invite/:token — validate an invitation link (public)
+router.get('/api/auth/invite/:token', async (req, res) => {
+    try {
+        const { token } = req.params;
+
+        const result = await db.query(
+            `SELECT il.academy_id, il.role, a.name AS academy_name
+             FROM invitation_links il
+             JOIN academies a ON a.id = il.academy_id
+             WHERE il.token = $1 AND il.expires_at > NOW()`,
+            [token]
+        );
+
+        const row = result.rows ? result.rows[0] : null;
+        if (!row) {
+            return res.status(404).json({ error: 'Invalid or expired invitation link' });
+        }
+
+        res.json({ academy_id: row.academy_id, academy_name: row.academy_name, role: row.role });
+    } catch (err) {
+        console.error('[Invite] Error validating invite link:', err.message);
+        res.status(500).json({ error: 'Error validating invitation link' });
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 module.exports = router;
