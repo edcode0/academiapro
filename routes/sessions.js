@@ -112,17 +112,19 @@ router.get('/api/sessions', authenticateJWT, (req, res) => {
 });
 
 router.get('/api/sessions-list', authenticateJWT, (req, res) => {
-    // LEFT JOIN with available_slots to pick up the slot time when available.
-    // DISTINCT ON prevents duplicate rows when multiple slots share the same date+student.
-    let sql = `SELECT DISTINCT ON (s.id) s.*, st.name as student_name,
-               asl.start_datetime as slot_start_datetime,
-               asl.end_datetime   as slot_end_datetime
+    // Scalar subqueries work on both PostgreSQL and SQLite.
+    // SUBSTR(CAST(... AS TEXT), 1, 10) extracts "YYYY-MM-DD" from any datetime format.
+    let sql = `SELECT s.*, st.name as student_name,
+               (SELECT start_datetime FROM available_slots
+                WHERE student_id = s.student_id AND academy_id = st.academy_id
+                AND SUBSTR(CAST(start_datetime AS TEXT), 1, 10) = SUBSTR(CAST(s.date AS TEXT), 1, 10)
+                ORDER BY start_datetime LIMIT 1) as slot_start_datetime,
+               (SELECT end_datetime FROM available_slots
+                WHERE student_id = s.student_id AND academy_id = st.academy_id
+                AND SUBSTR(CAST(start_datetime AS TEXT), 1, 10) = SUBSTR(CAST(s.date AS TEXT), 1, 10)
+                ORDER BY start_datetime LIMIT 1) as slot_end_datetime
                FROM sessions s
                JOIN students st ON s.student_id = st.id
-               LEFT JOIN available_slots asl
-                   ON asl.student_id = s.student_id
-                  AND DATE(asl.start_datetime AT TIME ZONE 'UTC') = s.date
-                  AND asl.academy_id = st.academy_id
                WHERE st.academy_id = $1`;
     let params = [req.user.academy_id];
 
@@ -131,7 +133,7 @@ router.get('/api/sessions-list', authenticateJWT, (req, res) => {
         params.push(req.user.id);
     }
 
-    db.query(sql + ' ORDER BY s.id DESC, s.date DESC', params, (err, result) => {
+    db.query(sql + ' ORDER BY s.date DESC, s.id DESC', params, (err, result) => {
         if (err) return res.status(500).json({ error: err.message });
         const rows = result.rows;
 

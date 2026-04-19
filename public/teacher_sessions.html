@@ -869,7 +869,7 @@
         async function loadSessions() {
             const res = await fetch('/api/sessions-list');
             const data = await res.json();
-            allSessions = data.sessions;
+            allSessions = data.sessions || [];
 
             document.getElementById('stats-total').textContent = data.stats.totalThisMonth;
             document.getElementById('stats-duration').textContent = `${data.stats.avgDuration} min`;
