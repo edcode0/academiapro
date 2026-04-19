@@ -351,29 +351,21 @@
             cursor: pointer;
         }
 
-        @media (max-width: 768px) {
-            aside {
-                display: none;
-            }
-
+        @media (max-width: 1024px) {
             #chat-container {
                 margin: 0;
                 border-radius: 0;
                 border: none;
             }
 
-            /* Conversation list takes full width on mobile */
             #conversation-list {
                 width: 100% !important;
-                display: flex;
             }
 
-            /* Chat area hidden by default on mobile */
             #active-chat {
                 display: none;
             }
 
-            /* When a room is selected, show chat area and hide list */
             #active-chat.active {
                 display: flex !important;
                 width: 100% !important;
@@ -382,6 +374,25 @@
             #conversation-list.hidden {
                 display: none !important;
             }
+
+            #mobile-chat-bar {
+                display: flex;
+            }
+        }
+
+        #mobile-chat-bar {
+            display: none;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1.25rem;
+            border-bottom: 1px solid var(--border);
+            background: white;
+        }
+
+        #mobile-chat-bar span {
+            font-weight: 600;
+            font-size: 1rem;
+            color: var(--text-main);
         }
     </style>
     <link rel="stylesheet" href="/glassmorphism.css">
@@ -462,6 +473,10 @@
 
     <div id="chat-container">
         <div id="conversation-list">
+            <div id="mobile-chat-bar">
+                <button class="hamburger-btn" onclick="toggleMobileNav()">&#9776;</button>
+                <span>Conversaciones</span>
+            </div>
             <div id="search-container">
                 <input type="text" id="search-input" placeholder="Buscar conversaciones...">
             </div>
