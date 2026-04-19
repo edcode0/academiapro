@@ -534,30 +534,6 @@
             display: none;
         }
 
-        /* Glassmorphism overrides .card div { color } — restore FC event text */
-        .fc-event .fc-event-main,
-        .fc-event .fc-event-title,
-        .fc-event .fc-event-time,
-        .fc-event .fc-event-main-frame,
-        .fc-timegrid-event .fc-event-main,
-        .fc-daygrid-event .fc-event-main {
-            color: white !important;
-        }
-        /* Prevent glassmorphism button gradient from styling FC toolbar buttons */
-        .fc .fc-button {
-            background: var(--secondary) !important;
-            background-image: none !important;
-            box-shadow: none !important;
-            border-radius: 6px !important;
-        }
-        .fc .fc-button:hover {
-            background: #2563eb !important;
-            transform: none !important;
-        }
-        .fc .fc-button-active,
-        .fc .fc-button:not(:disabled).fc-button-active {
-            background: #1d4ed8 !important;
-        }
     </style>
     <link rel="stylesheet" href="/glassmorphism.css">
     <link rel="stylesheet" href="/shared-dashboard.css">
@@ -640,18 +616,24 @@
     <main>
         <div class="page-header">
                 <button class="hamburger-btn" onclick="toggleMobileNav()">&#9776;</button>
-                
+
             <h2>🗓️ Mi Calendario</h2>
-            <div class="legend">
-                <div class="legend-item">
-                    <div class="legend-dot" style="background:#10b981;"></div> Libre
+            <div style="display:flex;align-items:center;gap:1.25rem;">
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background:#10b981;"></div> Libre
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background:#3b82f6;"></div> Asignado
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background:#94a3b8;"></div> Pasado
+                    </div>
                 </div>
-                <div class="legend-item">
-                    <div class="legend-dot" style="background:#3b82f6;"></div> Asignado
-                </div>
-                <div class="legend-item">
-                    <div class="legend-dot" style="background:#94a3b8;"></div> Pasado
-                </div>
+                <button id="dayViewAddBtn" onclick="openCreateForDayView()"
+                    style="display:none;padding:8px 16px;border:none;border-radius:8px;background:#3b82f6;color:#fff;font-size:0.875rem;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;">
+                    + Crear sesión
+                </button>
             </div>
         </div>
         <p class="hint">Haz clic o arrastra en el calendario para crear nuevos huecos de disponibilidad.</p>
@@ -820,12 +802,6 @@
     </div>
 
     <div id="toast"></div>
-
-    <!-- Floating "+" button — shown only in day view -->
-    <button id="dayViewAddBtn" onclick="openCreateForDayView()"
-        style="display:none;position:fixed;bottom:2.5rem;right:2.5rem;width:52px;height:52px;border-radius:50%;background:#3b82f6;color:white;border:none;font-size:1.6rem;cursor:pointer;box-shadow:0 4px 16px rgba(59,130,246,0.5);z-index:500;align-items:center;justify-content:center;line-height:1;">
-        +
-    </button>
 
     <script>
         let calendar;
@@ -1011,6 +987,23 @@
                     selectedSlotId = info.event.id;
                     selectedSlotData = info.event.extendedProps;
                     openDetail(info.event);
+                },
+
+                // Force event colors via inline styles — beats glassmorphism's !important rules
+                // (inline !important has absolute cascade priority over any stylesheet rule)
+                eventDidMount: function (info) {
+                    const bg = info.event.backgroundColor;
+                    const tc = info.event.textColor || '#fff';
+                    const bc = info.event.borderColor || bg;
+                    const el = info.el;
+                    if (bg) {
+                        el.style.setProperty('background-color', bg, 'important');
+                        el.style.setProperty('border-color', bc, 'important');
+                    }
+                    // Force text color on all child text elements
+                    el.querySelectorAll('div, span').forEach(function (child) {
+                        child.style.setProperty('color', tc, 'important');
+                    });
                 }
             });
 
@@ -1062,43 +1055,26 @@
         }
 
         // ── Fetch session events (second event source) ────────────
+        // Only sessions WITHOUT a corresponding slot are shown here.
+        // Sessions with a slot are already visible as booked (blue) slot events,
+        // so rendering them again would create duplicate overlapping blocks.
         async function fetchSessionEvents(fetchInfo, successCallback, failureCallback) {
             try {
                 const res = await fetch('/api/sessions-list');
                 const data = await res.json();
-                const sessions = data.sessions || [];
+                const sessions = (data.sessions || []).filter(s => !s.slot_start_datetime);
                 const events = sessions.map(s => {
-                    // Use slot datetimes when available, otherwise show as all-day event
-                    if (s.slot_start_datetime) {
-                        const startDt = toLocalDtStr(s.slot_start_datetime);
-                        const endDt = s.slot_end_datetime
-                            ? toLocalDtStr(s.slot_end_datetime)
-                            : toLocalDtStr(new Date(new Date(s.slot_start_datetime).getTime() + (s.duration_minutes || 60) * 60000).toISOString());
-                        return {
-                            id: `sess-${s.id}`,
-                            title: `📘 ${s.student_name || 'Sesión'}`,
-                            start: startDt,
-                            end: endDt,
-                            backgroundColor: '#f59e0b',
-                            borderColor: '#d97706',
-                            textColor: '#fff',
-                            extendedProps: { type: 'session', session_id: s.id }
-                        };
-                    } else {
-                        // No slot time available — show at 09:00 so it's visible in timeGrid views
-                        // (allDaySlot:false hides all-day events in week/day views)
-                        const dateAt9 = s.date ? s.date.slice(0, 10) + 'T09:00:00' : null;
-                        return {
-                            id: `sess-${s.id}`,
-                            title: `📘 ${s.student_name || 'Sesión'}`,
-                            start: dateAt9 || s.date,
-                            end: dateAt9 ? s.date.slice(0, 10) + 'T10:00:00' : null,
-                            backgroundColor: '#f59e0b',
-                            borderColor: '#d97706',
-                            textColor: '#fff',
-                            extendedProps: { type: 'session', session_id: s.id }
-                        };
-                    }
+                    const dateAt9 = s.date ? s.date.slice(0, 10) + 'T09:00:00' : null;
+                    return {
+                        id: `sess-${s.id}`,
+                        title: `📘 ${s.student_name || 'Sesión'}`,
+                        start: dateAt9 || s.date,
+                        end: dateAt9 ? s.date.slice(0, 10) + 'T10:00:00' : null,
+                        backgroundColor: '#f59e0b',
+                        borderColor: '#d97706',
+                        textColor: '#1e293b',
+                        extendedProps: { type: 'session', session_id: s.id }
+                    };
                 });
                 successCallback(events);
             } catch (e) { failureCallback(e); }
@@ -1532,6 +1508,37 @@
 <script src="/help-assistant.js"></script>
 
     <div class="mobile-nav-overlay" id="mobile-nav-overlay" onclick="closeMobileNav()"></div>
+
+    <!-- Loaded AFTER glassmorphism.css so these win by source order -->
+    <style>
+        .fc .fc-button-primary {
+            background: #3b82f6 !important;
+            background-image: none !important;
+            border-color: #3b82f6 !important;
+            box-shadow: none !important;
+            border-radius: 6px !important;
+            transform: none !important;
+        }
+        .fc .fc-button-primary:hover {
+            background: #2563eb !important;
+            border-color: #2563eb !important;
+            transform: none !important;
+        }
+        .fc .fc-button-primary:not(:disabled).fc-button-active {
+            background: #1d4ed8 !important;
+            border-color: #1d4ed8 !important;
+        }
+        #dayViewAddBtn {
+            background: #3b82f6 !important;
+            background-image: none !important;
+            box-shadow: none !important;
+            transform: none !important;
+        }
+        #dayViewAddBtn:hover {
+            background: #2563eb !important;
+            transform: none !important;
+        }
+    </style>
 </body>
 
 </html>
