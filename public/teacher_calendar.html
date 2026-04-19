@@ -1511,6 +1511,32 @@
 
     <!-- Loaded AFTER glassmorphism.css so these win by source order -->
     <style>
+        /* ── Glassmorphism kills FC's internal <table> elements ──────────────────
+           glassmorphism.css rule: `table { backdrop-filter: blur(20px); overflow: hidden; }`
+           This hits every FC grid table, creating:
+             1. A blurry blue blob bleeding through (backdrop-filter stacking)
+             2. All event divs clipped invisible (overflow: hidden clips abs-pos children)
+           Fix: reset these properties on all tables/cells inside #calendar.
+        ─────────────────────────────────────────────────────────────────────── */
+        #calendar table,
+        #calendar tbody,
+        #calendar thead,
+        #calendar tr,
+        #calendar td,
+        #calendar th {
+            background: transparent !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+            overflow: visible !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+        }
+        /* FC manages its own cell borders; clear the glassmorphism outer border */
+        #calendar table {
+            border: none !important;
+        }
+
+        /* ── FC toolbar buttons (glassmorphism turns them purple gradient) ── */
         .fc .fc-button-primary {
             background: #3b82f6 !important;
             background-image: none !important;
@@ -1528,6 +1554,8 @@
             background: #1d4ed8 !important;
             border-color: #1d4ed8 !important;
         }
+
+        /* ── "Crear sesión" header button (glassmorphism overrides it purple) ── */
         #dayViewAddBtn {
             background: #3b82f6 !important;
             background-image: none !important;
