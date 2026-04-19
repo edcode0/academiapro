@@ -533,6 +533,31 @@
             margin-top: 0.35rem;
             display: none;
         }
+
+        /* Glassmorphism overrides .card div { color } — restore FC event text */
+        .fc-event .fc-event-main,
+        .fc-event .fc-event-title,
+        .fc-event .fc-event-time,
+        .fc-event .fc-event-main-frame,
+        .fc-timegrid-event .fc-event-main,
+        .fc-daygrid-event .fc-event-main {
+            color: white !important;
+        }
+        /* Prevent glassmorphism button gradient from styling FC toolbar buttons */
+        .fc .fc-button {
+            background: var(--secondary) !important;
+            background-image: none !important;
+            box-shadow: none !important;
+            border-radius: 6px !important;
+        }
+        .fc .fc-button:hover {
+            background: #2563eb !important;
+            transform: none !important;
+        }
+        .fc .fc-button-active,
+        .fc .fc-button:not(:disabled).fc-button-active {
+            background: #1d4ed8 !important;
+        }
     </style>
     <link rel="stylesheet" href="/glassmorphism.css">
     <link rel="stylesheet" href="/shared-dashboard.css">
