@@ -779,6 +779,21 @@
         </div>
     </div>
 
+    <!-- ═══ DAY POPOVER (month view click) ═══ -->
+    <div id="dayPopover" class="modal-overlay">
+        <div class="modal-box" style="width:380px;padding:0;">
+            <div class="modal-header" style="padding:15px 20px;border-bottom:0.5px solid #e2e0d8;margin-bottom:0;">
+                <h3 id="dayPopoverTitle" style="font-size:0.95rem;font-weight:700;color:#0f172a;"></h3>
+                <button class="modal-close" onclick="closeDayPopover()">×</button>
+            </div>
+            <div id="dayPopoverEvents" style="padding:12px 20px;max-height:280px;overflow-y:auto;"></div>
+            <div style="padding:12px 20px;border-top:0.5px solid #e2e0d8;display:flex;gap:8px;justify-content:flex-end;">
+                <button style="padding:7px 14px;border:0.5px solid #e2e0d8;border-radius:8px;background:#fff;color:#64748b;font-size:0.85rem;cursor:pointer;font-family:inherit;" onclick="viewDayFromPopover()">Ver día →</button>
+                <button style="padding:7px 14px;border:none;border-radius:8px;background:#0f172a;color:#fff;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit;" onclick="createFromDayPopover()">+ Crear sesión</button>
+            </div>
+        </div>
+    </div>
+
     <div id="toast"></div>
 
     <!-- Floating "+" button — shown only in day view -->
@@ -907,7 +922,7 @@
                     right: 'dayGridMonth,timeGridWeek,timeGridDay'
                 },
                 buttonText: { today: 'Hoy', month: 'Mes', week: 'Semana', day: 'Día' },
-                events: [fetchSlots, fetchSessionEvents],
+                eventSources: [fetchSlots, fetchSessionEvents],
 
                 datesSet: function (info) {
                     const btn = document.getElementById('dayViewAddBtn');
@@ -940,9 +955,9 @@
                 },
 
                 dateClick: function (info) {
-                    // In month view: navigate to day view
+                    // In month view: show day popover with events + create button
                     if (info.view.type === 'dayGridMonth') {
-                        calendar.changeView('timeGridDay', info.dateStr);
+                        openDayPopover(info.dateStr);
                         return;
                     }
                     // In timeGrid views: open create modal pre-filled with clicked time
@@ -1045,11 +1060,14 @@
                             extendedProps: { type: 'session', session_id: s.id }
                         };
                     } else {
+                        // No slot time available — show at 09:00 so it's visible in timeGrid views
+                        // (allDaySlot:false hides all-day events in week/day views)
+                        const dateAt9 = s.date ? s.date.slice(0, 10) + 'T09:00:00' : null;
                         return {
                             id: `sess-${s.id}`,
                             title: `📘 ${s.student_name || 'Sesión'}`,
-                            start: s.date,
-                            allDay: true,
+                            start: dateAt9 || s.date,
+                            end: dateAt9 ? s.date.slice(0, 10) + 'T10:00:00' : null,
                             backgroundColor: '#f59e0b',
                             borderColor: '#d97706',
                             textColor: '#fff',
@@ -1059,6 +1077,70 @@
                 });
                 successCallback(events);
             } catch (e) { failureCallback(e); }
+        }
+
+        // ── Day popover (month-view dateClick) ───────────────────
+        let _dayPopoverDate = null;
+
+        function openDayPopover(dateStr) {
+            _dayPopoverDate = dateStr;
+            const [y, m, d] = dateStr.split('-');
+            document.getElementById('dayPopoverTitle').textContent =
+                `${String(d).padStart(2,'0')}/${String(m).padStart(2,'0')}/${y}`;
+
+            const allEvents = calendar.getEvents().filter(ev => {
+                const evStart = ev.start;
+                if (!evStart) return false;
+                const evDate = evStart.getFullYear() + '-' +
+                    String(evStart.getMonth()+1).padStart(2,'0') + '-' +
+                    String(evStart.getDate()).padStart(2,'0');
+                return evDate === dateStr;
+            });
+
+            const container = document.getElementById('dayPopoverEvents');
+            if (allEvents.length === 0) {
+                container.innerHTML = '<p style="color:#94a3b8;font-size:0.875rem;text-align:center;padding:1rem 0;">Sin eventos este día.</p>';
+            } else {
+                container.innerHTML = allEvents.map(ev => {
+                    const startStr = ev.start
+                        ? String(ev.start.getHours()).padStart(2,'0') + ':' + String(ev.start.getMinutes()).padStart(2,'0')
+                        : '';
+                    const color = ev.backgroundColor || '#64748b';
+                    return `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:0.5px solid #f1f5f9;">
+                        <span style="width:10px;height:10px;border-radius:3px;background:${color};flex-shrink:0;"></span>
+                        <span style="font-size:0.875rem;color:#0f172a;flex:1;">${ev.title}</span>
+                        <span style="font-size:0.8rem;color:#94a3b8;">${startStr}</span>
+                    </div>`;
+                }).join('');
+            }
+            document.getElementById('dayPopover').style.display = 'flex';
+        }
+
+        function closeDayPopover() {
+            document.getElementById('dayPopover').style.display = 'none';
+            _dayPopoverDate = null;
+        }
+
+        function viewDayFromPopover() {
+            const date = _dayPopoverDate;
+            closeDayPopover();
+            if (date) calendar.changeView('timeGridDay', date);
+        }
+
+        function createFromDayPopover() {
+            if (!_dayPopoverDate) return;
+            const [y, m, d] = _dayPopoverDate.split('-').map(Number);
+            const startDate = new Date(y, m - 1, d, 9, 0, 0);
+            const endDate = new Date(y, m - 1, d, 10, 0, 0);
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            const clicked = new Date(startDate); clicked.setHours(0, 0, 0, 0);
+            closeDayPopover();
+            if (clicked < today) {
+                showToast('No puedes crear disponibilidad en el pasado.', 'warning');
+                return;
+            }
+            pendingSelectInfo = { start: startDate, end: endDate };
+            openCreate(pendingSelectInfo);
         }
 
         // ── Open create modal from day-view "+" button ────────────
@@ -1417,6 +1499,9 @@
         });
         document.getElementById('detailModal').addEventListener('click', function (e) {
             if (e.target === this) closeDetail();
+        });
+        document.getElementById('dayPopover').addEventListener('click', function (e) {
+            if (e.target === this) closeDayPopover();
         });
     </script>
 <script src="/help-assistant.js"></script>
