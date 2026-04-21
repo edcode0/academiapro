@@ -34,7 +34,6 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const crypto = require('crypto');
 const db = require('./db');
 
 // Call database initialization on startup
@@ -49,19 +48,8 @@ async function initializeDatabase() {
     }
 }
 initializeDatabase();
-const PDFDocument = require('pdfkit');
-const Groq = require("groq-sdk");
-const { Resend } = require('resend');
 const path = require('path');
-
 const fs = require('fs');
-const multerInstance = require('multer');
-
-
-const pdfUpload = multerInstance({
-    storage: multerInstance.memoryStorage(),
-    limits: { fileSize: 10 * 1024 * 1024 }
-});
 
 // Auth Requires
 const jwt = require('jsonwebtoken');
@@ -88,6 +76,8 @@ const io = new Server(server, {
     maxHttpBufferSize: 1e7 // 10MB
 });
 const { createNotification, setIo: setNotifIo } = require('./notifications');
+const { checkStudentRisk } = require('./services/risk');
+const initChatSocket = require('./sockets/chat');
 const calendarRouter        = require('./routes/calendar');
 const studentsRouter        = require('./routes/students');
 const sessionsRouter        = require('./routes/sessions');
@@ -115,78 +105,7 @@ io.use((socket, next) => {
   }
 });
 
-const isPostgres = !!process.env.DATABASE_URL;
-
-global.roomsEnsured = false;
-
-const groqClient = new Groq({ apiKey: process.env.GROQ_API_KEY || 'dummy' });
-const { google } = require('googleapis');
-
-// ─── Gmail transcript auto-processor ─────────────────────────────────────────
-function makeOAuth2Client() {
-    return new google.auth.OAuth2(
-        process.env.GOOGLE_CLIENT_ID,
-        process.env.GOOGLE_CLIENT_SECRET,
-        (process.env.BASE_URL || '') + '/api/gmail/callback'
-    );
-}
-
-// ─── Google Calendar helpers ──────────────────────────────────────────────────
-async function createCalendarEvent(teacher, slot) {
-    try {
-        if (!teacher.calendar_access_token) return null;
-        const auth = makeOAuth2Client();
-        auth.setCredentials({
-            access_token: teacher.calendar_access_token,
-            refresh_token: teacher.calendar_refresh_token,
-            expiry_date: teacher.calendar_token_expiry
-        });
-        const calendar = google.calendar({ version: 'v3', auth });
-        const event = {
-            summary: `Clase - ${slot.student_name || 'Alumno'}`,
-            description: 'Clase programada en AcademiaPro',
-            start: { dateTime: new Date(slot.start_datetime).toISOString(), timeZone: 'Europe/Madrid' },
-            end: { dateTime: new Date(slot.end_datetime).toISOString(), timeZone: 'Europe/Madrid' },
-            conferenceData: {
-                createRequest: {
-                    requestId: `academiapro-${Date.now()}`,
-                    conferenceSolutionKey: { type: 'hangoutsMeet' }
-                }
-            },
-            attendees: slot.student_email ? [{ email: slot.student_email }] : []
-        };
-        const response = await calendar.events.insert({
-            calendarId: 'primary',
-            resource: event,
-            conferenceDataVersion: 1,
-            sendUpdates: 'all'
-        });
-        const meetLink = response.data.conferenceData?.entryPoints?.find(e => e.entryPointType === 'video')?.uri;
-        console.log('[Calendar] Event created:', response.data.id, 'Meet:', meetLink);
-        return { google_event_id: response.data.id, meet_link: meetLink || null };
-    } catch (err) {
-        console.error('[Calendar] createCalendarEvent error:', err.message);
-        Sentry.captureException(err);
-        return null;
-    }
-}
-
-async function deleteCalendarEvent(teacher, googleEventId) {
-    try {
-        if (!teacher.calendar_access_token || !googleEventId) return;
-        const auth = makeOAuth2Client();
-        auth.setCredentials({
-            access_token: teacher.calendar_access_token,
-            refresh_token: teacher.calendar_refresh_token
-        });
-        const calendar = google.calendar({ version: 'v3', auth });
-        await calendar.events.delete({ calendarId: 'primary', eventId: googleEventId });
-        console.log('[Calendar] Event deleted:', googleEventId);
-    } catch (err) {
-        console.error('[Calendar] deleteCalendarEvent error:', err.message);
-        Sentry.captureException(err);
-    }
-}
+initChatSocket(io);
 
 const { checkAndProcessTranscripts } = require('./services/gmail')(io);
 // ─────────────────────────────────────────────────────────────────────────────
@@ -195,7 +114,6 @@ const { checkAndProcessTranscripts } = require('./services/gmail')(io);
 const initCrons = require('./cron');
 
 const PORT = process.env.PORT || 3000;
-const multer = require('multer');
 
 
 const allowedOrigins = process.env.ALLOWED_ORIGINS
@@ -396,55 +314,6 @@ app.get('/uploads/:folder/:filename', (req, res, next) => {
 });
 
 
-// ─── Risk detection (also used by generic CRUD) ───────────────────────────────
-const checkStudentRisk = (studentId) => {
-    db.query(`SELECT * FROM students WHERE id = $1`, [studentId], (err, result) => {
-        const student = result?.rows[0];
-        if (err || !student) return;
-        db.query(`SELECT homework_done FROM sessions WHERE student_id = $1 ORDER BY date DESC LIMIT 3`, [studentId], (err, resSessions) => {
-            const sessions = resSessions?.rows || [];
-            if (!err && sessions.length >= 3) {
-                const allNoHomework = sessions.every(s => !s.homework_done);
-                if (allNoHomework) {
-                    db.query(`UPDATE students SET status = 'at_risk' WHERE id = $1`, [studentId]);
-                    notifyAtRisk(studentId, 'No entrega deberes (3 sesiones seguidas)');
-                    return;
-                }
-            }
-            db.query(`SELECT score FROM exams WHERE student_id = $1 ORDER BY date DESC LIMIT 4`, [studentId], (err, resExams) => {
-                const exams = resExams?.rows || [];
-                if (!err && exams.length >= 4) {
-                    const last2Avg = (exams[0].score + exams[1].score) / 2;
-                    const prev2Avg = (exams[2].score + exams[3].score) / 2;
-                    if (last2Avg < prev2Avg) {
-                        db.query(`UPDATE students SET status = 'at_risk' WHERE id = $1`, [studentId]);
-                        notifyAtRisk(studentId, 'Bajada de notas en los últimos exámenes');
-                    }
-                }
-            });
-        });
-    });
-};
-
-async function notifyAtRisk(studentId, reason) {
-    try {
-        const r = await db.query(
-            `SELECT s.name, s.academy_id, s.assigned_teacher_id,
-                    u_admin.id AS admin_id
-             FROM students s
-             LEFT JOIN users u_admin ON u_admin.academy_id = s.academy_id AND u_admin.role = 'admin'
-             WHERE s.id = $1 LIMIT 1`,
-            [studentId]
-        );
-        const row = r.rows[0];
-        if (!row) return;
-        const title = `⚠️ Alumno en riesgo: ${row.name}`;
-        const msg = reason;
-        const link = null;
-        if (row.admin_id) createNotification(row.admin_id, row.academy_id, 'at_risk', title, msg, link);
-        if (row.assigned_teacher_id) createNotification(row.assigned_teacher_id, row.academy_id, 'at_risk', title, msg, link);
-    } catch (e) { console.error('[notifyAtRisk]', e.message); }
-}
 
 
 
@@ -452,134 +321,6 @@ async function notifyAtRisk(studentId, reason) {
 
 
 
-
-
-
-async function ensureAcademyRooms(academyId) {
-    const isPostgres = !!process.env.DATABASE_URL;
-    // Ensure "👥 Profesores & Admin" group room exists
-    const groupExists = await db.query(
-        "SELECT id FROM rooms WHERE academy_id = $1 AND type = 'group' AND name = '👥 Profesores & Admin'",
-        [academyId]
-    );
-    const groupRows = groupExists.rows || groupExists;
-    let groupId;
-
-    if (!groupRows || groupRows.length === 0) {
-        const insertGroupSql = isPostgres
-            ? "INSERT INTO rooms (academy_id, type, name, created_at) VALUES ($1, 'group', '👥 Profesores & Admin', NOW()) RETURNING id"
-            : "INSERT INTO rooms (academy_id, type, name, created_at) VALUES ($1, 'group', '👥 Profesores & Admin', datetime('now'))";
-
-        const newGroup = await db.query(insertGroupSql, [academyId]);
-        groupId = isPostgres && newGroup.rows ? newGroup.rows[0].id : newGroup.lastID;
-
-        // Let's also delete the old "General Profesores" if it exists so there aren't duplicates
-        const oldGroup = await db.query("SELECT id FROM rooms WHERE academy_id = $1 AND type = 'group' AND name = 'General Profesores'", [academyId]);
-        const oldRows = oldGroup.rows || oldGroup;
-        for (const row of oldRows) {
-            await db.query("DELETE FROM room_members WHERE room_id = $1", [row.id]);
-            await db.query("DELETE FROM rooms WHERE id = $1", [row.id]);
-        }
-    } else {
-        groupId = groupRows[0].id;
-    }
-
-    // Add all teachers and admin to group
-    const members = await db.query(
-        "SELECT id FROM users WHERE academy_id = $1 AND role IN ('admin','teacher')",
-        [academyId]
-    );
-    const insertMemberSql = isPostgres
-        ? "INSERT INTO room_members (room_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING"
-        : "INSERT OR IGNORE INTO room_members (room_id, user_id) VALUES ($1, $2)";
-
-    for (const m of (members.rows || [])) {
-        try {
-            await db.query(insertMemberSql, [groupId, m.id]);
-        } catch (e) { }
-    }
-
-    // Create direct rooms for each student with teacher and admin
-    // FIX: Look up users with role 'student' directy
-    const studentUsers = await db.query(
-        `SELECT u.id as user_id, s.id as student_id, s.assigned_teacher_id 
-         FROM users u 
-         LEFT JOIN students s ON s.academy_id = u.academy_id AND (s.user_id = u.id OR LOWER(s.name) = LOWER(u.name)) 
-         WHERE u.academy_id = $1 AND u.role = 'student'`,
-        [academyId]
-    );
-
-    const admin = await db.query(
-        "SELECT id FROM users WHERE academy_id = $1 AND role = 'admin' LIMIT 1",
-        [academyId]
-    );
-    const adminUser = admin.rows && admin.rows[0] ? admin.rows[0] : null;
-
-    for (const student of (studentUsers.rows || [])) {
-        const studentUserId = student.user_id;
-        if (student.assigned_teacher_id) {
-            await createDirectRoomIfNotExists(studentUserId, student.assigned_teacher_id, academyId);
-        }
-        if (adminUser) {
-            await createDirectRoomIfNotExists(studentUserId, adminUser.id, academyId);
-        }
-    }
-
-    // Create direct rooms for Admin <-> Teachers
-    if (adminUser) {
-        const teachers = await db.query(
-            "SELECT id FROM users WHERE academy_id = $1 AND role = 'teacher'",
-            [academyId]
-        );
-        for (const teacher of (teachers.rows || [])) {
-            if (teacher.id !== adminUser.id) {
-                await createDirectRoomIfNotExists(teacher.id, adminUser.id, academyId);
-            }
-        }
-    }
-}
-
-
-// ─── Onboarding wizard ───────────────────────────────────────────────────────
-app.get('/api/onboarding/status', authenticateJWT, async (req, res) => {
-    try {
-        if (req.user.role !== 'admin') return res.json({ show: false });
-
-        const userResult = await db.query(
-            'SELECT onboarding_completed FROM users WHERE id = $1', [req.user.id]
-        );
-        const user = userResult.rows[0];
-        if (user?.onboarding_completed) return res.json({ show: false });
-
-        const [students, teachers, codes] = await Promise.all([
-            db.query('SELECT COUNT(*) FROM students WHERE academy_id = $1', [req.user.academy_id]),
-            db.query("SELECT COUNT(*) FROM users WHERE academy_id = $1 AND role = 'teacher'", [req.user.academy_id]),
-            db.query('SELECT teacher_code, student_code FROM academies WHERE id = $1', [req.user.academy_id])
-        ]);
-
-        res.json({
-            show: true,
-            stats: {
-                students: parseInt(students.rows[0].count),
-                teachers: parseInt(teachers.rows[0].count),
-                teacher_code: codes.rows[0]?.teacher_code,
-                student_code: codes.rows[0]?.student_code
-            }
-        });
-    } catch (err) {
-        res.json({ show: false });
-    }
-});
-
-app.post('/api/onboarding/complete', authenticateJWT, async (req, res) => {
-    try {
-        await db.query('UPDATE users SET onboarding_completed = TRUE WHERE id = $1', [req.user.id]);
-        res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-// ─────────────────────────────────────────────────────────────────────────────
 
 
 
@@ -635,148 +376,6 @@ const CRUD_ALLOWED_COLUMNS = {
 
 
 
-// Socket.io for Real-time chat
-io.on('error', (err) => console.error('Socket error:', err));
-io.on('connection', (socket) => {
-    console.log('Socket connected:', socket.id);
-
-    // socket.user is already set by io.use() middleware
-    const user = socket.user;
-    if (!user) {
-        console.log('No user on socket, disconnecting');
-        socket.disconnect();
-        return;
-    }
-
-    console.log('Socket authenticated, userId:', user.id, 'role:', user.role);
-
-    // Auto-join academy and user rooms
-    socket.join(`academy_${user.academy_id}`);
-    socket.join(`user_${user.id}`);
-
-    socket.on('join_rooms', (roomIds) => {
-        if (!Array.isArray(roomIds)) return;
-        roomIds.forEach(roomId => socket.join(`room_${roomId}`));
-        console.log('User', user.id, 'joined rooms:', roomIds);
-    });
-
-    socket.on('join_room', (roomId) => {
-        socket.join(`room_${roomId}`);
-    });
-
-    socket.on('sendMessage', async ({ roomId, content, tempId }) => {
-        console.log('sendMessage from', user.id, 'to room', roomId, ':', content);
-        try {
-            if (!roomId || !content?.trim()) return;
-
-            // Verify membership
-            const memberCheck = await db.query(
-                'SELECT 1 FROM room_members WHERE room_id = $1 AND user_id = $2',
-                [roomId, user.id]
-            );
-            if (!memberCheck.rows.length) {
-                console.log('User', user.id, 'not member of room', roomId);
-                socket.emit('error', { message: 'Not a member of this room' });
-                return;
-            }
-
-            // Save to DB
-            const result = await db.query(
-                `INSERT INTO messages (room_id, sender_id, academy_id, content, created_at)
-                 VALUES ($1, $2, $3, $4, NOW()) RETURNING *`,
-                [roomId, user.id, user.academy_id, content.trim()]
-            );
-            const message = result.rows[0];
-            console.log('Message saved to DB, id:', message.id);
-
-            // Broadcast to room (echo tempId so sender can deduplicate)
-            io.to(`room_${roomId}`).emit('new_message', {
-                ...message,
-                sender_name: user.name,
-                sender_role: user.role,
-                sender_id: user.id,
-                tempId: tempId || null
-            });
-
-            // Notify other room members
-            const membersRes = await db.query(
-                'SELECT user_id FROM room_members WHERE room_id = $1 AND user_id != $2',
-                [roomId, user.id]
-            );
-            const preview = content.trim().length > 60 ? content.trim().slice(0, 60) + '…' : content.trim();
-            for (const m of membersRes.rows) {
-                createNotification(m.user_id, user.academy_id, 'message',
-                    `💬 Nuevo mensaje de ${user.name}`,
-                    preview,
-                    `/chat?room=${roomId}`
-                );
-            }
-        } catch (err) {
-            console.error('sendMessage error:', err.message);
-            socket.emit('error', { message: 'Error sending message' });
-        }
-    });
-
-    socket.on('typing', ({ roomId }) => {
-        socket.to(`room_${roomId}`).emit('typing', {
-            userId: user.id,
-            userName: user.name
-        });
-    });
-
-    socket.on('disconnect', () => {
-        console.log('Socket disconnected:', user.id);
-    });
-});
-
-async function ensureAllChatRooms() {
-    if (global.roomsEnsured) return;
-    global.roomsEnsured = true;
-    try {
-        const academies = await db.query('SELECT id FROM academies');
-        const academyRows = academies.rows || academies;
-        for (const academy of academyRows) {
-            await ensureAcademyRooms(academy.id);
-        }
-        console.log('✅ Chat rooms ensured for all academies');
-    } catch (err) {
-        console.error('ensureAllChatRooms error:', err);
-    }
-}
-
-async function createDirectRoomIfNotExists(u1, u2, academyId) {
-    const isPostgres = !!process.env.DATABASE_URL;
-    const exists = await db.query(
-        `SELECT r.id FROM rooms r
-         JOIN room_members rm1 ON rm1.room_id = r.id AND rm1.user_id = $1
-         JOIN room_members rm2 ON rm2.room_id = r.id AND rm2.user_id = $2
-         WHERE r.type = 'direct' AND r.academy_id = $3`,
-        [u1, u2, academyId]
-    );
-    if (!exists.rows || exists.rows.length === 0) {
-        // Look up names to build a meaningful room name
-        const usersRes = await db.query(
-            'SELECT id, name FROM users WHERE id = ANY($1::int[])',
-            [[u1, u2]]
-        );
-        const usersMap = {};
-        (usersRes.rows || []).forEach(u => { usersMap[u.id] = u.name; });
-        const roomName = `${usersMap[u1] || u1} - ${usersMap[u2] || u2}`;
-
-        const insertSql = isPostgres
-            ? "INSERT INTO rooms (academy_id, type, name, created_at) VALUES ($1, 'direct', $2, NOW()) RETURNING id"
-            : "INSERT INTO rooms (academy_id, type, name, created_at) VALUES ($1, 'direct', $2, datetime('now'))";
-        const newR = await db.query(insertSql, [academyId, roomName]);
-        const nrId = isPostgres && newR.rows ? newR.rows[0].id : newR.lastID;
-
-        const insertMemberSql = isPostgres
-            ? "INSERT INTO room_members (room_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING"
-            : "INSERT OR IGNORE INTO room_members (room_id, user_id) VALUES ($1, $2)";
-
-        await db.query(insertMemberSql, [nrId, u1]);
-        await db.query(insertMemberSql, [nrId, u2]);
-    }
-}
 
 
 // ─── Sentry express error handler (must be after all routes) ─────────────────

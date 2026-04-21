@@ -1,3 +1,9 @@
+---
+
+## ARCHIVO — Planes históricos (pendientes no priorizados)
+
+### 2026-03-28 · Frontend Improvements (pendiente)
+
 # Session Plan — 2026-03-28 (Frontend Improvements)
 
 ## 9 Frontend Improvements — Sequential
@@ -244,27 +250,24 @@ Solo contendrá:
 ### Fase 3 — Sockets
 - [ ] `sockets/chat.js` → extraer `io.on('connection')` handler (`index.js:1473`). `sockets/` existe pero vacío.
 
-### Fase 4 — Limpiar index.js (pendiente tras Fase 2.5 + 3)
-Código inline aún en `index.js` (1752 líneas actuales, target ~80):
-- [ ] Gmail OAuth routes (L491-585) — irán a `routes/transcripts.js`
-- [ ] Transcripts routes (L586-867) — irán a `routes/transcripts.js`
-- [ ] AI tutor (L352-491) + AI conversations (L1148-1220) — irán a `routes/ai.js`
-- [ ] Notifications (L890-927) — irán a `routes/notifications.js`
-- [ ] Reports (L985, L1308-1469) — irán a `routes/reports.js`
-- [ ] Settings (L1273-1305) — irán a `routes/settings.js`
-- [ ] Academy/Onboarding (L1088-1145) — irán a `routes/settings.js`
-- [ ] Help-assistant (L1614) — pendiente de router destino
-- [ ] Generic CRUD forEach loop (L1231-1270)
-- [ ] `checkStudentRisk`/`notifyAtRisk` inline duplicados (L929, L958) — `services/risk.js` ya existe
-- [ ] `ensureAcademyRooms`/`createDirectRoomIfNotExists`/`ensureAllChatRooms` inline duplicados (L1002, L1565, L1580) — `services/rooms.js` ya existe
-- [ ] Socket.io connection handler (L1473) — mover a `sockets/chat.js`
+### Fase 4 — Limpiar index.js (pendiente tras Fase 3)
+Código aún en `index.js` (872 líneas actuales, target ~80). Números de línea verificados 2026-04-21:
+- [ ] `checkStudentRisk` / `notifyAtRisk` inline (L400-446) — `services/risk.js` ya existe, eliminar duplicado
+- [ ] `ensureAcademyRooms` (L458-537) + `createDirectRoomIfNotExists` (L747-780) — `services/rooms.js` ya existe
+- [ ] Generic CRUD forEach loop (L587-637) — evaluar si mover a routes o mantener
+- [ ] Socket.io connection handler (L640-728) — mover a `sockets/chat.js` (Fase 3 primero)
+- [ ] `ensureAllChatRooms` (L739-745) — `services/rooms.js` ya existe
+- [ ] Onboarding routes (L449-457 aprox) — irán a `routes/settings.js`
+- [ ] Eliminar imports huérfanos: `PDFDocument`, `Groq`, `Resend`, `multerInstance`, `crypto`, `google` si ya no se usan en index.js
+- [ ] Eliminar funciones `createCalendarEvent`/`deleteCalendarEvent` inline si son dead code (ya están en `services/calendar.js`)
 
 ---
 
-## Estado verificado 2026-04-21
-- `index.js`: 1752 líneas (de 4129 originales, target ~80)
-- Routers integrados: 8/13
+## Estado verificado 2026-04-21 (actualizado post-Fase-2.5)
+- `index.js`: **872 líneas** (de 4129 originales, target ~80)
+- Routers integrados: **13/13** ✅
 - Infraestructura (Fase 1) completa: middleware/, services/, utils/, db.isPostgres ✅
+- Smoke tests: 56/64 (8 fallan por Groq restringido en test env — pre-existente, no bloqueante)
 
 ---
 

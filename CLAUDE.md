@@ -50,3 +50,37 @@
 
 ## LEARNED
 (Claude fills this in over time)
+
+---
+
+## PROJECT CONTEXT
+
+**AcademiaPro** — SaaS para academias de repaso. Multi-tenant (academy_id en todas las queries).
+
+**Stack:** Node.js + Express 5 · PostgreSQL (Railway) / SQLite (local) · Socket.io · Groq (llama-3.3-70b) · Google OAuth + Calendar + Gmail · Resend email · Sentry · JWT + bcrypt
+
+**Deploy:** `git push origin main` → Railway auto-deploy (~2 min). No hay staging.
+
+**Test:** `npm run test:smoke` → 56/64 pasan (8 fallan por Groq restringido en test env — es normal).
+
+**Estructura de módulos:**
+```
+routes/       → 13 routers (auth, students, teachers, sessions, payments, exams,
+                             calendar, chat, ai, notifications, reports, settings, transcripts)
+services/     → groq, email, calendar, gmail, risk, rooms
+middleware/   → auth.js (authenticateJWT), roles.js (requireAdmin, requireTeacher, etc.)
+utils/        → multer.js, codes.js
+sockets/      → vacío (pendiente Fase 3 del refactor)
+cron.js       → jobs diarios
+notifications.js → createNotification + setIo
+db.js         → Pool PG / SQLite wrapper + initDb() + migrations
+index.js      → 872 líneas: setup, middleware global, montar routers, socket handler, intervals
+```
+
+**Roles:** admin · teacher · student. Siempre verificar `req.user.role` y `req.user.academy_id`.
+
+**Groq en producción:** si falla, devolver 503 con mensaje amigable al usuario (no exponer e.message).
+
+**Skills activas:** invocar `using-superpowers` al inicio de cada respuesta para verificar si aplica otra skill.
+
+**Refactor en curso:** Fases 3 y 4 pendientes — ver `tasks/todo.md` para estado exacto.

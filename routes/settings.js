@@ -65,4 +65,45 @@ router.post('/settings', authenticateJWT, requireAdmin, async (req, res) => {
     }
 });
 
+// GET /api/onboarding/status
+router.get('/onboarding/status', authenticateJWT, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') return res.json({ show: false });
+
+        const userResult = await db.query(
+            'SELECT onboarding_completed FROM users WHERE id = $1', [req.user.id]
+        );
+        const user = userResult.rows[0];
+        if (user?.onboarding_completed) return res.json({ show: false });
+
+        const [students, teachers, codes] = await Promise.all([
+            db.query('SELECT COUNT(*) FROM students WHERE academy_id = $1', [req.user.academy_id]),
+            db.query("SELECT COUNT(*) FROM users WHERE academy_id = $1 AND role = 'teacher'", [req.user.academy_id]),
+            db.query('SELECT teacher_code, student_code FROM academies WHERE id = $1', [req.user.academy_id])
+        ]);
+
+        res.json({
+            show: true,
+            stats: {
+                students: parseInt(students.rows[0].count),
+                teachers: parseInt(teachers.rows[0].count),
+                teacher_code: codes.rows[0]?.teacher_code,
+                student_code: codes.rows[0]?.student_code
+            }
+        });
+    } catch (err) {
+        res.json({ show: false });
+    }
+});
+
+// POST /api/onboarding/complete
+router.post('/onboarding/complete', authenticateJWT, async (req, res) => {
+    try {
+        await db.query('UPDATE users SET onboarding_completed = TRUE WHERE id = $1', [req.user.id]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 module.exports = router;

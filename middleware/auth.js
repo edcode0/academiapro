@@ -17,14 +17,14 @@ const authenticateJWT = (req, res, next) => {
     if (token) {
         jwt.verify(token, JWT_SECRET, (err, user) => {
             if (err) {
-                if (req.path.startsWith('/api/')) return res.status(401).json({ error: 'Unauthorized' });
+                if (req.originalUrl.startsWith('/api/')) return res.status(401).json({ error: 'Unauthorized' });
                 return res.redirect('/login');
             }
             req.user = user;
             next();
         });
     } else {
-        if (req.path.startsWith('/api/')) return res.status(401).json({ error: 'Unauthorized' });
+        if (req.originalUrl.startsWith('/api/')) return res.status(401).json({ error: 'Unauthorized' });
         res.redirect('/login');
     }
 };
