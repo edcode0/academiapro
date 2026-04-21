@@ -3,6 +3,7 @@
 const express   = require('express');
 const router    = express.Router();
 const path      = require('path');
+const crypto    = require('crypto');
 const db        = require('../db');
 const { google } = require('googleapis');
 const groqClient             = require('../services/groq');
@@ -12,6 +13,8 @@ const { authenticateJWT }    = require('../middleware/auth');
 const { requireAdmin, requireTeacherOrAdmin } = require('../middleware/roles');
 const { createNotification } = require('../notifications');
 
+const JWT_SECRET = process.env.JWT_SECRET;
+
 // Factory: receives io instance so it can emit socket events
 module.exports = function makeTranscriptsRouter(io) {
     const gmailService = require('../services/gmail')(io);
@@ -19,6 +22,10 @@ module.exports = function makeTranscriptsRouter(io) {
 
     router.get('/api/gmail/connect', authenticateJWT, requireTeacherOrAdmin, (req, res) => {
         const oauth2Client = makeOAuth2Client();
+        const nonce = crypto.randomBytes(8).toString('hex');
+        const stateData = `${req.user.id}:${nonce}`;
+        const sig = crypto.createHmac('sha256', JWT_SECRET).update(stateData).digest('hex').substring(0, 16);
+        const signedState = Buffer.from(JSON.stringify({ d: stateData, s: sig })).toString('base64');
         const authUrl = oauth2Client.generateAuthUrl({
             access_type: 'offline',
             prompt: 'consent',
@@ -28,14 +35,25 @@ module.exports = function makeTranscriptsRouter(io) {
                 'https://www.googleapis.com/auth/calendar',
                 'https://www.googleapis.com/auth/calendar.events'
             ],
-            state: req.user.id.toString()
+            state: signedState
         });
         res.json({ authUrl });
     });
 
     router.get('/api/gmail/callback', async (req, res) => {
         try {
-            const { code, state: userId } = req.query;
+            const { code, state: rawState } = req.query;
+            let userId;
+            try {
+                const parsed = JSON.parse(Buffer.from(rawState, 'base64').toString());
+                const expectedSig = crypto.createHmac('sha256', JWT_SECRET).update(parsed.d).digest('hex').substring(0, 16);
+                if (parsed.s !== expectedSig) throw new Error('Invalid state signature');
+                userId = parsed.d.split(':')[0];
+                if (!userId || isNaN(Number(userId))) throw new Error('Invalid userId in state');
+            } catch (e) {
+                console.error('[Gmail] Invalid state:', e.message);
+                return res.redirect('/teacher/settings?gmail=error');
+            }
             const oauth2Client = makeOAuth2Client();
             const { tokens } = await oauth2Client.getToken(code);
             await db.query(

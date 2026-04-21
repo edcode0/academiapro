@@ -78,12 +78,21 @@ router.post('/api/ai-tutor/chat', authenticateJWT, async (req, res) => {
         const hasComplexContent = messages.some(m => Array.isArray(m.content));
         const modelToUse = hasComplexContent ? "llama-3.2-11b-vision-preview" : "llama-3.3-70b-versatile";
 
-        const apiResponse = await groqClient.chat.completions.create({
-            model: modelToUse,
-            messages: [{ role: 'system', content: systemPrompt }, ...messages],
-            temperature: 0.7,
-            max_tokens: 1024,
-        });
+        let apiResponse;
+        try {
+            apiResponse = await groqClient.chat.completions.create({
+                model: modelToUse,
+                messages: [{ role: 'system', content: systemPrompt }, ...messages],
+                temperature: 0.7,
+                max_tokens: 1024,
+            });
+        } catch (groqErr) {
+            console.error('[ai-tutor/chat] Groq error:', groqErr.message);
+            return res.status(503).json({
+                error: 'El asistente IA no está disponible en este momento. Por favor, inténtalo de nuevo en unos minutos.',
+                conversationId
+            });
+        }
 
         const aiResponse = apiResponse.choices[0].message.content;
 
@@ -97,7 +106,7 @@ router.post('/api/ai-tutor/chat', authenticateJWT, async (req, res) => {
         res.json({ response: aiResponse, conversationId });
     } catch (e) {
         console.error('[ai-tutor/chat] ERROR:', e.message, e.stack);
-        res.status(500).json({ error: e.message });
+        res.status(500).json({ error: 'Error interno del servidor. Por favor, inténtalo de nuevo.' });
     }
 });
 
@@ -163,27 +172,33 @@ router.post('/api/exam-simulator/generate', authenticateJWT, requireStudent, asy
           ]
         }`;
 
-        const apiResponse = await groqClient.chat.completions.create({
-            model: "llama-3.3-70b-versatile",
-            messages: [
-                { role: 'system', content: 'Eres un generador de exámenes que responde ÚNICA Y EXCLUSIVAMENTE con un JSON válido en español. No añadas texto explicativo, ni Markdown (tampoco \`\`\`json), sólo devuelve las llaves { } del JSON y su contenido. El formato de options para multiple_choice debe ser un array de 4 strings que empiecen con "A) ", "B) ", "C) " y "D) ".' },
-                { role: 'user', content: prompt }
-            ],
-            temperature: 0.5,
-            response_format: { type: "json_object" }
-        });
+        let apiResponse;
+        try {
+            apiResponse = await groqClient.chat.completions.create({
+                model: "llama-3.3-70b-versatile",
+                messages: [
+                    { role: 'system', content: 'Eres un generador de exámenes que responde ÚNICA Y EXCLUSIVAMENTE con un JSON válido en español. No añadas texto explicativo, ni Markdown (tampoco \`\`\`json), sólo devuelve las llaves { } del JSON y su contenido. El formato de options para multiple_choice debe ser un array de 4 strings que empiecen con "A) ", "B) ", "C) " y "D) ".' },
+                    { role: 'user', content: prompt }
+                ],
+                temperature: 0.5,
+                response_format: { type: "json_object" }
+            });
+        } catch (groqErr) {
+            console.error('[exam-simulator] Groq error:', groqErr.message);
+            return res.status(503).json({ error: 'El generador de exámenes no está disponible ahora mismo. Inténtalo de nuevo en unos minutos.' });
+        }
 
         const jsonContent = JSON.parse(apiResponse.choices[0].message.content);
         res.json(jsonContent);
     } catch (err) {
         console.error('Route error:', err.message);
-        res.status(500).json({ error: 'Internal server error', details: err.message });
+        res.status(500).json({ error: 'Error interno del servidor.' });
     }
 });
 
 router.get('/api/ai/conversations', authenticateJWT, async (req, res) => {
     try {
-        const result = await db.query('SELECT * FROM ai_conversations WHERE user_id = $1 ORDER BY COALESCE(is_pinned, FALSE) DESC, updated_at DESC', [req.user.id]);
+        const result = await db.query('SELECT * FROM ai_conversations WHERE user_id = $1 AND academy_id = $2 ORDER BY COALESCE(is_pinned, FALSE) DESC, updated_at DESC', [req.user.id, req.user.academy_id]);
         res.json(result.rows || []);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -215,6 +230,8 @@ router.put('/api/ai/conversations/:id/pin', authenticateJWT, (req, res) => {
 // Get messages for a conversation
 router.get('/api/ai/conversations/:id/messages', authenticateJWT, async (req, res) => {
     try {
+        const ownerCheck = await db.query('SELECT id FROM ai_conversations WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
+        if (!ownerCheck.rows.length) return res.status(403).json({ error: 'Acceso denegado' });
         const result = await db.query('SELECT * FROM ai_messages WHERE conversation_id = $1 ORDER BY created_at ASC', [req.params.id]);
         res.json(result.rows || []);
     } catch (err) {
@@ -287,18 +304,24 @@ Responde siempre en español, de forma clara y concisa.`
       { role: 'user', content: message }
     ];
 
-    const completion = await groqClient.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
-      messages,
-      max_tokens: 500,
-      temperature: 0.7
-    });
+    let completion;
+    try {
+      completion = await groqClient.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        messages,
+        max_tokens: 500,
+        temperature: 0.7
+      });
+    } catch (groqErr) {
+      console.error('Help assistant Groq error:', groqErr.message);
+      return res.json({ response: 'El asistente no está disponible en este momento. Consulta la documentación o inténtalo de nuevo en unos minutos.' });
+    }
 
     const response = completion.choices[0]?.message?.content || 'No pude generar una respuesta.';
     res.json({ response });
   } catch (err) {
     console.error('Help assistant error:', err);
-    res.status(500).json({ error: 'Error del asistente', response: 'Lo siento, ocurrió un error. Inténtalo de nuevo.' });
+    res.status(500).json({ response: 'Lo siento, ocurrió un error. Inténtalo de nuevo.' });
   }
 });
 

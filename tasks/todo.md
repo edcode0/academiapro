@@ -224,28 +224,47 @@ Solo contendrá:
 - [x] Añadir `db.isPostgres` a `db.js`
 - [x] Limpiar index.js: eliminar todos los cuerpos inline duplicados
 
-### Fase 2 — Routers (uno por uno, verificar tras cada uno)
-- [x] `routes/notifications.js` ✅ 64/64
-- [x] `routes/settings.js` ✅ 64/64
-- [x] `routes/reports.js` ✅ 64/64
-- [x] `routes/ai.js` ✅ 64/64
-- [x] `routes/transcripts.js` ✅ 64/64
-- [x] `routes/calendar.js` ✅ 64/64
-- [ ] `routes/auth.js` → auth routes + Google OAuth
-- [ ] `routes/students.js`
-- [ ] `routes/teachers.js`
-- [ ] `routes/sessions.js`
-- [ ] `routes/payments.js`
-- [ ] `routes/exams.js`
-- [ ] `routes/chat.js`
+### Fase 2 — Routers integrados (archivo + mounted + inline eliminado)
+- [x] `routes/calendar.js` ✅ integrado
+- [x] `routes/auth.js` ✅ integrado
+- [x] `routes/students.js` ✅ integrado
+- [x] `routes/teachers.js` ✅ integrado
+- [x] `routes/sessions.js` ✅ integrado
+- [x] `routes/payments.js` ✅ integrado
+- [x] `routes/exams.js` ✅ integrado
+- [x] `routes/chat.js` ✅ integrado (factory `makeChatRouter(io)`)
+
+### Fase 2.5 — Routers HUÉRFANOS (archivo existe, NO cableado en index.js, inline activo)
+- [x] `routes/ai.js` ✅ — cableado, inline eliminado. Fix: academy_id filter + ownership check
+- [x] `routes/notifications.js` ✅ — cableado (`/api`), inline eliminado
+- [x] `routes/reports.js` ✅ — cableado (`/api`), inline eliminado
+- [x] `routes/settings.js` ✅ — cableado (`/api`), inline eliminado
+- [x] `routes/transcripts.js` ✅ — cableado (factory+io), inline eliminado. Fix: HMAC state signing
 
 ### Fase 3 — Sockets
-- [ ] `sockets/chat.js` → extraer `io.on('connection')` handler completo
+- [ ] `sockets/chat.js` → extraer `io.on('connection')` handler (`index.js:1473`). `sockets/` existe pero vacío.
 
-### Fase 4 — Limpiar index.js
-- [ ] Eliminar todo lo extraído
-- [ ] Montar todos los routers
-- [ ] Verificar servidor arranca y tests pasan
+### Fase 4 — Limpiar index.js (pendiente tras Fase 2.5 + 3)
+Código inline aún en `index.js` (1752 líneas actuales, target ~80):
+- [ ] Gmail OAuth routes (L491-585) — irán a `routes/transcripts.js`
+- [ ] Transcripts routes (L586-867) — irán a `routes/transcripts.js`
+- [ ] AI tutor (L352-491) + AI conversations (L1148-1220) — irán a `routes/ai.js`
+- [ ] Notifications (L890-927) — irán a `routes/notifications.js`
+- [ ] Reports (L985, L1308-1469) — irán a `routes/reports.js`
+- [ ] Settings (L1273-1305) — irán a `routes/settings.js`
+- [ ] Academy/Onboarding (L1088-1145) — irán a `routes/settings.js`
+- [ ] Help-assistant (L1614) — pendiente de router destino
+- [ ] Generic CRUD forEach loop (L1231-1270)
+- [ ] `checkStudentRisk`/`notifyAtRisk` inline duplicados (L929, L958) — `services/risk.js` ya existe
+- [ ] `ensureAcademyRooms`/`createDirectRoomIfNotExists`/`ensureAllChatRooms` inline duplicados (L1002, L1565, L1580) — `services/rooms.js` ya existe
+- [ ] Socket.io connection handler (L1473) — mover a `sockets/chat.js`
+
+---
+
+## Estado verificado 2026-04-21
+- `index.js`: 1752 líneas (de 4129 originales, target ~80)
+- Routers integrados: 8/13
+- Infraestructura (Fase 1) completa: middleware/, services/, utils/, db.isPostgres ✅
 
 ---
 
