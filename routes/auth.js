@@ -331,10 +331,10 @@ router.post('/api/auth/join', async (req, res) => {
 });
 
 router.get('/auth/google', (req, res, next) => {
-    if (req.query.academy_code) res.cookie('pending_code', req.query.academy_code, { maxAge: 1000 * 60 * 15 });
+    if (req.query.academy_code) res.cookie('pending_code', req.query.academy_code, { maxAge: 1000 * 60 * 15, httpOnly: true, secure: true, sameSite: 'strict' });
     const role = req.query.role;
     if (role && ['admin', 'teacher', 'student'].includes(role)) {
-        res.cookie('pending_role', role, { maxAge: 1000 * 60 * 15 });
+        res.cookie('pending_role', role, { maxAge: 1000 * 60 * 15, httpOnly: true, secure: true, sameSite: 'strict' });
     }
     passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
 });

@@ -539,19 +539,13 @@
     <script>
         async function loadProfile() {
             try {
-                const token = localStorage.getItem('token');
-                if (!token) {
-                    window.location.href = '/login';
-                    return;
-                }
-
                 const user = JSON.parse(localStorage.getItem('user') || '{}');
                 if (document.getElementById('sidebar-name')) {
                     document.getElementById('sidebar-name').textContent = user.name || 'Alumno';
                 }
 
                 // Fetch academy name
-                fetch('/api/academy/info', { headers: { 'Authorization': 'Bearer ' + token } })
+                fetch('/api/academy/info', { credentials: 'include' })
                     .then(r => r.ok ? r.json() : {})
                     .then(info => {
                         if (info.name && document.getElementById('academyNameDisplay')) {
@@ -560,8 +554,12 @@
                     }).catch(() => {});
 
                 const res = await fetch('/api/student/portal-data', {
-                    headers: { 'Authorization': 'Bearer ' + token }
+                    credentials: 'include'
                 });
+                if (res.status === 401 || res.status === 403) {
+                    window.location.href = '/login';
+                    return;
+                }
                 if (!res.ok) {
                     console.error('Portal data error:', res.status);
                     return; 
@@ -655,7 +653,7 @@
 
                 // Load Reports
                 const reportsRes = await fetch('/api/student/reports', {
-                    headers: { 'Authorization': 'Bearer ' + token }
+                    credentials: 'include'
                 });
                 const reports = await reportsRes.json();
                 if (reports.length > 0) {
@@ -691,11 +689,10 @@
             const confirmed = confirm('¿Estás seguro? Esta acción eliminará tu cuenta permanentemente y no se puede deshacer.');
             if (!confirmed) return;
 
-            const token = localStorage.getItem('token');
             try {
                 const response = await fetch('/api/auth/delete-account', {
                     method: 'DELETE',
-                    headers: { 'Authorization': 'Bearer ' + token }
+                    credentials: 'include'
                 });
                 const data = await response.json();
                 if (data.success) {

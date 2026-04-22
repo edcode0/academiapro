@@ -436,9 +436,8 @@
 
         async function loadExams() {
             try {
-                const token = localStorage.getItem('token');
                 const res = await fetch('/api/exams/student', {
-                    headers: token ? { 'Authorization': 'Bearer ' + token } : {}
+                    credentials: 'include'
                 });
                 if (!res.ok) throw new Error('Failed to load exams');
                 myExams = await res.json();

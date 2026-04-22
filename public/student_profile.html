@@ -794,9 +794,8 @@
 
         async function loadProfile() {
             try {
-                const token = localStorage.getItem('token');
                 const res = await fetch(`/api/student-detail/${studentId}`, {
-                    headers: { 'Authorization': 'Bearer ' + token }
+                    credentials: 'include'
                 });
                 const data = await res.json();
                 const { student, sessions, exams, payments } = data;
@@ -1138,7 +1137,6 @@
         // Edit Student Submission
         document.getElementById('editStudentForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const token = localStorage.getItem('token');
             const data = {
                 name: document.getElementById('edit_name').value.trim(),
                 course: document.getElementById('edit_course').value.trim(),
@@ -1148,7 +1146,8 @@
             try {
                 const res = await fetch(`/api/students/${studentId}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
                     body: JSON.stringify(data)
                 });
                 if (res.ok) {
@@ -1167,7 +1166,7 @@
 
         async function sendReminder(paymentId) {
             try {
-                const res = await fetch(`/api/payments/${paymentId}/remind`, { method: 'POST' });
+                const res = await fetch(`/api/payments/${paymentId}/remind`, { method: 'POST', credentials: 'include' });
                 if (res.ok) {
                     showToast('✅ Recordatorio enviado', 'success');
                 } else {
@@ -1194,7 +1193,6 @@
             btn.textContent = 'Generando con IA...';
             btn.disabled = true;
 
-            const token = localStorage.getItem('token');
             const data = {
                 student_id: parseInt(studentId),
                 month: parseInt(document.getElementById('r_month').value),
@@ -1206,7 +1204,8 @@
             try {
                 const res = await fetch('/api/generate-report', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
                     body: JSON.stringify(data)
                 });
 

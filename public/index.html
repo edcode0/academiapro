@@ -541,44 +541,21 @@
     </div>
 
     <script>
-        // Read token from URL if present (Google OAuth redirect)
-        (function () {
-            const urlParams = new URLSearchParams(window.location.search);
-            const urlToken = urlParams.get('token');
-            const urlRole = urlParams.get('role');
-            if (urlToken) {
-                localStorage.setItem('token', urlToken);
-                try {
-                    const payload = JSON.parse(atob(urlToken.split('.')[1]));
-                    localStorage.setItem('user', JSON.stringify({
-                        id: payload.id,
-                        name: payload.name,
-                        email: payload.email,
-                        role: payload.role,
-                        academy_id: payload.academy_id
-                    }));
-                    history.replaceState({}, '', '/');
-                    const role = urlRole || payload.role;
-                    if (role === 'teacher') { window.location.href = '/teacher'; return; }
-                    if (role === 'student') { window.location.href = '/student-portal'; return; }
-                    // admin: stay on this page, fall through to loadDashboard
-                } catch (e) { console.error('Token parse error:', e); }
-            }
-        })();
+        // Token is managed as httpOnly cookie by the server — no URL token handling needed
 
         async function loadDashboard() {
             try {
-                const userRes = await fetch('/auth/me');
+                const userRes = await fetch('/auth/me', { credentials: 'include' });
                 if (userRes.ok) {
                     const user = await userRes.json();
                     document.getElementById('userName').textContent = user.name;
                     document.getElementById('welcome-title').textContent = `¡Hola, ${user.name.split(' ')[0]}! 👋`;
 
-                    fetch('/api/academy/info').then(r => r.ok ? r.json() : {}).then(info => {
+                    fetch('/api/academy/info', { credentials: 'include' }).then(r => r.ok ? r.json() : {}).then(info => {
                         if (info.name) document.getElementById('academyNameDisplay').textContent = info.name;
                     }).catch(() => {});
 
-                    const urRes = await fetch('/api/chat/unread-count');
+                    const urRes = await fetch('/api/chat/unread-count', { credentials: 'include' });
                     const urData = await urRes.json();
                     if (urData.count > 0) {
                         const badge = document.getElementById('global-unread');
@@ -587,14 +564,14 @@
                     }
                 }
 
-                const unassignedRes = await fetch('/api/admin/unassigned-count');
+                const unassignedRes = await fetch('/api/admin/unassigned-count', { credentials: 'include' });
                 const unassignedData = await unassignedRes.json();
                 if (unassignedData.count > 0) {
                     document.getElementById('unassigned-warning').style.display = 'flex';
                     document.getElementById('unassigned-warning-text').textContent = `${unassignedData.count} alumnos sin profesor asignado`;
                 }
 
-                const stRes = await fetch('/api/students');
+                const stRes = await fetch('/api/students', { credentials: 'include' });
                 const students = await stRes.json();
                 document.getElementById('total-students').textContent = students.length;
 
@@ -610,11 +587,11 @@
                     </tr>
                 `).join('');
 
-                const sessRes = await fetch('/api/sessions');
+                const sessRes = await fetch('/api/sessions', { credentials: 'include' });
                 const sessions = await sessRes.json();
                 document.getElementById('total-sessions').textContent = sessions.length;
 
-                const payRes = await fetch('/api/payments');
+                const payRes = await fetch('/api/payments', { credentials: 'include' });
                 const payments = await payRes.json();
                 const pending = payments.reduce((acc, p) => acc + (p.status === 'pending' ? p.amount : 0), 0);
                 document.getElementById('pending-payments').textContent = `${pending} €`;
@@ -626,7 +603,7 @@
                 }
 
                 // Calc avg score
-                const exRes = await fetch('/api/exams');
+                const exRes = await fetch('/api/exams', { credentials: 'include' });
                 const exams = await exRes.json();
                 const avg = exams.length > 0 ? (exams.reduce((acc, e) => acc + e.score, 0) / exams.length).toFixed(1) : 0;
                 document.getElementById('avg-score').textContent = avg;
@@ -653,7 +630,7 @@
 
         async function openModal() {
             document.getElementById('studentModal').style.display = 'flex';
-            const res = await fetch('/api/chat/contacts');
+            const res = await fetch('/api/chat/contacts', { credentials: 'include' });
             if (res.ok) {
                 const contacts = await res.json();
                 document.getElementById('assigned_teacher_id').innerHTML = '<option value="">Sin asignar</option>' +
@@ -674,6 +651,7 @@
             const res = await fetch('/api/students', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify(data)
             });
             if (res.ok) { closeModal(); loadDashboard(); }
@@ -772,11 +750,7 @@
 
     async function checkOnboarding() {
         try {
-            const token = localStorage.getItem('token');
-            if (!token) return;
-            const res = await fetch('/api/onboarding/status', {
-                headers: { 'Authorization': 'Bearer ' + token }
-            });
+            const res = await fetch('/api/onboarding/status', { credentials: 'include' });
             const data = await res.json();
             if (!data.show) return;
             obStats = data.stats || {};
@@ -804,10 +778,9 @@
     };
 
     async function markComplete() {
-        const token = localStorage.getItem('token');
         await fetch('/api/onboarding/complete', {
             method: 'POST',
-            headers: { 'Authorization': 'Bearer ' + token }
+            credentials: 'include'
         }).catch(() => {});
     }
 

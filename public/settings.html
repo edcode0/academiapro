@@ -548,7 +548,7 @@
 
     <script>
         async function loadSettings() {
-            const res = await fetch('/api/settings');
+            const res = await fetch('/api/settings', { credentials: 'include' });
             const data = await res.json();
 
             // Fill inputs
@@ -563,7 +563,7 @@
                 }
             }
 
-            const codeRes = await fetch('/api/academy/codes');
+            const codeRes = await fetch('/api/academy/codes', { credentials: 'include' });
             if (codeRes.ok) {
                 const codes = await codeRes.json();
                 const tEl = document.getElementById('teacher_code');
@@ -572,12 +572,12 @@
                 if (sEl) sEl.value = codes.student_code || '';
             }
 
-            const myCodeRes = await fetch('/api/user/my-code');
+            const myCodeRes = await fetch('/api/user/my-code', { credentials: 'include' });
             if (myCodeRes.ok) {
                 const data = await myCodeRes.json();
                 let myCode = data.user_code;
                 if (!myCode) {
-                    const genRes = await fetch('/api/user/generate-code', { method: 'PUT' });
+                    const genRes = await fetch('/api/user/generate-code', { method: 'PUT', credentials: 'include' });
                     if (genRes.ok) {
                         const genData = await genRes.json();
                         myCode = genData.user_code;
@@ -604,7 +604,7 @@
 
         async function loadTeachersConfig() {
             try {
-                const res = await fetch('/api/teachers/rates');
+                const res = await fetch('/api/teachers/rates', { credentials: 'include' });
                 if (res.ok) {
                     const teachers = await res.json();
                     const container = document.getElementById('teachers-config-list');
@@ -640,6 +640,7 @@
                 const res = await fetch(`/api/teachers/${id}/rate`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
                     body: JSON.stringify({ hourly_rate: rate, group_hourly_rate: groupRate })
                 });
                 if (res.ok) {
@@ -665,6 +666,7 @@
             const res = await fetch('/api/settings', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify(data)
             });
 
@@ -690,6 +692,7 @@
                 const res = await fetch('/api/admin/add-user-by-code', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
                     body: JSON.stringify({ code, role })
                 });
                 const data = await res.json();
@@ -732,11 +735,10 @@
             const confirmed = confirm('¿Estás seguro? Esta acción eliminará tu cuenta permanentemente y no se puede deshacer.');
             if (!confirmed) return;
 
-            const token = localStorage.getItem('token');
             try {
                 const response = await fetch('/api/auth/delete-account', {
                     method: 'DELETE',
-                    headers: { 'Authorization': 'Bearer ' + token }
+                    credentials: 'include'
                 });
                 const data = await response.json();
                 if (data.success) {
@@ -753,16 +755,14 @@
 
         // ── Google Calendar functions ────────────────────────────────────────
         async function connectCalendar() {
-            const token = localStorage.getItem('token');
-            const res = await fetch('/api/calendar/connect', { headers: { 'Authorization': 'Bearer ' + token } });
+            const res = await fetch('/api/calendar/connect', { credentials: 'include' });
             const data = await res.json();
             if (data.authUrl) window.location.href = data.authUrl;
         }
 
         async function loadCalendarStatus() {
-            const token = localStorage.getItem('token');
             try {
-                const res = await fetch('/api/calendar/status', { headers: { 'Authorization': 'Bearer ' + token } });
+                const res = await fetch('/api/calendar/status', { credentials: 'include' });
                 const data = await res.json();
                 const badge = document.getElementById('calendar-status-badge');
                 const btn = document.getElementById('calendar-connect-btn');
@@ -781,16 +781,14 @@
 
         // ── Gmail functions ──────────────────────────────────────────────────
         async function connectGmail() {
-            const token = localStorage.getItem('token');
-            const res = await fetch('/api/gmail/connect', { headers: { 'Authorization': 'Bearer ' + token } });
+            const res = await fetch('/api/gmail/connect', { credentials: 'include' });
             const data = await res.json();
             if (data.authUrl) window.location.href = data.authUrl;
         }
 
         async function loadGmailStatus() {
-            const token = localStorage.getItem('token');
             try {
-                const res = await fetch('/api/gmail/status', { headers: { 'Authorization': 'Bearer ' + token } });
+                const res = await fetch('/api/gmail/status', { credentials: 'include' });
                 const data = await res.json();
                 const badge = document.getElementById('gmail-status-badge');
                 const btn = document.getElementById('gmail-connect-btn');
@@ -811,26 +809,25 @@
         }
 
         async function saveTranscriptEmail() {
-            const token = localStorage.getItem('token');
             const email = document.getElementById('transcript-email').value.trim();
             if (!email) return;
             const res = await fetch('/api/gmail/transcript-email', {
                 method: 'PUT',
-                headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ transcript_email: email })
             });
             if (res.ok) showToast('✅ Email alternativo guardado');
         }
 
         async function checkTranscriptsNow(e) {
-            const token = localStorage.getItem('token');
             const btn = e.target;
             btn.textContent = '⏳ Buscando...';
             btn.disabled = true;
             try {
                 const res = await fetch('/api/gmail/check-transcripts', {
                     method: 'POST',
-                    headers: { 'Authorization': 'Bearer ' + token }
+                    credentials: 'include'
                 });
                 const data = await res.json();
                 if (!res.ok) {
@@ -872,7 +869,8 @@
         async function generateInviteLink(role) {
             const res = await fetch('/api/academy/invite', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ role })
             });
             const data = await res.json();

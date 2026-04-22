@@ -557,7 +557,6 @@
 
     <script>
         async function loadTeacherProfile() {
-            const token = localStorage.getItem('token');
             const user = JSON.parse(localStorage.getItem('user') || '{}');
 
             // Set name immediately from localStorage
@@ -567,7 +566,7 @@
             // Fetch full profile from API
             try {
                 const response = await fetch('/api/teacher/profile', {
-                    headers: { 'Authorization': 'Bearer ' + token }
+                    credentials: 'include'
                 });
                 if (response.ok) {
                     const data = await response.json();
@@ -582,9 +581,7 @@
 
             // Fetch academy name
             try {
-                const acadRes = await fetch('/api/academy/info', {
-                    headers: { 'Authorization': 'Bearer ' + token }
-                });
+                const acadRes = await fetch('/api/academy/info', { credentials: 'include' });
                 if (acadRes.ok) {
                     const acadData = await acadRes.json();
                     if (acadData.name) document.getElementById('academyNameDisplay').textContent = acadData.name;
@@ -637,11 +634,8 @@
                 a.classList.toggle('active', a.getAttribute('href') === path);
             });
 
-            const token = localStorage.getItem('token');
-            const headers = { 'Authorization': 'Bearer ' + token };
-
             try {
-                const urRes = await fetch('/api/chat/unread-count', { headers });
+                const urRes = await fetch('/api/chat/unread-count', { credentials: 'include' });
                 if (urRes.ok) {
                     const urData = await urRes.json();
                     if (urData.count > 0) {
@@ -709,8 +703,7 @@
         async function openDbSessionModal() {
             // Load students if not yet loaded
             if (dbStudents.length === 0) {
-                const token = localStorage.getItem('token');
-                const res = await fetch('/api/teacher/students', { headers: { 'Authorization': 'Bearer ' + token } });
+                const res = await fetch('/api/teacher/students', { credentials: 'include' });
                 dbStudents = await res.json();
                 const select = document.getElementById('db-m-student');
                 select.innerHTML = dbStudents.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
@@ -746,7 +739,6 @@
 
         document.getElementById('dbSessionForm').onsubmit = async (e) => {
             e.preventDefault();
-            const token = localStorage.getItem('token');
             const commonFields = {
                 date: document.getElementById('db-m-date').value,
                 duration_minutes: document.getElementById('db-m-duration').value,
@@ -764,7 +756,8 @@
             }
             const res = await fetch('/api/sessions', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify(data)
             });
             if (res.ok) {

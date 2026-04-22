@@ -36,13 +36,7 @@
                 document.cookie = 'auth_token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; secure; samesite=strict';
 
                 const payload = JSON.parse(atob(token.split('.')[1]));
-                localStorage.setItem('token', token);
-                localStorage.setItem('user', JSON.stringify({
-                    id: payload.id,
-                    name: payload.name,
-                    email: payload.email,
-                    role: payload.role
-                }));
+                // Token is already set as httpOnly cookie by the server — no localStorage needed
 
                 if (payload.role === 'admin') window.location.href = '/';
                 else if (payload.role === 'teacher') window.location.href = '/teacher';

@@ -424,9 +424,8 @@
         async function fetchSlots(info, successCallback, failureCallback) {
             try {
                 if (!userData) { successCallback([]); return; }
-                const token = localStorage.getItem('token');
                 const res = await fetch('/api/calendar/slots', {
-                    headers: token ? { 'Authorization': 'Bearer ' + token } : {}
+                    credentials: 'include'
                 });
                 let slots = await res.json();
                 const now = new Date();

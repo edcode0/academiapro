@@ -532,6 +532,68 @@ async function initDb() {
     await runMigration(sql);
   }
 
+  // ─── Índices de rendimiento ───────────────────────────────────────────────────
+  const indexMigrations = [
+    // sessions — filtros más frecuentes
+    'CREATE INDEX IF NOT EXISTS idx_sessions_academy_id ON sessions(academy_id)',
+    'CREATE INDEX IF NOT EXISTS idx_sessions_student_id ON sessions(student_id)',
+    'CREATE INDEX IF NOT EXISTS idx_sessions_teacher_id ON sessions(teacher_id)',
+    'CREATE INDEX IF NOT EXISTS idx_sessions_date ON sessions(date)',
+    'CREATE INDEX IF NOT EXISTS idx_sessions_academy_student ON sessions(academy_id, student_id)',
+
+    // students
+    'CREATE INDEX IF NOT EXISTS idx_students_academy_id ON students(academy_id)',
+    'CREATE INDEX IF NOT EXISTS idx_students_user_id ON students(user_id)',
+    'CREATE INDEX IF NOT EXISTS idx_students_assigned_teacher_id ON students(assigned_teacher_id)',
+
+    // exams
+    'CREATE INDEX IF NOT EXISTS idx_exams_student_id ON exams(student_id)',
+    'CREATE INDEX IF NOT EXISTS idx_exams_academy_id ON exams(academy_id)',
+    'CREATE INDEX IF NOT EXISTS idx_exams_date ON exams(date)',
+
+    // payments
+    'CREATE INDEX IF NOT EXISTS idx_payments_student_id ON payments(student_id)',
+    'CREATE INDEX IF NOT EXISTS idx_payments_academy_id ON payments(academy_id)',
+    'CREATE INDEX IF NOT EXISTS idx_payments_due_date ON payments(due_date)',
+
+    // messages — filtro principal por room + orden por created_at
+    'CREATE INDEX IF NOT EXISTS idx_messages_room_id ON messages(room_id)',
+    'CREATE INDEX IF NOT EXISTS idx_messages_room_created ON messages(room_id, created_at)',
+
+    // notifications
+    'CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id)',
+    'CREATE INDEX IF NOT EXISTS idx_notifications_academy_id ON notifications(academy_id)',
+    'CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON notifications(read)',
+    'CREATE INDEX IF NOT EXISTS idx_notifications_user_academy ON notifications(user_id, academy_id)',
+
+    // ai_conversations
+    'CREATE INDEX IF NOT EXISTS idx_ai_conversations_user_id ON ai_conversations(user_id)',
+    'CREATE INDEX IF NOT EXISTS idx_ai_conversations_academy_id ON ai_conversations(academy_id)',
+    'CREATE INDEX IF NOT EXISTS idx_ai_conversations_updated_at ON ai_conversations(updated_at)',
+
+    // available_slots
+    'CREATE INDEX IF NOT EXISTS idx_available_slots_student_id ON available_slots(student_id)',
+    'CREATE INDEX IF NOT EXISTS idx_available_slots_teacher_id ON available_slots(teacher_id)',
+    'CREATE INDEX IF NOT EXISTS idx_available_slots_is_booked ON available_slots(is_booked)',
+    'CREATE INDEX IF NOT EXISTS idx_available_slots_start_datetime ON available_slots(start_datetime)',
+
+    // users
+    'CREATE INDEX IF NOT EXISTS idx_users_academy_id ON users(academy_id)',
+    'CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)',
+    'CREATE INDEX IF NOT EXISTS idx_users_role ON users(role)',
+
+    // rooms
+    'CREATE INDEX IF NOT EXISTS idx_rooms_academy_id ON rooms(academy_id)',
+    'CREATE INDEX IF NOT EXISTS idx_rooms_type ON rooms(type)',
+
+    // room_members
+    'CREATE INDEX IF NOT EXISTS idx_room_members_room_id ON room_members(room_id)',
+    'CREATE INDEX IF NOT EXISTS idx_room_members_user_id ON room_members(user_id)'
+  ];
+  for (const sql of indexMigrations) {
+    try { await db.query(sql); } catch (e) { /* index may already exist */ }
+  }
+
   // If Postgres, ensure unique on user_code if possible (SQLite doesn't support adding UNIQUE constraints easily via ALTER)
   if (isPostgres) {
     await db.query("ALTER TABLE users ADD CONSTRAINT users_user_code_key UNIQUE (user_code)").catch(() => { });

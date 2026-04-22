@@ -983,7 +983,7 @@
             try {
                 const res = await fetch(`/api/sessions/${id}`, {
                     method: 'DELETE',
-                    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+                    credentials: 'include'
                 });
                 if (res.ok) {
                     showToast('Sesión eliminada');
@@ -1040,7 +1040,8 @@
                             try {
                                 const meetRes = await fetch('/api/calendar/meet', {
                                     method: 'POST',
-                                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+                                    headers: { 'Content-Type': 'application/json' },
+                                    credentials: 'include',
                                     body: JSON.stringify({
                                         date: sessionDate,
                                         start_time: startTime,

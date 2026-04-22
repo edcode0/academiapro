@@ -798,7 +798,7 @@
         .then(r => r.json())
         .then(data => {
             if (data.token) {
-                localStorage.setItem('token', data.token);
+                // Token is set as httpOnly cookie by the server — no localStorage needed
                 localStorage.setItem('user', JSON.stringify(data.user));
                 if (data.user.role === 'admin') window.location.href = '/';
                 else if (data.user.role === 'teacher') window.location.href = '/teacher';

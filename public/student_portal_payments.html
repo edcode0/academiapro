@@ -346,9 +346,8 @@
     <script>
         async function loadPayments() {
             try {
-                const token = localStorage.getItem('token');
                 const res = await fetch('/api/student/portal-data', {
-                    headers: token ? { 'Authorization': 'Bearer ' + token } : {}
+                    credentials: 'include'
                 });
                 const data = await res.json();
                 const payments = data.payments;

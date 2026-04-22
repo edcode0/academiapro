@@ -135,7 +135,7 @@ app.use('/api/ai-tutor', aiLimiter);
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(session({ secret: process.env.SESSION_SECRET || 'academia-secret-change-in-prod', resave: false, saveUninitialized: true }));
+app.use(session({ secret: process.env.SESSION_SECRET || 'academia-secret-change-in-prod', resave: false, saveUninitialized: false }));
 app.use(passport.initialize());
 app.use(passport.session());
 app.use(calendarRouter);

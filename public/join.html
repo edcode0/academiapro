@@ -850,7 +850,7 @@
                 console.log('Join response:', data);
 
                 if (data.token) {
-                    localStorage.setItem('token', data.token);
+                    // Token is set as httpOnly cookie by the server — no localStorage needed
                     localStorage.setItem('user', JSON.stringify(data.user));
                     window.location.href = data.user.role === 'teacher' ? '/teacher/dashboard' : '/student-portal';
                 } else {

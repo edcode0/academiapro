@@ -833,7 +833,7 @@
         document.addEventListener('DOMContentLoaded', async function () {
             // Sidebar init
             try {
-                const userRes = await fetch('/auth/me');
+                const userRes = await fetch('/auth/me', { credentials: 'include' });
                 if (userRes.ok) {
                     const user = await userRes.json();
                     document.getElementById('sidebarName').textContent = user.name;
@@ -855,7 +855,7 @@
 
             // Unread chat badge
             try {
-                const urRes = await fetch('/api/chat/unread-count');
+                const urRes = await fetch('/api/chat/unread-count', { credentials: 'include' });
                 if (urRes.ok) {
                     const urData = await urRes.json();
                     if (urData.count > 0) {
@@ -868,7 +868,7 @@
 
             // Load teacher students for selectors
             try {
-                const sRes = await fetch('/api/teacher/students');
+                const sRes = await fetch('/api/teacher/students', { credentials: 'include' });
                 if (sRes.ok) {
                     myStudents = await sRes.json();
                     const opts = myStudents.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
@@ -1020,7 +1020,7 @@
 
         async function fetchSlots(fetchInfo, successCallback, failureCallback) {
             try {
-                const res = await fetch('/api/calendar/slots');
+                const res = await fetch('/api/calendar/slots', { credentials: 'include' });
                 const slots = await res.json();
                 const now = new Date();
                 const events = slots.map(s => {
@@ -1060,7 +1060,7 @@
         // so rendering them again would create duplicate overlapping blocks.
         async function fetchSessionEvents(fetchInfo, successCallback, failureCallback) {
             try {
-                const res = await fetch('/api/sessions-list');
+                const res = await fetch('/api/sessions-list', { credentials: 'include' });
                 const data = await res.json();
                 const sessions = (data.sessions || []).filter(s => !s.slot_start_datetime);
                 const events = sessions.map(s => {
@@ -1249,6 +1249,7 @@
                 const res = await fetch('/api/calendar/meet', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
                     body: JSON.stringify({ student_id: studentId, date: dateStr, start_time: startTime, end_time: endTime })
                 });
                 const data = await res.json();
@@ -1334,6 +1335,7 @@
                     const res = await fetch('/api/calendar/slots', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
                         body: JSON.stringify(payload)
                     });
                     if (res.ok) slotCreated = true;
@@ -1358,6 +1360,7 @@
                     await fetch('/api/sessions', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
                         body: JSON.stringify(sessionPayload)
                     });
                     showToast('✅ Sesión y disponibilidad registradas', 'success');
@@ -1455,6 +1458,7 @@
                 const res = await fetch(`/api/calendar/slots/${selectedSlotId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
                     body: JSON.stringify({ student_id: studentId, is_booked: true })
                 });
                 if (res.ok) {
@@ -1477,7 +1481,7 @@
             try {
                 const res = await fetch(`/api/calendar/slots/${selectedSlotId}`, {
                     method: 'DELETE',
-                    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+                    credentials: 'include'
                 });
                 if (res.ok) {
                     showToast(isBooked ? '🗑 Sesión y slot eliminados' : '🗑 Disponibilidad eliminada', 'success');

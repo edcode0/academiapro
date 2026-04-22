@@ -525,11 +525,12 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        const token = localStorage.getItem('token');
-        if (!token) { window.location.href = '/login'; }
+        // Auth via httpOnly cookie — redirect to login if unauthenticated
+        let _socketToken = null;
 
         const socket = io({
-            auth: { token: token },
+            auth: (cb) => cb({ token: _socketToken }),
+            withCredentials: true,
             transports: ['websocket', 'polling']
         });
 
@@ -571,7 +572,7 @@
         });
 
         async function init() {
-            const userRes = await fetch('/auth/me');
+            const userRes = await fetch('/auth/me', { credentials: 'include' });
             if (!userRes.ok) window.location.href = '/login';
             currentUser = await userRes.json();
             document.getElementById('userName').textContent = currentUser.name;
@@ -581,7 +582,7 @@
 
             renderSidebar();
 
-            try { await fetch('/api/chat/ensure-rooms', { method: 'POST' }); } catch (e) { console.error(e); }
+            try { await fetch('/api/chat/ensure-rooms', { method: 'POST', credentials: 'include' }); } catch (e) { console.error(e); }
             await loadRooms();
             updateTotalUnread();
 
@@ -608,14 +609,15 @@
                     formData.append('file', file);
                     const uploadRes = await fetch('/api/chat/upload-file', {
                         method: 'POST',
-                        headers: { 'Authorization': 'Bearer ' + token },
+                        credentials: 'include',
                         body: formData
                     });
                     if (!uploadRes.ok) { console.error('Upload failed:', await uploadRes.text()); return; }
                     const fileData = await uploadRes.json();
                     await fetch(`/api/chat/rooms/${currentRoomId}/messages`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
                         body: JSON.stringify({ content: fileData.file_name, file_url: fileData.file_url, file_name: fileData.file_name, file_type: fileData.file_type })
                     });
                 } catch (err) {
@@ -673,7 +675,7 @@
 
         async function loadRooms() {
             const res = await fetch('/api/chat/rooms', {
-                headers: { 'Authorization': 'Bearer ' + token }
+                credentials: 'include'
             });
             allRooms = await res.json();
             renderRooms(allRooms);
@@ -753,7 +755,7 @@
 
             // Fetch only messages for THIS room
             const res = await fetch(`/api/chat/rooms/${room.id}/messages`, {
-                headers: { 'Authorization': 'Bearer ' + token }
+                credentials: 'include'
             });
             const messages = await res.json();
 
@@ -762,7 +764,7 @@
                 renderMessages(messages);
             }
 
-            await fetch(`/api/chat/mark-read/${room.id}`, { method: 'POST' });
+            await fetch(`/api/chat/mark-read/${room.id}`, { method: 'POST', credentials: 'include' });
             loadRooms();
             updateTotalUnread();
         }
@@ -808,7 +810,7 @@
         }
 
         async function markRoomAsRead(roomId) {
-            await fetch(`/api/chat/mark-read/${roomId}`, { method: 'POST' });
+            await fetch(`/api/chat/mark-read/${roomId}`, { method: 'POST', credentials: 'include' });
             updateTotalUnread();
         }
 
@@ -854,7 +856,7 @@
         }
 
         async function updateTotalUnread() {
-            const res = await fetch('/api/chat/unread-count');
+            const res = await fetch('/api/chat/unread-count', { credentials: 'include' });
             const data = await res.json();
             const badge = document.getElementById('total-unread');
             if (badge) {

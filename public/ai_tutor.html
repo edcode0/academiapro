@@ -738,10 +738,9 @@
         let currentPdfFileName = null;
 
         async function loadChatHistory() {
-            const token = localStorage.getItem('token');
             try {
                 const res = await fetch('/api/ai-tutor/history', {
-                    headers: { 'Authorization': 'Bearer ' + token }
+                    credentials: 'include'
                 });
                 const data = await res.json();
                 if (data.messages && data.messages.length > 0) {
@@ -832,9 +831,8 @@
         }
 
         async function loadConversations() {
-            const token = localStorage.getItem('token');
             const res = await fetch('/api/ai/conversations', {
-                headers: { 'Authorization': 'Bearer ' + token }
+                credentials: 'include'
             });
             if (res.ok) {
                 const convs = await res.json();
@@ -877,15 +875,14 @@
 
         async function selectConversation(id) {
             currentConversationId = id;
-            const token = localStorage.getItem('token');
             const res = await fetch(`/api/ai/conversations/${id}/messages`, {
-                headers: { 'Authorization': 'Bearer ' + token }
+                credentials: 'include'
             });
             if (res.ok) {
                 const msgs = await res.json();
 
                 const dbTitleRes = await fetch('/api/ai/conversations', {
-                    headers: { 'Authorization': 'Bearer ' + token }
+                    credentials: 'include'
                 });
                 let foundTitle = 'Chat cargado';
                 if (dbTitleRes.ok) {
@@ -996,10 +993,10 @@
         }
 
         async function togglePin(id, currentPinedState) {
-            const token = localStorage.getItem('token');
             const res = await fetch(`/api/ai/conversations/${id}/pin`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ is_pinned: !currentPinedState })
             });
             if (res.ok) {
@@ -1031,10 +1028,9 @@
 
         async function deleteConversation(id) {
             if (!confirm('¿Seguro que quieres borrar este historial?')) return;
-            const token = localStorage.getItem('token');
             const res = await fetch(`/api/ai/conversations/${id}`, {
                 method: 'DELETE',
-                headers: { 'Authorization': 'Bearer ' + token }
+                credentials: 'include'
             });
             if (res.ok) {
                 if (currentConversationId === id) startNewConversation();
@@ -1098,7 +1094,6 @@
             showTypingIndicator();
 
             try {
-                const token = localStorage.getItem('token');
                 const apiPayload = messagesContext.map((m, index) => ({
                     role: m.role,
                     content: (index === messagesContext.length - 1 && m.role === 'user') ? apiMessage : m.content
@@ -1107,9 +1102,9 @@
                 const res = await fetch('/api/ai-tutor/chat', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + token
+                        'Content-Type': 'application/json'
                     },
+                    credentials: 'include',
                     body: JSON.stringify({ messages: apiPayload, conversationId: currentConversationId })
                 });
 

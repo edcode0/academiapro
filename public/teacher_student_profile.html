@@ -788,7 +788,6 @@
             btn.textContent = 'Generando...';
             btn.disabled = true;
 
-            const token = localStorage.getItem('token');
             const data = {
                 student_id: parseInt(studentId),
                 month: parseInt(document.getElementById('r_month').value),
@@ -800,7 +799,8 @@
             try {
                 const res = await fetch('/api/generate-report', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
                     body: JSON.stringify(data)
                 });
 
