@@ -229,45 +229,48 @@ router.post('/auth/login', async (req, res) => {
 
 router.post('/api/auth/join', async (req, res) => {
     try {
-        const { academy_code, academy_id, name, email, password, role } = req.body;
+        const { academy_code, invite_token, name, email, password } = req.body;
 
-        if ((!academy_code && !academy_id) || !name || !email || !password || !role) {
+        if ((!academy_code && !invite_token) || !name || !email || !password) {
             return res.status(400).json({ error: 'Todos los campos son obligatorios' });
         }
 
-        let academy;
+        let academy, role;
 
-        if (academy_id) {
-            // Invite link flow — look up by academy_id directly
-            const academyResult = await db.query(
-                'SELECT * FROM academies WHERE id = $1',
-                [academy_id]
+        if (invite_token) {
+            // Invite link flow: re-validate token from DB — never trust client role/academy_id
+            const inviteResult = await db.query(
+                `SELECT il.role, il.academy_id, a.name, a.teacher_code, a.student_code,
+                        a.id, a.subscription_status
+                 FROM invitation_links il
+                 JOIN academies a ON a.id = il.academy_id
+                 WHERE il.token = $1 AND il.expires_at > NOW()`,
+                [invite_token]
             );
-            academy = academyResult.rows?.[0] || academyResult[0];
-            if (!academy) {
-                return res.status(404).json({ error: 'Academia no encontrada' });
+            const invite = inviteResult.rows?.[0] || inviteResult[0];
+            if (!invite) {
+                return res.status(400).json({ error: 'Enlace de invitación inválido o expirado' });
             }
+            role = invite.role;
+            academy = invite;
         } else {
-            // Classic code flow
-            const codeColumn = role === 'teacher' ? 'teacher_code' : 'student_code';
+            // Classic code flow: derive role from which code column matches
+            const trimmedCode = academy_code.trim();
             const academyResult = await db.query(
-                `SELECT * FROM academies WHERE UPPER(${codeColumn}) = UPPER($1)`,
-                [academy_code.trim()]
+                `SELECT *,
+                    CASE
+                        WHEN UPPER(teacher_code) = UPPER($1) THEN 'teacher'
+                        WHEN UPPER(student_code) = UPPER($1) THEN 'student'
+                    END AS derived_role
+                 FROM academies
+                 WHERE UPPER(teacher_code) = UPPER($1) OR UPPER(student_code) = UPPER($1)`,
+                [trimmedCode]
             );
-
-            console.log('Looking for teacher_code:', academy_code);
-            console.log('Query result:', JSON.stringify(academyResult));
-            console.log('Rows:', academyResult.rows || academyResult);
-
             academy = academyResult.rows?.[0] || academyResult[0];
-
-            if (!academy) {
-                return res.status(404).json({
-                    error: role === 'teacher'
-                        ? 'Código de profesor no válido'
-                        : 'Código de alumno no válido'
-                });
+            if (!academy?.derived_role) {
+                return res.status(404).json({ error: 'Código de invitación no válido' });
             }
+            role = academy.derived_role;
         }
 
         // Check if email already exists
@@ -281,7 +284,7 @@ router.post('/api/auth/join', async (req, res) => {
             });
         }
 
-        // Create user
+        // Create user — role and academy_id come from DB, not client
         const hashedPassword = await bcrypt.hash(password, 10);
         await db.query(
             'INSERT INTO users (name, email, password_hash, role, academy_id) VALUES ($1, $2, $3, $4, $5)',

@@ -150,9 +150,15 @@ router.post('/api/simulator/results', authenticateJWT, (req, res) => {
 });
 
 // Get simulator results for a student (Teacher/Admin access) — specific before /:id
-router.get('/api/simulator/results/student/:studentId', authenticateJWT, async (req, res) => {
+router.get('/api/simulator/results/student/:studentId', authenticateJWT, requireTeacherOrAdmin, async (req, res) => {
     try {
-        const result = await db.query('SELECT * FROM simulator_results WHERE student_id = $1 ORDER BY created_at DESC', [req.params.studentId]);
+        const result = await db.query(
+            `SELECT sr.* FROM simulator_results sr
+             JOIN students s ON sr.student_id = s.id
+             WHERE sr.student_id = $1 AND s.academy_id = $2
+             ORDER BY sr.created_at DESC`,
+            [req.params.studentId, req.user.academy_id]
+        );
         res.json(result.rows || []);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -162,7 +168,12 @@ router.get('/api/simulator/results/student/:studentId', authenticateJWT, async (
 // Get single result detail
 router.get('/api/simulator/results/:id', authenticateJWT, async (req, res) => {
     try {
-        const result = await db.query('SELECT * FROM simulator_results WHERE id = $1', [req.params.id]);
+        const result = await db.query(
+            `SELECT sr.* FROM simulator_results sr
+             JOIN students s ON sr.student_id = s.id
+             WHERE sr.id = $1 AND s.academy_id = $2`,
+            [req.params.id, req.user.academy_id]
+        );
         const row = result.rows[0];
         if (!row) return res.status(404).json({ error: 'Resultado no encontrado' });
         row.questions = JSON.parse(row.questions_json || '[]');
@@ -174,13 +185,19 @@ router.get('/api/simulator/results/:id', authenticateJWT, async (req, res) => {
 });
 
 // Teacher grade simulator result
-router.put('/api/simulator/results/:id/grade', authenticateJWT, requireTeacherOrAdmin, (req, res) => {
-    const { teacher_grade, teacher_feedback } = req.body;
-    const sql = 'UPDATE simulator_results SET teacher_grade = $1, teacher_feedback = $2, graded_at = CURRENT_TIMESTAMP WHERE id = $3';
-    db.query(sql, [teacher_grade, teacher_feedback, req.params.id], (err) => {
-        if (err) return res.status(500).json({ error: err.message });
+router.put('/api/simulator/results/:id/grade', authenticateJWT, requireTeacherOrAdmin, async (req, res) => {
+    try {
+        const { teacher_grade, teacher_feedback } = req.body;
+        const result = await db.query(
+            `UPDATE simulator_results sr SET teacher_grade = $1, teacher_feedback = $2, graded_at = CURRENT_TIMESTAMP
+             WHERE sr.id = $3 AND sr.student_id IN (SELECT id FROM students WHERE academy_id = $4)`,
+            [teacher_grade, teacher_feedback, req.params.id, req.user.academy_id]
+        );
+        if ((result.rowCount ?? result.changes ?? 0) === 0) return res.status(404).json({ error: 'Resultado no encontrado' });
         res.json({ success: true });
-    });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // GET exams for current student — specific before /:id
@@ -260,23 +277,37 @@ router.post('/api/exams/student', authenticateJWT, (req, res) => {
 });
 
 // Update score for existing exam
-router.put('/api/exams/:id/score', authenticateJWT, (req, res) => {
-    const { score } = req.body;
-    db.query('UPDATE exams SET score = $1 WHERE id = $2', [score, req.params.id], (err) => {
-        if (err) return res.status(500).json({ error: err.message });
+router.put('/api/exams/:id/score', authenticateJWT, requireTeacherOrAdmin, async (req, res) => {
+    try {
+        const { score } = req.body;
+        const result = await db.query(
+            `UPDATE exams SET score = $1
+             WHERE id = $2 AND student_id IN (SELECT id FROM students WHERE academy_id = $3)`,
+            [score, req.params.id, req.user.academy_id]
+        );
+        if ((result.rowCount ?? result.changes ?? 0) === 0) return res.status(404).json({ error: 'Examen no encontrado' });
 
-        db.query('SELECT student_id FROM exams WHERE id = $1', [req.params.id], (err, resId) => {
-            const studentId = resId?.rows[0]?.student_id;
-            if (studentId) checkStudentRisk(studentId);
-        });
+        const resId = await db.query('SELECT student_id FROM exams WHERE id = $1', [req.params.id]);
+        const studentId = resId.rows?.[0]?.student_id;
+        if (studentId) checkStudentRisk(studentId);
 
         res.json({ success: true });
-    });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 router.post('/api/exams', authenticateJWT, requireTeacherOrAdmin, async (req, res) => {
     try {
         const { student_id, subject, score, date, notes } = req.body;
+        // Verify student belongs to the same academy before inserting
+        const ownerCheck = await db.query(
+            'SELECT id FROM students WHERE id = $1 AND academy_id = $2',
+            [student_id, req.user.academy_id]
+        );
+        if (!(ownerCheck.rows?.[0] ?? ownerCheck[0])) {
+            return res.status(403).json({ error: 'Estudiante no pertenece a esta academia' });
+        }
         const result = await db.query(
             'INSERT INTO exams (student_id, subject, score, date, notes) VALUES ($1, $2, $3, $4, $5) RETURNING *',
             [student_id, subject, score || null, date || new Date().toISOString().split('T')[0], notes || '']

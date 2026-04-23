@@ -675,7 +675,7 @@
         slideInterval = setInterval(nextSlide, 3000);
 
         // Invitation link state
-        window._inviteAcademyId = null;
+        window._inviteToken = null;
         window._inviteRole = null;
 
         // Pre-fill from URL params (Google OAuth redirect: ?role=teacher&email=...&google=true)
@@ -700,8 +700,8 @@
                                 subtitle.style.color = '#ef4444';
                             }
                         } else {
-                            // Store invite data
-                            window._inviteAcademyId = data.academy_id;
+                            // Store the raw token — backend re-validates it on submit
+                            window._inviteToken = inviteToken;
                             window._inviteRole = data.role;
 
                             // Update subtitle with academy info
@@ -809,7 +809,7 @@
             // Use invite role if available, otherwise use the manually selected role
             const role = window._inviteRole || selectedRole;
 
-            console.log('Join attempt:', { academy_code, name, email, role, hasPassword: !!password, inviteAcademyId: window._inviteAcademyId });
+            console.log('Join attempt:', { academy_code, name, email, role, hasPassword: !!password, inviteToken: !!window._inviteToken });
 
             // Clear previous errors
             document.querySelectorAll('.field-error').forEach(el => el.remove());
@@ -822,7 +822,7 @@
                 return;
             }
             // Only require academy_code when not using an invite link
-            if (!window._inviteAcademyId && !academy_code) { showFieldError('academy_code', 'Campo obligatorio'); return; }
+            if (!window._inviteToken && !academy_code) { showFieldError('academy_code', 'Campo obligatorio'); return; }
             if (!name) { showFieldError('name', 'Campo obligatorio'); return; }
             if (!email) { showFieldError('email', 'Campo obligatorio'); return; }
             if (!password && !window._googleOAuth) { showFieldError('password', 'Campo obligatorio'); return; }
@@ -833,10 +833,10 @@
             this.disabled = true;
 
             try {
-                const payload = { name, email, password, role };
-                if (window._inviteAcademyId) {
-                    // Invite flow: pass academy_id directly; backend will use it to find the right code
-                    payload.academy_id = window._inviteAcademyId;
+                const payload = { name, email, password };
+                if (window._inviteToken) {
+                    // Invite flow: pass raw token; backend re-validates it against DB
+                    payload.invite_token = window._inviteToken;
                 } else {
                     payload.academy_code = academy_code;
                 }

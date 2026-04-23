@@ -115,7 +115,7 @@ router.get('/api/admin/teachers/:id', authenticateJWT, requireAdmin, (req, res) 
                     db.query(avgScoreSQL, [req.params.id, req.user.academy_id], (err, avgRes) => {
                         const avgScore = avgRes?.rows[0]?.avg_score ? parseFloat(avgRes.rows[0].avg_score).toFixed(1) : '-';
 
-                        db.query('SELECT * FROM teacher_payments WHERE teacher_id = $1 ORDER BY year DESC, month DESC', [req.params.id], (err, payRes) => {
+                        db.query('SELECT * FROM teacher_payments WHERE teacher_id = $1 AND academy_id = $2 ORDER BY year DESC, month DESC', [req.params.id, req.user.academy_id], (err, payRes) => {
                             res.json({
                                 teacher,
                                 students,

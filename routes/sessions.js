@@ -198,8 +198,11 @@ router.delete('/api/sessions/:id', authenticateJWT, requireTeacherOrAdmin, async
             }
         }
 
-        // Delete the session
-        await db.query('DELETE FROM sessions WHERE id=$1', [req.params.id]);
+        // Delete the session — re-scope by academy_id to prevent cross-tenant delete
+        await db.query(
+            'DELETE FROM sessions WHERE id=$1 AND student_id IN (SELECT id FROM students WHERE academy_id=$2)',
+            [req.params.id, req.user.academy_id]
+        );
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
