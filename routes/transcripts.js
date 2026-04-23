@@ -162,6 +162,12 @@ module.exports = function makeTranscriptsRouter(io) {
                 return res.status(400).json({ error: 'Se requiere ID de alumno y un texto válido de la clase (mín. 10 caracteres).' });
             }
 
+            const studentCheck = await db.query(
+                'SELECT id FROM students WHERE id = $1 AND academy_id = $2',
+                [student_id, req.user.academy_id]
+            );
+            if (!studentCheck.rows?.[0]) return res.status(403).json({ error: 'Alumno no pertenece a esta academia' });
+
             // Truncate to ~12 000 chars to stay well within token limits
             const transcriptForAI = transcript_text.substring(0, 12000);
 
@@ -245,8 +251,8 @@ ${transcriptForAI}`;
             // If not found, try: student_id is students.id, find linked user
             if (!studentUserId) {
                 const linkedUser = await db.query(
-                    "SELECT user_id FROM students WHERE id = $1 AND user_id IS NOT NULL",
-                    [student_id]
+                    "SELECT user_id FROM students WHERE id = $1 AND academy_id = $2 AND user_id IS NOT NULL",
+                    [student_id, academy_id]
                 );
                 const luRows = linkedUser.rows || linkedUser;
                 if (luRows && luRows.length > 0) {

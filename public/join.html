@@ -849,7 +849,7 @@
                 const data = await response.json();
                 console.log('Join response:', data);
 
-                if (data.token) {
+                if (data.user) {
                     // Token is set as httpOnly cookie by the server — no localStorage needed
                     localStorage.setItem('user', JSON.stringify(data.user));
                     window.location.href = data.user.role === 'teacher' ? '/teacher/dashboard' : '/student-portal';

@@ -217,7 +217,6 @@ router.post('/auth/login', async (req, res) => {
 
         console.log('Login successful: id=%d role=%s', user.id, user.role);
         res.json({
-            token,
             user: { id: user.id, name: user.name, email: user.email, role: user.role, user_code: user.user_code }
         });
 
@@ -323,7 +322,6 @@ router.post('/api/auth/join', async (req, res) => {
 
         res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'strict' });
         res.json({
-            token,
             user: { id: user.id, name: user.name, email: user.email, role: user.role }
         });
 
@@ -361,7 +359,6 @@ router.get('/auth/google/callback', passport.authenticate('google', { failureRed
                 JWT_SECRET, { expiresIn: '7d' }
             );
             res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'strict', maxAge: 7 * 24 * 60 * 60 * 1000 });
-            res.cookie('auth_token', token, { httpOnly: false, secure: true, sameSite: 'strict', maxAge: 60000 });
             console.log('Google Auth existing user: id=%d role=%s', existingUser.id, existingUser.role);
             return res.redirect('/auth-success');
         }
@@ -421,7 +418,6 @@ router.get('/auth/google/callback', passport.authenticate('google', { failureRed
             JWT_SECRET, { expiresIn: '7d' }
         );
         res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'strict', maxAge: 7 * 24 * 60 * 60 * 1000 });
-        res.cookie('auth_token', token, { httpOnly: false, secure: true, sameSite: 'strict', maxAge: 60000 });
         console.log('Google Auth new user: id=%d role=%s', newUser.id, newUser.role);
         return res.redirect('/auth-success');
 

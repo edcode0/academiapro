@@ -8,7 +8,7 @@ const fs          = require('fs');
 const { Resend }  = require('resend');
 const groqClient  = require('../services/groq');
 const { authenticateJWT }                      = require('../middleware/auth');
-const { requireStudent }                       = require('../middleware/roles');
+const { requireStudent, requireTeacherOrAdmin } = require('../middleware/roles');
 const { createNotification }                   = require('../notifications');
 
 router.get('/student/reports', authenticateJWT, requireStudent, (req, res) => {
@@ -42,7 +42,7 @@ router.get('/reports/student/:id', authenticateJWT, async (req, res) => {
 });
 
 // AI Report Generation
-router.post('/generate-report', authenticateJWT, async (req, res) => {
+router.post('/generate-report', authenticateJWT, requireTeacherOrAdmin, async (req, res) => {
     try {
         const { student_id, studentId, month, year, observations, send_email, sendEmail } = req.body;
         const sid = student_id || studentId;

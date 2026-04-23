@@ -97,12 +97,13 @@ module.exports = function makeChatRouter(io) {
                 SELECT m.*, u.name as sender_name
                 FROM messages m
                 LEFT JOIN users u ON u.id = m.sender_id
-                WHERE (m.sender_id = $1 AND m.receiver_id = $2)
-                   OR (m.sender_id = $2 AND m.receiver_id = $1)
+                WHERE m.academy_id = $3
+                  AND ((m.sender_id = $1 AND m.receiver_id = $2)
+                    OR (m.sender_id = $2 AND m.receiver_id = $1))
                 ORDER BY m.created_at ASC
                 LIMIT 100
             `;
-            const msgs = await db.query(sql, [req.user.id, req.params.userId]);
+            const msgs = await db.query(sql, [req.user.id, req.params.userId, req.user.academy_id]);
             res.json(msgs.rows || []);
         } catch (e) {
             res.status(500).json({ error: e.message });
@@ -234,10 +235,22 @@ module.exports = function makeChatRouter(io) {
         res.json({ url: fileUrl, name: req.file.originalname });
     });
 
-    router.post('/api/chat/mark-read/:roomId', authenticateJWT, (req, res) => {
-        db.query('UPDATE messages SET read = TRUE WHERE room_id = $1 AND sender_id != $2', [req.params.roomId, req.user.id], (err) => {
+    router.post('/api/chat/mark-read/:roomId', authenticateJWT, async (req, res) => {
+        try {
+            const roomId = parseInt(req.params.roomId);
+            const memberCheck = await db.query(
+                'SELECT 1 FROM room_members WHERE room_id = $1 AND user_id = $2',
+                [roomId, req.user.id]
+            );
+            if (!memberCheck.rows.length) return res.status(403).json({ error: 'Not a member of this room' });
+            await db.query(
+                'UPDATE messages SET read = TRUE WHERE room_id = $1 AND sender_id != $2 AND academy_id = $3',
+                [roomId, req.user.id, req.user.academy_id]
+            );
             res.json({ success: true });
-        });
+        } catch (err) {
+            res.status(500).json({ error: err.message });
+        }
     });
 
     router.get('/api/chat/unread-count', authenticateJWT, (req, res) => {

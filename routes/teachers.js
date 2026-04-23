@@ -264,17 +264,17 @@ router.get('/api/teacher/dashboard-stats', authenticateJWT, requireTeacherOrAdmi
     const stats = {};
     db.query('SELECT COUNT(*) as count FROM students WHERE assigned_teacher_id = $1 AND academy_id = $2', [teacherId, academyId], (err, result1) => {
         stats.studentCount = result1?.rows[0]?.count || 0;
-        db.query('SELECT COUNT(*) as count FROM sessions s JOIN students st ON s.student_id = st.id WHERE st.assigned_teacher_id = $1 AND s.date LIKE $2', [teacherId, `${currentMonth}%`], (err, result2) => {
+        db.query('SELECT COUNT(*) as count FROM sessions s JOIN students st ON s.student_id = st.id WHERE st.assigned_teacher_id = $1 AND st.academy_id = $2 AND s.date LIKE $3', [teacherId, academyId, `${currentMonth}%`], (err, result2) => {
             stats.sessionCount = result2?.rows[0]?.count || 0;
-            db.query("SELECT COUNT(*) as count FROM students WHERE assigned_teacher_id = $1 AND status = 'at_risk'", [teacherId], (err, result3) => {
+            db.query("SELECT COUNT(*) as count FROM students WHERE assigned_teacher_id = $1 AND academy_id = $2 AND status = 'at_risk'", [teacherId, academyId], (err, result3) => {
                 stats.atRiskCount = result3?.rows[0]?.count || 0;
-                db.query('SELECT AVG(score) as avg FROM exams e JOIN students st ON e.student_id = st.id WHERE st.assigned_teacher_id = $1', [teacherId], (err, result4) => {
+                db.query('SELECT AVG(score) as avg FROM exams e JOIN students st ON e.student_id = st.id WHERE st.assigned_teacher_id = $1 AND st.academy_id = $2', [teacherId, academyId], (err, result4) => {
                     stats.avgScore = result4?.rows[0]?.avg ? parseFloat(result4.rows[0].avg).toFixed(1) : 0;
 
                     db.query(`SELECT s.*, st.name as student_name FROM sessions s
                             JOIN students st ON s.student_id = st.id
-                            WHERE st.assigned_teacher_id = $1
-                            ORDER BY s.date DESC LIMIT 5`, [teacherId], (err, result5) => {
+                            WHERE st.assigned_teacher_id = $1 AND st.academy_id = $2
+                            ORDER BY s.date DESC LIMIT 5`, [teacherId, academyId], (err, result5) => {
                         stats.recentActivity = result5?.rows || [];
                         res.json(stats);
                     });

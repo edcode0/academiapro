@@ -23,28 +23,15 @@
     </div>
     <script>
         (function () {
-            try {
-                // Read token from short-lived auth_token cookie (set by OAuth callback)
-                function getCookie(name) {
-                    const match = document.cookie.match(new RegExp('(?:^|;)\\s*' + name + '=([^;]+)'));
-                    return match ? decodeURIComponent(match[1]) : null;
-                }
-                const token = getCookie('auth_token');
-                if (!token) { window.location.href = '/login?error=no_token'; return; }
-
-                // Delete the temporary cookie immediately
-                document.cookie = 'auth_token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; secure; samesite=strict';
-
-                const payload = JSON.parse(atob(token.split('.')[1]));
-                // Token is already set as httpOnly cookie by the server — no localStorage needed
-
-                if (payload.role === 'admin') window.location.href = '/';
-                else if (payload.role === 'teacher') window.location.href = '/teacher';
-                else window.location.href = '/student-portal';
-            } catch (e) {
-                console.error('Auth-success error:', e);
-                window.location.href = '/login?error=auth_failed';
-            }
+            fetch('/api/auth/me', { credentials: 'include' })
+                .then(r => r.ok ? r.json() : Promise.reject(r.status))
+                .then(user => {
+                    localStorage.setItem('user', JSON.stringify(user));
+                    if (user.role === 'admin') window.location.href = '/';
+                    else if (user.role === 'teacher') window.location.href = '/teacher';
+                    else window.location.href = '/student-portal';
+                })
+                .catch(() => { window.location.href = '/login?error=auth_failed'; });
         })();
     </script>
 </body>

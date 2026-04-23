@@ -169,8 +169,8 @@ router.get('/api/student-detail/:id', authenticateJWT, (req, res) => {
 router.get('/api/student/portal-data', authenticateJWT, async (req, res) => {
     try {
         let studentResult = await db.query(
-            'SELECT * FROM students WHERE user_id = $1',
-            [req.user.id]
+            'SELECT * FROM students WHERE user_id = $1 AND academy_id = $2',
+            [req.user.id, req.user.academy_id]
         );
         let student = studentResult.rows?.[0] || studentResult[0] || null;
 
@@ -183,7 +183,7 @@ router.get('/api/student/portal-data', authenticateJWT, async (req, res) => {
                     [req.user.name, req.user.academy_id, req.user.id]
                 );
                 const newResult = await db.query(
-                    'SELECT * FROM students WHERE user_id = $1', [req.user.id]
+                    'SELECT * FROM students WHERE user_id = $1 AND academy_id = $2', [req.user.id, req.user.academy_id]
                 );
                 student = newResult.rows?.[0] || newResult[0] || null;
             } catch(e) {

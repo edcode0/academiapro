@@ -198,9 +198,24 @@ router.put('/api/calendar/slots/:id', authenticateJWT, requireTeacherOrAdmin, (r
 // Student books a slot
 router.post('/api/calendar/slots/:id/book', authenticateJWT, requireStudent, async (req, res) => {
     try {
-        const studentRes = await db.query('SELECT id, name FROM students WHERE user_id = $1', [req.user.id]);
+        const studentRes = await db.query(
+            'SELECT id, name, assigned_teacher_id FROM students WHERE user_id = $1 AND academy_id = $2',
+            [req.user.id, req.user.academy_id]
+        );
         if (!studentRes.rows[0]) return res.status(404).json({ error: 'Student not found' });
-        const studentId = studentRes.rows[0].id;
+        const student = studentRes.rows[0];
+        const studentId = student.id;
+
+        // Verify slot belongs to this academy and to student's assigned teacher
+        const slotCheck = await db.query(
+            'SELECT teacher_id, academy_id FROM available_slots WHERE id = $1',
+            [req.params.id]
+        );
+        const slotMeta = slotCheck.rows[0];
+        if (!slotMeta || slotMeta.academy_id !== req.user.academy_id)
+            return res.status(404).json({ error: 'Slot no encontrado' });
+        if (student.assigned_teacher_id && slotMeta.teacher_id !== student.assigned_teacher_id)
+            return res.status(403).json({ error: 'No puedes reservar clases de otro profesor' });
 
         const upRes = await db.query(
             'UPDATE available_slots SET is_booked = true, student_id = $1 WHERE id = $2 AND is_booked = false',
@@ -254,8 +269,11 @@ router.post('/api/calendar/slots/:id/book', authenticateJWT, requireStudent, asy
 
 // Student cancels slot booking
 router.post('/api/calendar/slots/:id/cancel', authenticateJWT, requireStudent, (req, res) => {
-    db.query('SELECT start_datetime FROM available_slots WHERE id = $1', [req.params.id], (err, r) => {
-        if (err || !r.rows[0]) return res.status(404).json({ error: 'Slot not found' });
+    db.query(
+        'SELECT start_datetime FROM available_slots WHERE id = $1 AND student_id = (SELECT id FROM students WHERE user_id = $2 AND academy_id = $3) AND academy_id = $3',
+        [req.params.id, req.user.id, req.user.academy_id],
+        (err, r) => {
+        if (err || !r.rows[0]) return res.status(404).json({ error: 'Slot no encontrado o no pertenece a tu reserva' });
         const start = new Date(r.rows[0].start_datetime);
         const now = new Date();
         const diffHours = (start - now) / (1000 * 60 * 60);
