@@ -90,7 +90,8 @@ router.post('/generate-report', authenticateJWT, requireTeacherOrAdmin, async (r
         // Generate PDF
         const reportsDir = path.join(__dirname, '..', 'public/uploads/reports');
         if (!fs.existsSync(reportsDir)) fs.mkdirSync(reportsDir, { recursive: true });
-        const fileName = `informe_${student.name.replace(/ /g, '_')}_${monthNum}_${yearNum}_${Date.now()}.pdf`;
+        const safeName = student.name.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚüÜñÑ]/g, '_').substring(0, 50);
+        const fileName = `informe_${safeName}_${monthNum}_${yearNum}_${Date.now()}.pdf`;
         const filePath = path.join(reportsDir, fileName);
         const fileUrl = `/uploads/reports/${fileName}`;
 

@@ -160,11 +160,15 @@ router.get('/api/sessions-list', authenticateJWT, (req, res) => {
 router.put('/api/sessions/:id', authenticateJWT, requireTeacherOrAdmin, async (req, res) => {
     try {
         const { date, duration_minutes, homework_done, teacher_notes } = req.body;
-        const result = await db.query(
-            `UPDATE sessions SET date=$1, duration_minutes=$2, homework_done=$3, teacher_notes=$4
-             WHERE id=$5 AND student_id IN (SELECT id FROM students WHERE academy_id=$6) RETURNING *`,
-            [date, duration_minutes, homework_done, teacher_notes, req.params.id, req.user.academy_id]
-        );
+        const isTeacher = req.user.role === 'teacher';
+        const sql = `UPDATE sessions SET date=$1, duration_minutes=$2, homework_done=$3, teacher_notes=$4
+             WHERE id=$5 AND student_id IN (
+                 SELECT id FROM students WHERE academy_id=$6${isTeacher ? ' AND assigned_teacher_id=$7' : ''}
+             ) RETURNING *`;
+        const params = isTeacher
+            ? [date, duration_minutes, homework_done, teacher_notes, req.params.id, req.user.academy_id, req.user.id]
+            : [date, duration_minutes, homework_done, teacher_notes, req.params.id, req.user.academy_id];
+        const result = await db.query(sql, params);
         res.json(result.rows[0] || { updated: 0 });
     } catch (err) {
         res.status(500).json({ error: err.message });

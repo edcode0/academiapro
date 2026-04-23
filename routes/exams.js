@@ -3,6 +3,8 @@
 const express = require('express');
 const router  = express.Router();
 const db      = require('../db');
+const isProd  = process.env.NODE_ENV === 'production';
+const serverErr = (res, err) => { console.error(err); res.status(500).json({ error: isProd ? 'Error interno del servidor' : err.message }); };
 const { authenticateJWT }                        = require('../middleware/auth');
 const { requireStudent, requireTeacherOrAdmin }  = require('../middleware/roles');
 const groqClient    = require('../services/groq');
@@ -39,8 +41,7 @@ router.post('/api/exam-simulator/generate', authenticateJWT, requireStudent, asy
         const jsonContent = JSON.parse(apiResponse.choices[0].message.content);
         res.json(jsonContent);
     } catch (err) {
-        console.error('Route error:', err.message);
-        res.status(500).json({ error: 'Internal server error', details: err.message });
+        serverErr(res, err);
     }
 });
 
@@ -54,7 +55,7 @@ router.get('/api/exams', authenticateJWT, (req, res) => {
     }
 
     db.query(sql + ' ORDER BY e.date DESC', params, (err, result) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) return serverErr(res, err);
         res.json(result.rows);
     });
 });
@@ -69,7 +70,7 @@ router.get('/api/exams-list', authenticateJWT, (req, res) => {
     }
 
     db.query(sql + ' ORDER BY e.date DESC', params, (err, result) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) return serverErr(res, err);
         const rows = result.rows;
 
         const stats = {
@@ -128,7 +129,7 @@ router.get('/api/exams-data', authenticateJWT, async (req, res) => {
 
         res.json({ exams, ranking, stats: { avgScore, failingCount, thisMonthCount, bestStudent } });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        serverErr(res, err);
     }
 });
 
@@ -143,7 +144,7 @@ router.post('/api/simulator/results', authenticateJWT, (req, res) => {
             (student_id, topic, difficulty, num_questions, score, max_score, percentage, questions_json, answers_json)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`;
         db.query(sql, [student.id, topic, difficulty, num_questions, score, max_score, percentage, JSON.stringify(questions_json), JSON.stringify(answers_json)], (err, result) => {
-            if (err) return res.status(500).json({ error: err.message });
+            if (err) return serverErr(res, err);
             res.json({ success: true, id: result.lastID });
         });
     });
@@ -161,7 +162,7 @@ router.get('/api/simulator/results/student/:studentId', authenticateJWT, require
         );
         res.json(result.rows || []);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        serverErr(res, err);
     }
 });
 
@@ -180,7 +181,7 @@ router.get('/api/simulator/results/:id', authenticateJWT, async (req, res) => {
         row.answers = JSON.parse(row.answers_json || '[]');
         res.json(row);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        serverErr(res, err);
     }
 });
 
@@ -196,7 +197,7 @@ router.put('/api/simulator/results/:id/grade', authenticateJWT, requireTeacherOr
         if ((result.rowCount ?? result.changes ?? 0) === 0) return res.status(404).json({ error: 'Resultado no encontrado' });
         res.json({ success: true });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        serverErr(res, err);
     }
 });
 
@@ -209,7 +210,7 @@ router.get('/api/exams/student', authenticateJWT, async (req, res) => {
         const result = await db.query('SELECT * FROM exams WHERE student_id = $1 ORDER BY date DESC', [student.id]);
         res.json(result.rows || []);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        serverErr(res, err);
     }
 });
 
@@ -293,7 +294,7 @@ router.put('/api/exams/:id/score', authenticateJWT, requireTeacherOrAdmin, async
 
         res.json({ success: true });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        serverErr(res, err);
     }
 });
 
@@ -314,7 +315,7 @@ router.post('/api/exams', authenticateJWT, requireTeacherOrAdmin, async (req, re
         );
         res.json(result.rows[0]);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        serverErr(res, err);
     }
 });
 
@@ -328,7 +329,7 @@ router.put('/api/exams/:id', authenticateJWT, requireTeacherOrAdmin, async (req,
         );
         res.json(result.rows[0] || { updated: 0 });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        serverErr(res, err);
     }
 });
 
@@ -340,7 +341,7 @@ router.delete('/api/exams/:id', authenticateJWT, requireTeacherOrAdmin, async (r
         );
         res.json({ success: true });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        serverErr(res, err);
     }
 });
 

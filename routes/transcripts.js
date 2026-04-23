@@ -2,6 +2,8 @@
 
 const express   = require('express');
 const router    = express.Router();
+const isProd    = process.env.NODE_ENV === 'production';
+const serverErr = (res, err) => { console.error(err); res.status(500).json({ error: isProd ? 'Error interno del servidor' : err.message }); };
 const path      = require('path');
 const crypto    = require('crypto');
 const db        = require('../db');
@@ -80,7 +82,7 @@ module.exports = function makeTranscriptsRouter(io) {
                 transcript_email: user?.transcript_email || null
             });
         } catch (err) {
-            res.status(500).json({ error: err.message });
+            serverErr(res, err);
         }
     });
 
@@ -90,7 +92,7 @@ module.exports = function makeTranscriptsRouter(io) {
             await db.query('UPDATE users SET transcript_email=$1 WHERE id=$2', [transcript_email, req.user.id]);
             res.json({ success: true });
         } catch (err) {
-            res.status(500).json({ error: err.message });
+            serverErr(res, err);
         }
     });
 
@@ -105,7 +107,7 @@ module.exports = function makeTranscriptsRouter(io) {
             res.json({ success: true, processed });
         } catch (err) {
             console.error('[Gmail] check-transcripts error:', err.message);
-            res.status(500).json({ error: err.message });
+            serverErr(res, err);
         }
     });
 
@@ -121,7 +123,7 @@ module.exports = function makeTranscriptsRouter(io) {
         }
         q += ' ORDER BY s.name ASC';
         db.query(q, params, (err, result) => {
-            if (err) return res.status(500).json({ error: err.message });
+            if (err) return serverErr(res, err);
             res.json(result.rows || []);
         });
     });
@@ -361,7 +363,7 @@ ${transcriptForAI}`;
 
         } catch (err) {
             console.error('send-to-chat error:', err);
-            res.status(500).json({ error: err.message });
+            serverErr(res, err);
         }
     });
 
@@ -380,7 +382,7 @@ ${transcriptForAI}`;
         q += ' ORDER BY t.created_at DESC LIMIT 50';
 
         db.query(q, params, (err, result) => {
-            if (err) return res.status(500).json({ error: err.message });
+            if (err) return serverErr(res, err);
             res.json(result.rows || []);
         });
     });

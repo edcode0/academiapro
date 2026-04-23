@@ -48,8 +48,10 @@ async function sendJoinWelcomeEmail(user, academyName, role) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const { generateCode, generateUserCode } = require('../utils/codes');
+const rateLimit = require('express-rate-limit');
+const checkCodeLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false });
 
-router.get('/api/auth/check-code/:code', (req, res) => {
+router.get('/api/auth/check-code/:code', checkCodeLimiter, (req, res) => {
     db.query('SELECT name FROM academies WHERE teacher_code = $1 OR student_code = $2', [req.params.code, req.params.code], (err, result) => {
         const acad = result?.rows[0];
         if (acad) res.json({ valid: true, academy_name: acad.name });
@@ -446,7 +448,7 @@ router.get('/auth/me', authenticateJWT, (req, res) => {
 
         // Auto-generate code if missing
         if (!user.user_code) {
-            const newCode = '#' + Math.floor(10000 + Math.random() * 90000);
+            const newCode = '#' + crypto.randomInt(10000, 99999);
             db.query('UPDATE users SET user_code = $1 WHERE id = $2', [newCode, user.id]);
             user.user_code = newCode;
         }
@@ -474,7 +476,7 @@ router.get('/api/user/my-code', authenticateJWT, (req, res) => {
 });
 
 router.put('/api/user/generate-code', authenticateJWT, (req, res) => {
-    const newCode = '#' + Math.floor(10000 + Math.random() * 90000);
+    const newCode = '#' + crypto.randomInt(10000, 99999);
     db.query('UPDATE users SET user_code = $1 WHERE id = $2', [newCode, req.user.id], (err) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ user_code: newCode });

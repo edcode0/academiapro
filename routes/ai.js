@@ -36,7 +36,7 @@ router.post('/api/ai-tutor/extract-pdf', authenticateJWT, async (req, res) => {
 });
 
 router.post('/api/ai-tutor/chat', authenticateJWT, async (req, res) => {
-    const { messages, conversationId: clientConversationId } = req.body;
+    const { messages: rawMessages, conversationId: clientConversationId } = req.body;
     console.log('[ai-tutor/chat] user:', req.user?.id, 'role:', req.user?.role, 'academy_id:', req.user?.academy_id);
     console.log('[ai-tutor/chat] GROQ_API_KEY set:', !!process.env.GROQ_API_KEY);
     console.log('[ai-tutor/chat] clientConversationId:', clientConversationId);
@@ -47,12 +47,23 @@ router.post('/api/ai-tutor/chat', authenticateJWT, async (req, res) => {
             systemPrompt = "Eres un asistente pedagógico inteligente de AcademiaPro. Ayudas a profesores a preparar clases, crear ejercicios, explicar conceptos difíciles, gestionar alumnos y mejorar su metodología docente. Responde SIEMPRE en español.";
         }
 
+        // Strip any messages with non-standard roles (prompt injection guard)
+        const messages = (rawMessages || []).filter(m => m.role === 'user' || m.role === 'assistant');
+
         // Extract user message before anything else
         const userMessage = messages[messages.length - 1]?.content || '';
         const userMessageStr = typeof userMessage === 'string' ? userMessage : JSON.stringify(userMessage);
 
-        // Use conversation from client if provided, otherwise create a new one
+        // Use conversation from client if provided and it belongs to this user
         let conversationId = clientConversationId ? parseInt(clientConversationId) : null;
+
+        if (conversationId) {
+            const convCheck = await db.query(
+                'SELECT id FROM ai_conversations WHERE id = $1 AND user_id = $2',
+                [conversationId, req.user.id]
+            );
+            if (!convCheck.rows.length) conversationId = null; // reject cross-user access
+        }
 
         if (!conversationId) {
           const newConv = await db.query(

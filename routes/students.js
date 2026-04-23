@@ -123,6 +123,9 @@ router.post('/api/admin/add-user-by-code', authenticateJWT, requireAdmin, async 
 });
 
 router.put('/api/students/:id', authenticateJWT, requireAdmin, (req, res) => {
+    if (req.body.academy_id !== undefined && String(req.body.academy_id) !== String(req.user.academy_id)) {
+        return res.status(403).json({ error: 'No puedes mover alumnos a otra academia' });
+    }
     const ALLOWED_COLUMNS = new Set(['name', 'course', 'subject', 'status', 'parent_email', 'parent_phone',
         'notes', 'hourly_rate', 'monthly_fee', 'payment_day', 'payment_method',
         'payment_notes', 'payment_start_date', 'join_date', 'assigned_teacher_id']);

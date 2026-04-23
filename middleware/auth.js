@@ -9,10 +9,7 @@ if (!JWT_SECRET) {
 }
 
 const authenticateJWT = (req, res, next) => {
-    let token = req.cookies.token;
-    if (!token && req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
-        token = req.headers.authorization.split(' ')[1];
-    }
+    const token = req.cookies.token;
 
     if (token) {
         jwt.verify(token, JWT_SECRET, (err, user) => {
