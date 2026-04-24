@@ -12,7 +12,7 @@ const { requireStudent, requireTeacherOrAdmin } = require('../middleware/roles')
 const isPostgres = db.isPostgres;
 
 // GET available slots depending on role
-router.get('/api/calendar/slots', authenticateJWT, (req, res) => {
+router.get('/api/calendar/slots', authenticateJWT, (req, res, next) => {
     let sql = `
         SELECT a.*, u.name as teacher_name, s.name as student_name, s.user_id as student_user_id
         FROM available_slots a
@@ -38,7 +38,7 @@ router.get('/api/calendar/slots', authenticateJWT, (req, res) => {
                 params.push(studentRecordId);
             }
             db.query(sql + ' ORDER BY a.start_datetime ASC', params, (err, result) => {
-                if (err) return res.status(500).json({ error: err.message });
+                if (err) return next(err);
                 res.json(result.rows);
             });
         });
@@ -46,13 +46,13 @@ router.get('/api/calendar/slots', authenticateJWT, (req, res) => {
     }
 
     db.query(sql + ' ORDER BY a.start_datetime ASC', params, (err, result) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) return next(err);
         res.json(result.rows);
     });
 });
 
 // Teacher creates slots
-router.post('/api/calendar/slots', authenticateJWT, requireTeacherOrAdmin, async (req, res) => {
+router.post('/api/calendar/slots', authenticateJWT, requireTeacherOrAdmin, async (req, res, next) => {
     try {
         const { start_datetime, end_datetime, student_id, notes, meet_link: providedMeetLink } = req.body;
         const isBooked = !!student_id;
@@ -86,12 +86,12 @@ router.post('/api/calendar/slots', authenticateJWT, requireTeacherOrAdmin, async
 
         res.json({ success: true, is_booked: isBooked });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 });
 
 // Create a Google Meet link on demand for a session or slot
-router.post('/api/calendar/meet', authenticateJWT, requireTeacherOrAdmin, async (req, res) => {
+router.post('/api/calendar/meet', authenticateJWT, requireTeacherOrAdmin, async (req, res, next) => {
     try {
         const { student_id, date, start_time, end_time, slot_id, session_id } = req.body;
         if (!date || !start_time || !end_time) {
@@ -148,7 +148,7 @@ router.post('/api/calendar/meet', authenticateJWT, requireTeacherOrAdmin, async 
 });
 
 // Teacher or Admin deletes slot
-router.delete('/api/calendar/slots/:id', authenticateJWT, async (req, res) => {
+router.delete('/api/calendar/slots/:id', authenticateJWT, async (req, res, next) => {
     if (req.user.role === 'student') return res.status(403).json({ error: 'Access denied' });
     try {
         const isTeacher = req.user.role === 'teacher';
@@ -182,12 +182,12 @@ router.delete('/api/calendar/slots/:id', authenticateJWT, async (req, res) => {
         await db.query(`DELETE FROM available_slots WHERE ${whereSql}`, params);
         res.json({ success: true, sessionsDeleted });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 });
 
 // Teacher assigns a student to a free slot
-router.put('/api/calendar/slots/:id', authenticateJWT, requireTeacherOrAdmin, async (req, res) => {
+router.put('/api/calendar/slots/:id', authenticateJWT, requireTeacherOrAdmin, async (req, res, next) => {
     try {
         const { student_id, is_booked } = req.body;
         const isTeacher = req.user.role === 'teacher';
@@ -220,7 +220,7 @@ router.put('/api/calendar/slots/:id', authenticateJWT, requireTeacherOrAdmin, as
 });
 
 // Student books a slot
-router.post('/api/calendar/slots/:id/book', authenticateJWT, requireStudent, async (req, res) => {
+router.post('/api/calendar/slots/:id/book', authenticateJWT, requireStudent, async (req, res, next) => {
     try {
         const studentRes = await db.query(
             'SELECT id, name, assigned_teacher_id FROM students WHERE user_id = $1 AND academy_id = $2',
@@ -287,12 +287,12 @@ router.post('/api/calendar/slots/:id/book', authenticateJWT, requireStudent, asy
 
         res.json({ success: true });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 });
 
 // Student cancels slot booking
-router.post('/api/calendar/slots/:id/cancel', authenticateJWT, requireStudent, (req, res) => {
+router.post('/api/calendar/slots/:id/cancel', authenticateJWT, requireStudent, (req, res, next) => {
     db.query(
         'SELECT start_datetime FROM available_slots WHERE id = $1 AND student_id = (SELECT id FROM students WHERE user_id = $2 AND academy_id = $3) AND academy_id = $3',
         [req.params.id, req.user.id, req.user.academy_id],
@@ -312,7 +312,7 @@ router.post('/api/calendar/slots/:id/cancel', authenticateJWT, requireStudent, (
     });
 });
 
-router.get('/api/calendar/connect', authenticateJWT, requireTeacherOrAdmin, (req, res) => {
+router.get('/api/calendar/connect', authenticateJWT, requireTeacherOrAdmin, (req, res, next) => {
     const calendarRedirectUri = (process.env.BASE_URL || '') + '/api/calendar/callback';
     const oauth2Client = new google.auth.OAuth2(
         process.env.GOOGLE_CLIENT_ID,
@@ -335,7 +335,7 @@ router.get('/api/calendar/connect', authenticateJWT, requireTeacherOrAdmin, (req
     res.json({ authUrl });
 });
 
-router.get('/api/calendar/callback', async (req, res) => {
+router.get('/api/calendar/callback', async (req, res, next) => {
     try {
         const { code, state: rawState } = req.query;
         // Verify HMAC-signed state to prevent account takeover
@@ -369,7 +369,7 @@ router.get('/api/calendar/callback', async (req, res) => {
     }
 });
 
-router.get('/api/calendar/status', authenticateJWT, async (req, res) => {
+router.get('/api/calendar/status', authenticateJWT, async (req, res, next) => {
     try {
         const result = await db.query(
             'SELECT calendar_access_token FROM users WHERE id=$1',
@@ -378,7 +378,7 @@ router.get('/api/calendar/status', authenticateJWT, async (req, res) => {
         const user = result.rows[0];
         res.json({ connected: !!user?.calendar_access_token });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 });
 

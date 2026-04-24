@@ -12,16 +12,16 @@ module.exports = function makeChatRouter(io) {
     const router = express.Router();
     const { ensureAcademyRooms } = require('../services/rooms')(io);
 
-    router.post('/api/chat/ensure-rooms', authenticateJWT, async (req, res) => {
+    router.post('/api/chat/ensure-rooms', authenticateJWT, async (req, res, next) => {
         try {
             await ensureAcademyRooms(req.user.academy_id);
             res.json({ success: true });
         } catch (e) {
-            res.status(500).json({ error: e.message });
+            next(e);
         }
     });
 
-    router.get('/api/chat/debug-rooms', authenticateJWT, requireAdmin, async (req, res) => {
+    router.get('/api/chat/debug-rooms', authenticateJWT, requireAdmin, async (req, res, next) => {
         try {
             let sql = `
                 SELECT r.id, r.type, r.name,
@@ -40,12 +40,12 @@ module.exports = function makeChatRouter(io) {
             let result = await db.query(sql, [req.user.academy_id]);
             res.json(result.rows || []);
         } catch (e) {
-            res.status(500).json({ error: e.message });
+            next(e);
         }
     });
 
     // Chat API - New Rooms Logic
-    router.get('/api/chat/rooms', authenticateJWT, (req, res) => {
+    router.get('/api/chat/rooms', authenticateJWT, (req, res, next) => {
         const sql = `
             SELECT r.id, r.type, r.academy_id,
                 CASE WHEN r.type = 'group' THEN r.name
@@ -70,10 +70,7 @@ module.exports = function makeChatRouter(io) {
             ORDER BY last_message_date DESC
         `;
         db.query(sql, [req.user.id, req.user.id, req.user.academy_id], (err, result) => {
-            if (err) {
-                console.error('Route error:', err.message);
-                return res.status(500).json({ error: 'Internal server error', details: err.message });
-            }
+            if (err) return next(err);
 
             const rows = result.rows || result;
             const mapped = [];
@@ -92,11 +89,11 @@ module.exports = function makeChatRouter(io) {
     });
 
     // Admin backwards compatibility alias
-    router.get('/api/chat/conversations', authenticateJWT, (req, res) => {
+    router.get('/api/chat/conversations', authenticateJWT, (req, res, next) => {
         res.redirect('/api/chat/rooms');
     });
 
-    router.post('/api/chat/messages', authenticateJWT, async (req, res) => {
+    router.post('/api/chat/messages', authenticateJWT, async (req, res, next) => {
         try {
             const { roomId, content } = req.body;
             if (!roomId || !content) {
@@ -116,11 +113,11 @@ module.exports = function makeChatRouter(io) {
             }
             res.json(message);
         } catch (err) {
-            res.status(500).json({ error: err.message });
+            next(err);
         }
     });
 
-    router.post('/api/chat/rooms/:roomId/messages', authenticateJWT, async (req, res) => {
+    router.post('/api/chat/rooms/:roomId/messages', authenticateJWT, async (req, res, next) => {
         try {
             const { content, file_url, file_name, file_type } = req.body;
             const roomId = parseInt(req.params.roomId);
@@ -150,11 +147,11 @@ module.exports = function makeChatRouter(io) {
             res.json(message);
         } catch (err) {
             console.error('Send message error:', err.message);
-            res.status(500).json({ error: err.message });
+            next(err);
         }
     });
 
-    router.get('/api/chat/rooms/:roomId/messages', authenticateJWT, async (req, res) => {
+    router.get('/api/chat/rooms/:roomId/messages', authenticateJWT, async (req, res, next) => {
         try {
             const roomId = parseInt(req.params.roomId);
             const userId = req.user.id || req.user.userId;
@@ -194,11 +191,11 @@ module.exports = function makeChatRouter(io) {
             res.json(msgRows || []);
         } catch (err) {
             console.error('get messages error:', err);
-            res.status(500).json({ error: err.message });
+            next(err);
         }
     });
 
-    router.get('/api/chat/contacts', authenticateJWT, async (req, res) => {
+    router.get('/api/chat/contacts', authenticateJWT, async (req, res, next) => {
         try {
             const result = await db.query(
                 'SELECT id, name, role FROM users WHERE academy_id = $1 AND id != $2 ORDER BY role, name',
@@ -206,17 +203,17 @@ module.exports = function makeChatRouter(io) {
             );
             res.json(result.rows || []);
         } catch (err) {
-            res.status(500).json({ error: err.message });
+            next(err);
         }
     });
 
-    router.post('/api/chat/upload', authenticateJWT, upload.single('file'), (req, res) => {
+    router.post('/api/chat/upload', authenticateJWT, upload.single('file'), (req, res, next) => {
         if (!req.file) return res.status(400).json({ error: 'No hay archivo' });
         const fileUrl = `/uploads/chat/${req.file.filename}`;
         res.json({ url: fileUrl, name: req.file.originalname });
     });
 
-    router.post('/api/chat/mark-read/:roomId', authenticateJWT, async (req, res) => {
+    router.post('/api/chat/mark-read/:roomId', authenticateJWT, async (req, res, next) => {
         try {
             const roomId = parseInt(req.params.roomId);
             const memberCheck = await db.query(
@@ -230,11 +227,11 @@ module.exports = function makeChatRouter(io) {
             );
             res.json({ success: true });
         } catch (err) {
-            res.status(500).json({ error: err.message });
+            next(err);
         }
     });
 
-    router.get('/api/chat/unread-count', authenticateJWT, (req, res) => {
+    router.get('/api/chat/unread-count', authenticateJWT, (req, res, next) => {
         const sql = `
             SELECT COUNT(*) as count FROM messages m
             JOIN room_members rm ON m.room_id = rm.room_id
@@ -245,7 +242,7 @@ module.exports = function makeChatRouter(io) {
         });
     });
 
-    router.post('/api/chat/upload-file', authenticateJWT, (req, res) => {
+    router.post('/api/chat/upload-file', authenticateJWT, (req, res, next) => {
         chatUpload(req, res, (err) => {
             if (err) return res.status(400).json({ error: err.message });
             if (!req.file) return res.status(400).json({ error: 'No file received' });

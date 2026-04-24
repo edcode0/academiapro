@@ -373,7 +373,7 @@ const CRUD_ALLOWED_COLUMNS = {
 };
 
 ['students', 'sessions', 'exams', 'payments'].forEach(tableName => {
-    app.put(`/api/${tableName}/:id`, authenticateJWT, (req, res) => {
+    app.put(`/api/${tableName}/:id`, authenticateJWT, (req, res, next) => {
         const allowed = CRUD_ALLOWED_COLUMNS[tableName];
         const allKeys = Object.keys(req.body);
         const badKeys = allKeys.filter(k => !allowed.has(k));
@@ -390,7 +390,7 @@ const CRUD_ALLOWED_COLUMNS = {
         const values = [...keys.map(k => req.body[k]), req.params.id, req.user.academy_id];
 
         db.query(`UPDATE ${tableName} SET ${setClause} WHERE id = $${idParam} ${academyFilter}`, values, (err, result) => {
-            if (err) return res.status(500).json({ error: err.message });
+            if (err) return next(err);
             if (result.rowCount === 0) return res.status(404).json({ error: 'Record not found or access denied' });
             if (tableName === 'sessions' || tableName === 'exams') {
                 db.query(`SELECT student_id FROM ${tableName} WHERE id = $1`, [req.params.id], (err, resId) => {
@@ -401,12 +401,12 @@ const CRUD_ALLOWED_COLUMNS = {
             res.json({ updated: result.rowCount });
         });
     });
-    app.delete(`/api/${tableName}/:id`, authenticateJWT, (req, res) => {
+    app.delete(`/api/${tableName}/:id`, authenticateJWT, (req, res, next) => {
         const academyFilter = tableName === 'students'
             ? `AND academy_id = $2`
             : `AND student_id IN (SELECT id FROM students WHERE academy_id = $2)`;
         db.query(`DELETE FROM ${tableName} WHERE id = $1 ${academyFilter}`, [req.params.id, req.user.academy_id], (err, result) => {
-            if (err) return res.status(500).json({ error: err.message });
+            if (err) return next(err);
             if (result.rowCount === 0) return res.status(404).json({ error: 'Record not found or access denied' });
             res.json({ deleted: result.rowCount });
         });
@@ -419,6 +419,8 @@ const CRUD_ALLOWED_COLUMNS = {
 
 // ─── Sentry express error handler (must be after all routes) ─────────────────
 Sentry.setupExpressErrorHandler(app);
+// Central error handler: sanitizes responses, logs internally, reports to Sentry
+app.use(require('./middleware/errorHandler'));
 // ─────────────────────────────────────────────────────────────────────────────
 
 db.initDb().then(async () => {

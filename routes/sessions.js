@@ -9,7 +9,7 @@ const { checkStudentRisk }   = require('../services/risk');
 const { createNotification } = require('../notifications');
 const { deleteCalendarEvent } = require('../services/calendar');
 
-router.post('/api/sessions', authenticateJWT, async (req, res) => {
+router.post('/api/sessions', authenticateJWT, async (req, res, next) => {
     try {
         const { student_id, date, duration_minutes, homework_done, teacher_notes, notes, homework, session_type, students } = req.body;
 
@@ -92,11 +92,11 @@ router.post('/api/sessions', authenticateJWT, async (req, res) => {
         res.json(session);
     } catch (err) {
         console.error('Session error:', err.message);
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 });
 
-router.get('/api/sessions', authenticateJWT, (req, res) => {
+router.get('/api/sessions', authenticateJWT, (req, res, next) => {
     let sql = 'SELECT s.*, st.name as student_name FROM sessions s JOIN students st ON s.student_id = st.id WHERE st.academy_id = $1';
     let params = [req.user.academy_id];
 
@@ -106,12 +106,12 @@ router.get('/api/sessions', authenticateJWT, (req, res) => {
     }
 
     db.query(sql + ' ORDER BY s.date DESC', params, (err, result) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) return next(err);
         res.json(result.rows);
     });
 });
 
-router.get('/api/sessions-list', authenticateJWT, (req, res) => {
+router.get('/api/sessions-list', authenticateJWT, (req, res, next) => {
     // Scalar subqueries work on both PostgreSQL and SQLite.
     // SUBSTR(CAST(... AS TEXT), 1, 10) extracts "YYYY-MM-DD" from any datetime format.
     let sql = `SELECT s.*, st.name as student_name,
@@ -134,7 +134,7 @@ router.get('/api/sessions-list', authenticateJWT, (req, res) => {
     }
 
     db.query(sql + ' ORDER BY s.date DESC, s.id DESC', params, (err, result) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) return next(err);
         const rows = result.rows;
 
         // Calculate stats
@@ -157,7 +157,7 @@ router.get('/api/sessions-list', authenticateJWT, (req, res) => {
     });
 });
 
-router.put('/api/sessions/:id', authenticateJWT, requireTeacherOrAdmin, async (req, res) => {
+router.put('/api/sessions/:id', authenticateJWT, requireTeacherOrAdmin, async (req, res, next) => {
     try {
         const { date, duration_minutes, homework_done, teacher_notes } = req.body;
         const isTeacher = req.user.role === 'teacher';
@@ -171,11 +171,11 @@ router.put('/api/sessions/:id', authenticateJWT, requireTeacherOrAdmin, async (r
         const result = await db.query(sql, params);
         res.json(result.rows[0] || { updated: 0 });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 });
 
-router.delete('/api/sessions/:id', authenticateJWT, requireTeacherOrAdmin, async (req, res) => {
+router.delete('/api/sessions/:id', authenticateJWT, requireTeacherOrAdmin, async (req, res, next) => {
     try {
         const isTeacher = req.user.role === 'teacher';
         // Teachers can only delete sessions of their own students; admins scope by academy
@@ -214,7 +214,7 @@ router.delete('/api/sessions/:id', authenticateJWT, requireTeacherOrAdmin, async
         );
         res.json({ success: true });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 });
 

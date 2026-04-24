@@ -7,7 +7,7 @@ const { Resend } = require('resend');
 const { authenticateJWT } = require('../middleware/auth');
 const { requireAdmin, requireTeacherOrAdmin } = require('../middleware/roles');
 
-router.post('/api/payments', authenticateJWT, requireTeacherOrAdmin, async (req, res) => {
+router.post('/api/payments', authenticateJWT, requireTeacherOrAdmin, async (req, res, next) => {
     try {
         const { student_id, amount, due_date, status, paid_date, notes } = req.body;
         const studentCheck = await db.query(
@@ -27,14 +27,14 @@ router.post('/api/payments', authenticateJWT, requireTeacherOrAdmin, async (req,
     }
 });
 
-router.get('/api/payments', authenticateJWT, (req, res) => {
+router.get('/api/payments', authenticateJWT, (req, res, next) => {
     db.query('SELECT p.* FROM payments p JOIN students st ON p.student_id = st.id WHERE st.academy_id = $1', [req.user.academy_id], (err, result) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) return next(err);
         res.json(result.rows);
     });
 });
 
-router.get('/api/payments-data', authenticateJWT, (req, res) => {
+router.get('/api/payments-data', authenticateJWT, (req, res, next) => {
     const sql = `
         SELECT p.*, s.name as student_name, s.monthly_fee as student_monthly_fee
         FROM payments p
@@ -43,7 +43,7 @@ router.get('/api/payments-data', authenticateJWT, (req, res) => {
         ORDER BY p.due_date DESC
     `;
     db.query(sql, [req.user.academy_id], (err, result) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) return next(err);
         const allPayments = result.rows;
         const now = new Date();
         const todayStr = now.toISOString().split('T')[0];
@@ -69,7 +69,7 @@ router.get('/api/payments-data', authenticateJWT, (req, res) => {
     });
 });
 
-router.post('/api/payments/auto-generate', authenticateJWT, requireAdmin, (req, res) => {
+router.post('/api/payments/auto-generate', authenticateJWT, requireAdmin, (req, res, next) => {
     const acadId = req.user.academy_id;
     const now = new Date();
     const month = now.getMonth() + 1;
@@ -77,7 +77,7 @@ router.post('/api/payments/auto-generate', authenticateJWT, requireAdmin, (req, 
     const lastDayOfMonth = new Date(year, month, 0).getDate();
 
     db.query('SELECT * FROM students WHERE academy_id = $1 AND monthly_fee > 0', [acadId], (err, result) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) return next(err);
         const students = result.rows || [];
 
         students.forEach(s => {
@@ -97,7 +97,7 @@ router.post('/api/payments/auto-generate', authenticateJWT, requireAdmin, (req, 
     });
 });
 
-router.get('/api/teacher-payments', authenticateJWT, requireAdmin, (req, res) => {
+router.get('/api/teacher-payments', authenticateJWT, requireAdmin, (req, res, next) => {
     const acadId = req.user.academy_id;
     const now = new Date();
     const month = now.getMonth() + 1;
@@ -105,7 +105,7 @@ router.get('/api/teacher-payments', authenticateJWT, requireAdmin, (req, res) =>
     const likePattern = `${year}-${String(month).padStart(2, '0')}%`;
 
     db.query(`SELECT id, name, hourly_rate, group_hourly_rate FROM users WHERE role = 'teacher' AND academy_id = $1`, [acadId], (err, tRes) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) return next(err);
         const teachers = tRes.rows || [];
 
         let processed = 0;
@@ -144,7 +144,7 @@ router.get('/api/teacher-payments', authenticateJWT, requireAdmin, (req, res) =>
                                   FROM teacher_payments p
                                   JOIN users u ON p.teacher_id = u.id
                                   WHERE u.academy_id = $1 AND month = $2 AND year = $3`, [acadId, month, year], (err, finalRes) => {
-                                    if (err) return res.status(500).json({ error: err.message });
+                                    if (err) return next(err);
                                     res.json(finalRes.rows || []);
                                 });
                             }
@@ -154,15 +154,15 @@ router.get('/api/teacher-payments', authenticateJWT, requireAdmin, (req, res) =>
     });
 });
 
-router.post('/api/teacher-payments/:id/pay', authenticateJWT, requireAdmin, (req, res) => {
+router.post('/api/teacher-payments/:id/pay', authenticateJWT, requireAdmin, (req, res, next) => {
     const today = new Date().toISOString().split('T')[0];
     db.query('UPDATE teacher_payments SET paid = 1, paid_at = $1 WHERE id = $2 AND academy_id = $3', [today, req.params.id, req.user.academy_id], (err) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) return next(err);
         res.json({ success: true });
     });
 });
 
-router.post('/api/admin/send-monthly-report', authenticateJWT, requireAdmin, async (req, res) => {
+router.post('/api/admin/send-monthly-report', authenticateJWT, requireAdmin, async (req, res, next) => {
     try {
         if (!process.env.RESEND_API_KEY) throw new Error('Resend no configurado');
         const acadId = req.user.academy_id;
@@ -201,11 +201,11 @@ router.post('/api/admin/send-monthly-report', authenticateJWT, requireAdmin, asy
         res.json({ success: true });
     } catch (err) {
         console.error('Error sending monthly report', err);
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 });
 
-router.put('/api/payments/:id', authenticateJWT, requireTeacherOrAdmin, async (req, res) => {
+router.put('/api/payments/:id', authenticateJWT, requireTeacherOrAdmin, async (req, res, next) => {
     try {
         const { amount, due_date, status, paid_date } = req.body;
         const result = await db.query(
@@ -215,11 +215,11 @@ router.put('/api/payments/:id', authenticateJWT, requireTeacherOrAdmin, async (r
         );
         res.json(result.rows[0] || { updated: 0 });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 });
 
-router.delete('/api/payments/:id', authenticateJWT, requireTeacherOrAdmin, async (req, res) => {
+router.delete('/api/payments/:id', authenticateJWT, requireTeacherOrAdmin, async (req, res, next) => {
     try {
         await db.query(
             'DELETE FROM payments WHERE id=$1 AND student_id IN (SELECT id FROM students WHERE academy_id=$2)',
@@ -227,7 +227,7 @@ router.delete('/api/payments/:id', authenticateJWT, requireTeacherOrAdmin, async
         );
         res.json({ success: true });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 });
 

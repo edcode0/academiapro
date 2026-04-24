@@ -4,7 +4,7 @@ const router  = express.Router();
 const db      = require('../db');
 const { authenticateJWT } = require('../middleware/auth');
 
-router.get('/notifications', authenticateJWT, async (req, res) => {
+router.get('/notifications', authenticateJWT, async (req, res, next) => {
     try {
         const result = await db.query(
             `SELECT * FROM notifications WHERE user_id = $1
@@ -13,11 +13,11 @@ router.get('/notifications', authenticateJWT, async (req, res) => {
         );
         res.json(result.rows || []);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 });
 
-router.post('/notifications/mark-read/:id', authenticateJWT, async (req, res) => {
+router.post('/notifications/mark-read/:id', authenticateJWT, async (req, res, next) => {
     try {
         await db.query(
             `UPDATE notifications SET read = TRUE WHERE id = $1 AND user_id = $2`,
@@ -25,11 +25,11 @@ router.post('/notifications/mark-read/:id', authenticateJWT, async (req, res) =>
         );
         res.json({ success: true });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 });
 
-router.post('/notifications/mark-all-read', authenticateJWT, async (req, res) => {
+router.post('/notifications/mark-all-read', authenticateJWT, async (req, res, next) => {
     try {
         await db.query(
             `UPDATE notifications SET read = TRUE WHERE user_id = $1`,
@@ -37,7 +37,7 @@ router.post('/notifications/mark-all-read', authenticateJWT, async (req, res) =>
         );
         res.json({ success: true });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 });
 

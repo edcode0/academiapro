@@ -17,7 +17,7 @@ const { generateCode, generateUserCode } = require('../utils/codes');
 const rateLimit = require('express-rate-limit');
 const checkCodeLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false });
 
-router.get('/api/auth/check-code/:code', checkCodeLimiter, (req, res) => {
+router.get('/api/auth/check-code/:code', checkCodeLimiter, (req, res, next) => {
     db.query('SELECT name FROM academies WHERE teacher_code = $1 OR student_code = $2', [req.params.code, req.params.code], (err, result) => {
         const acad = result?.rows[0];
         if (acad) res.json({ valid: true, academy_name: acad.name });
@@ -25,7 +25,7 @@ router.get('/api/auth/check-code/:code', checkCodeLimiter, (req, res) => {
     });
 });
 
-router.post('/auth/register', async (req, res) => {
+router.post('/auth/register', async (req, res, next) => {
     try {
         const { name, email, password, academy_name, academy_code } = req.body;
         const hash = bcrypt.hashSync(password, 10);
@@ -143,7 +143,7 @@ router.post('/auth/register', async (req, res) => {
     }
 });
 
-router.post('/auth/login', async (req, res) => {
+router.post('/auth/login', async (req, res, next) => {
     try {
         const { email, password, role, academy_code } = req.body;
 
@@ -194,7 +194,7 @@ router.post('/auth/login', async (req, res) => {
     }
 });
 
-router.post('/api/auth/join', async (req, res) => {
+router.post('/api/auth/join', async (req, res, next) => {
     try {
         const { academy_code, invite_token, name, email, password } = req.body;
 
@@ -307,7 +307,7 @@ router.get('/auth/google', (req, res, next) => {
     passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
 });
 
-router.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/login' }), async (req, res) => {
+router.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/login' }), async (req, res, next) => {
     const profile = req.user;
     const email = profile.emails[0].value;
     const name = profile.displayName;
@@ -394,12 +394,12 @@ router.get('/auth/google/callback', passport.authenticate('google', { failureRed
     }
 });
 
-router.get('/auth/logout', (req, res) => {
+router.get('/auth/logout', (req, res, next) => {
     res.clearCookie('token');
     res.redirect('/login');
 });
 
-router.get('/auth/me', authenticateJWT, (req, res) => {
+router.get('/auth/me', authenticateJWT, (req, res, next) => {
     const sql = `
         SELECT u.id, u.email, u.role, u.academy_id, u.user_code,
                COALESCE(s.name, u.name) as name
@@ -422,33 +422,33 @@ router.get('/auth/me', authenticateJWT, (req, res) => {
     });
 });
 
-router.get('/api/auth/me', authenticateJWT, async (req, res) => {
+router.get('/api/auth/me', authenticateJWT, async (req, res, next) => {
     try {
         const userId = req.user.id || req.user.userId;
         const result = await db.query('SELECT id, name, role, academy_id FROM users WHERE id = $1', [userId]);
         const rows = result.rows || result;
         res.json(rows[0] || {});
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 });
 
-router.get('/api/user/my-code', authenticateJWT, (req, res) => {
+router.get('/api/user/my-code', authenticateJWT, (req, res, next) => {
     db.query('SELECT user_code FROM users WHERE id = $1', [req.user.id], (err, result) => {
         if (err || !result.rows[0]) return res.json({ user_code: null });
         res.json({ user_code: result.rows[0].user_code });
     });
 });
 
-router.put('/api/user/generate-code', authenticateJWT, (req, res) => {
+router.put('/api/user/generate-code', authenticateJWT, (req, res, next) => {
     const newCode = '#' + crypto.randomInt(10000, 99999);
     db.query('UPDATE users SET user_code = $1 WHERE id = $2', [newCode, req.user.id], (err) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) return next(err);
         res.json({ user_code: newCode });
     });
 });
 
-router.delete('/api/auth/delete-account', authenticateJWT, async (req, res) => {
+router.delete('/api/auth/delete-account', authenticateJWT, async (req, res, next) => {
     try {
         const userId = req.user.id;
         const userRole = req.user.role;
@@ -492,7 +492,7 @@ router.delete('/api/auth/delete-account', authenticateJWT, async (req, res) => {
 // ─── Invitation Links ─────────────────────────────────────────────────────────
 
 // POST /api/academy/invite — generate an invitation link (teacher or admin only)
-router.post('/api/academy/invite', authenticateJWT, requireTeacherOrAdmin, async (req, res) => {
+router.post('/api/academy/invite', authenticateJWT, requireTeacherOrAdmin, async (req, res, next) => {
     try {
         const { role } = req.body;
         if (!role || !['teacher', 'student'].includes(role)) {
@@ -525,7 +525,7 @@ router.post('/api/academy/invite', authenticateJWT, requireTeacherOrAdmin, async
 });
 
 // GET /api/auth/invite/:token — validate an invitation link (public)
-router.get('/api/auth/invite/:token', async (req, res) => {
+router.get('/api/auth/invite/:token', async (req, res, next) => {
     try {
         const { token } = req.params;
 

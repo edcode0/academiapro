@@ -10,7 +10,7 @@ const { requireStudent, requireTeacherOrAdmin }  = require('../middleware/roles'
 const groqClient    = require('../services/groq');
 const { checkStudentRisk } = require('../services/risk');
 
-router.post('/api/exam-simulator/generate', authenticateJWT, requireStudent, async (req, res) => {
+router.post('/api/exam-simulator/generate', authenticateJWT, requireStudent, async (req, res, next) => {
     try {
         const { topic, difficulty, numQuestions, course } = req.body;
         const prompt = `Genera un examen de ${topic} para ${course} con ${numQuestions} preguntas de nivel ${difficulty}.
@@ -45,7 +45,7 @@ router.post('/api/exam-simulator/generate', authenticateJWT, requireStudent, asy
     }
 });
 
-router.get('/api/exams', authenticateJWT, (req, res) => {
+router.get('/api/exams', authenticateJWT, (req, res, next) => {
     let sql = 'SELECT e.*, st.name as student_name FROM exams e JOIN students st ON e.student_id = st.id WHERE st.academy_id = $1';
     let params = [req.user.academy_id];
 
@@ -60,7 +60,7 @@ router.get('/api/exams', authenticateJWT, (req, res) => {
     });
 });
 
-router.get('/api/exams-list', authenticateJWT, (req, res) => {
+router.get('/api/exams-list', authenticateJWT, (req, res, next) => {
     let sql = 'SELECT e.*, st.name as student_name FROM exams e JOIN students st ON e.student_id = st.id WHERE st.academy_id = $1';
     let params = [req.user.academy_id];
 
@@ -84,7 +84,7 @@ router.get('/api/exams-list', authenticateJWT, (req, res) => {
 });
 
 // Enriched exams data for exams.html (ranking + stats)
-router.get('/api/exams-data', authenticateJWT, async (req, res) => {
+router.get('/api/exams-data', authenticateJWT, async (req, res, next) => {
     try {
         let sql = 'SELECT e.*, st.name as student_name, st.id as student_id FROM exams e JOIN students st ON e.student_id = st.id WHERE st.academy_id = $1';
         let params = [req.user.academy_id];
@@ -133,7 +133,7 @@ router.get('/api/exams-data', authenticateJWT, async (req, res) => {
     }
 });
 
-router.post('/api/simulator/results', authenticateJWT, (req, res) => {
+router.post('/api/simulator/results', authenticateJWT, (req, res, next) => {
     const { topic, difficulty, num_questions, score, max_score, percentage, questions_json, answers_json } = req.body;
 
     db.query('SELECT id FROM students WHERE user_id = $1', [req.user.id], (err, sRes) => {
@@ -151,7 +151,7 @@ router.post('/api/simulator/results', authenticateJWT, (req, res) => {
 });
 
 // Get simulator results for a student (Teacher/Admin access) — specific before /:id
-router.get('/api/simulator/results/student/:studentId', authenticateJWT, requireTeacherOrAdmin, async (req, res) => {
+router.get('/api/simulator/results/student/:studentId', authenticateJWT, requireTeacherOrAdmin, async (req, res, next) => {
     try {
         const result = await db.query(
             `SELECT sr.* FROM simulator_results sr
@@ -167,7 +167,7 @@ router.get('/api/simulator/results/student/:studentId', authenticateJWT, require
 });
 
 // Get single result detail
-router.get('/api/simulator/results/:id', authenticateJWT, async (req, res) => {
+router.get('/api/simulator/results/:id', authenticateJWT, async (req, res, next) => {
     try {
         const result = await db.query(
             `SELECT sr.* FROM simulator_results sr
@@ -186,7 +186,7 @@ router.get('/api/simulator/results/:id', authenticateJWT, async (req, res) => {
 });
 
 // Teacher grade simulator result
-router.put('/api/simulator/results/:id/grade', authenticateJWT, requireTeacherOrAdmin, async (req, res) => {
+router.put('/api/simulator/results/:id/grade', authenticateJWT, requireTeacherOrAdmin, async (req, res, next) => {
     try {
         const { teacher_grade, teacher_feedback } = req.body;
         const result = await db.query(
@@ -202,7 +202,7 @@ router.put('/api/simulator/results/:id/grade', authenticateJWT, requireTeacherOr
 });
 
 // GET exams for current student — specific before /:id
-router.get('/api/exams/student', authenticateJWT, async (req, res) => {
+router.get('/api/exams/student', authenticateJWT, async (req, res, next) => {
     try {
         const sRes = await db.query('SELECT id FROM students WHERE user_id = $1 AND academy_id = $2', [req.user.id, req.user.academy_id]);
         const student = sRes.rows?.[0];
@@ -215,7 +215,7 @@ router.get('/api/exams/student', authenticateJWT, async (req, res) => {
 });
 
 // POST new exam (student adding it)
-router.post('/api/exams/student', authenticateJWT, (req, res) => {
+router.post('/api/exams/student', authenticateJWT, (req, res, next) => {
     const { subject, date, score, notes } = req.body;
     console.log(`[ExamSave] Student ${req.user.id} attempting to save exam:`, { subject, date, score });
 
@@ -278,7 +278,7 @@ router.post('/api/exams/student', authenticateJWT, (req, res) => {
 });
 
 // Update score for existing exam
-router.put('/api/exams/:id/score', authenticateJWT, requireTeacherOrAdmin, async (req, res) => {
+router.put('/api/exams/:id/score', authenticateJWT, requireTeacherOrAdmin, async (req, res, next) => {
     try {
         const { score } = req.body;
         const result = await db.query(
@@ -298,7 +298,7 @@ router.put('/api/exams/:id/score', authenticateJWT, requireTeacherOrAdmin, async
     }
 });
 
-router.post('/api/exams', authenticateJWT, requireTeacherOrAdmin, async (req, res) => {
+router.post('/api/exams', authenticateJWT, requireTeacherOrAdmin, async (req, res, next) => {
     try {
         const { student_id, subject, score, date, notes } = req.body;
         // Verify student belongs to the same academy before inserting
@@ -319,7 +319,7 @@ router.post('/api/exams', authenticateJWT, requireTeacherOrAdmin, async (req, re
     }
 });
 
-router.put('/api/exams/:id', authenticateJWT, requireTeacherOrAdmin, async (req, res) => {
+router.put('/api/exams/:id', authenticateJWT, requireTeacherOrAdmin, async (req, res, next) => {
     try {
         const { subject, score, date, notes } = req.body;
         const result = await db.query(
@@ -333,7 +333,7 @@ router.put('/api/exams/:id', authenticateJWT, requireTeacherOrAdmin, async (req,
     }
 });
 
-router.delete('/api/exams/:id', authenticateJWT, requireTeacherOrAdmin, async (req, res) => {
+router.delete('/api/exams/:id', authenticateJWT, requireTeacherOrAdmin, async (req, res, next) => {
     try {
         await db.query(
             'DELETE FROM exams WHERE id=$1 AND student_id IN (SELECT id FROM students WHERE academy_id=$2)',

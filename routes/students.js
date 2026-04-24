@@ -8,7 +8,7 @@ const { requireAdmin, requireStudent } = require('../middleware/roles');
 const { ensureAcademyRooms }       = require('../services/rooms')(null);
 
 // DELETE student from academy
-router.delete('/api/admin/students/:id', authenticateJWT, requireAdmin, (req, res) => {
+router.delete('/api/admin/students/:id', authenticateJWT, requireAdmin, (req, res, next) => {
     db.query('SELECT user_id FROM students WHERE id = $1 AND academy_id = $2', [req.params.id, req.user.academy_id], (err, row) => {
         const student = row?.rows[0];
         if (!student) return res.status(404).json({ error: 'Student not found' });
@@ -27,7 +27,7 @@ router.delete('/api/admin/students/:id', authenticateJWT, requireAdmin, (req, re
 });
 
 // CHANGE student's teacher
-router.put('/api/admin/students/:id/teacher', authenticateJWT, requireAdmin, async (req, res) => {
+router.put('/api/admin/students/:id/teacher', authenticateJWT, requireAdmin, async (req, res, next) => {
     const assigned_teacher_id = req.body.assigned_teacher_id || null;
     try {
         let row = await db.query('SELECT user_id, name FROM students WHERE id = $1 AND academy_id = $2', [req.params.id, req.user.academy_id]);
@@ -38,11 +38,11 @@ router.put('/api/admin/students/:id/teacher', authenticateJWT, requireAdmin, asy
         await ensureAcademyRooms(req.user.academy_id);
         res.json({ success: true });
     } catch (e) {
-        res.status(500).json({ error: e.message });
+        next(e);
     }
 });
 
-router.get('/api/students', authenticateJWT, (req, res) => {
+router.get('/api/students', authenticateJWT, (req, res, next) => {
     let q = `
         SELECT s.*, u.name as teacher_name
         FROM students s
@@ -57,12 +57,12 @@ router.get('/api/students', authenticateJWT, (req, res) => {
     }
 
     db.query(q, params, (err, result) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) return next(err);
         res.json(result.rows);
     });
 });
 
-router.get('/api/students-list', authenticateJWT, (req, res) => {
+router.get('/api/students-list', authenticateJWT, (req, res, next) => {
     const academyId = req.user.academy_id;
     const now = new Date();
     const currentMonth = now.toISOString().slice(0, 7);
@@ -83,19 +83,19 @@ router.get('/api/students-list', authenticateJWT, (req, res) => {
     }
 
     db.query(sql, params, (err, result) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) return next(err);
         res.json(result.rows);
     });
 });
 
-router.get('/api/admin/unassigned-count', authenticateJWT, requireAdmin, (req, res) => {
+router.get('/api/admin/unassigned-count', authenticateJWT, requireAdmin, (req, res, next) => {
     db.query('SELECT COUNT(*) as count FROM students WHERE academy_id = $1 AND assigned_teacher_id IS NULL', [req.user.academy_id], (err, result) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) return next(err);
         res.json({ count: result.rows[0]?.count || 0 });
     });
 });
 
-router.post('/api/admin/add-user-by-code', authenticateJWT, requireAdmin, async (req, res) => {
+router.post('/api/admin/add-user-by-code', authenticateJWT, requireAdmin, async (req, res, next) => {
     const { code, role } = req.body;
     try {
         let result = await db.query('SELECT * FROM users WHERE user_code = $1', [code]);
@@ -118,11 +118,11 @@ router.post('/api/admin/add-user-by-code', authenticateJWT, requireAdmin, async 
         await ensureAcademyRooms(acadId);
         res.json({ success: true, name: user.name, role });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 });
 
-router.put('/api/students/:id', authenticateJWT, requireAdmin, (req, res) => {
+router.put('/api/students/:id', authenticateJWT, requireAdmin, (req, res, next) => {
     if (req.body.academy_id !== undefined && String(req.body.academy_id) !== String(req.user.academy_id)) {
         return res.status(403).json({ error: 'No puedes mover alumnos a otra academia' });
     }
@@ -136,12 +136,12 @@ router.put('/api/students/:id', authenticateJWT, requireAdmin, (req, res) => {
     values.push(req.params.id, req.user.academy_id);
     const sql = `UPDATE students SET ${setClause} WHERE id = $${keys.length + 1} AND academy_id = $${keys.length + 2}`;
     db.query(sql, values, (err, result) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) return next(err);
         res.json({ success: true });
     });
 });
 
-router.get('/api/student-detail/:id', authenticateJWT, (req, res) => {
+router.get('/api/student-detail/:id', authenticateJWT, (req, res, next) => {
     const id = req.params.id;
     const result = {};
 
@@ -151,7 +151,7 @@ router.get('/api/student-detail/:id', authenticateJWT, (req, res) => {
         LEFT JOIN users u ON s.assigned_teacher_id = u.id
         WHERE s.id = $1 AND s.academy_id = $2
     `, [id, req.user.academy_id], (err, resData) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) return next(err);
         const student = resData?.rows[0];
         if (!student) return res.status(404).json({ error: 'Student not found' });
         result.student = student;
@@ -169,7 +169,7 @@ router.get('/api/student-detail/:id', authenticateJWT, (req, res) => {
     });
 });
 
-router.get('/api/student/portal-data', authenticateJWT, async (req, res) => {
+router.get('/api/student/portal-data', authenticateJWT, async (req, res, next) => {
     try {
         let studentResult = await db.query(
             'SELECT * FROM students WHERE user_id = $1 AND academy_id = $2',
@@ -222,13 +222,13 @@ router.get('/api/student/portal-data', authenticateJWT, async (req, res) => {
         });
     } catch (err) {
         console.error('Student portal full exception:', err.message);
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 });
 
-router.get('/api/student/reports', authenticateJWT, requireStudent, (req, res) => {
+router.get('/api/student/reports', authenticateJWT, requireStudent, (req, res, next) => {
     db.query('SELECT * FROM reports WHERE student_id = (SELECT id FROM students WHERE user_id = $1) ORDER BY year DESC, month DESC', [req.user.id], (err, result) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) return next(err);
         const rows = result.rows;
         const monthsNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
         const formatted = rows.map(r => ({

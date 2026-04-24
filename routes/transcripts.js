@@ -22,7 +22,7 @@ module.exports = function makeTranscriptsRouter(io) {
     const gmailService = require('../services/gmail')(io);
     const isPostgres = db.isPostgres;
 
-    router.get('/api/gmail/connect', authenticateJWT, requireTeacherOrAdmin, (req, res) => {
+    router.get('/api/gmail/connect', authenticateJWT, requireTeacherOrAdmin, (req, res, next) => {
         const oauth2Client = makeOAuth2Client();
         const nonce = crypto.randomBytes(8).toString('hex');
         const stateData = `${req.user.id}:${nonce}`;
@@ -42,7 +42,7 @@ module.exports = function makeTranscriptsRouter(io) {
         res.json({ authUrl });
     });
 
-    router.get('/api/gmail/callback', async (req, res) => {
+    router.get('/api/gmail/callback', async (req, res, next) => {
         try {
             const { code, state: rawState } = req.query;
             let userId;
@@ -70,7 +70,7 @@ module.exports = function makeTranscriptsRouter(io) {
         }
     });
 
-    router.get('/api/gmail/status', authenticateJWT, async (req, res) => {
+    router.get('/api/gmail/status', authenticateJWT, async (req, res, next) => {
         try {
             const result = await db.query(
                 'SELECT gmail_access_token, transcript_email FROM users WHERE id=$1',
@@ -86,7 +86,7 @@ module.exports = function makeTranscriptsRouter(io) {
         }
     });
 
-    router.put('/api/gmail/transcript-email', authenticateJWT, requireTeacherOrAdmin, async (req, res) => {
+    router.put('/api/gmail/transcript-email', authenticateJWT, requireTeacherOrAdmin, async (req, res, next) => {
         try {
             const { transcript_email } = req.body;
             await db.query('UPDATE users SET transcript_email=$1 WHERE id=$2', [transcript_email, req.user.id]);
@@ -96,7 +96,7 @@ module.exports = function makeTranscriptsRouter(io) {
         }
     });
 
-    router.post('/api/gmail/check-transcripts', authenticateJWT, requireTeacherOrAdmin, async (req, res) => {
+    router.post('/api/gmail/check-transcripts', authenticateJWT, requireTeacherOrAdmin, async (req, res, next) => {
         try {
             const result = await db.query('SELECT * FROM users WHERE id=$1', [req.user.id]);
             const teacher = result.rows[0];
@@ -111,9 +111,9 @@ module.exports = function makeTranscriptsRouter(io) {
         }
     });
 
-    router.get('/admin/transcripts', authenticateJWT, requireAdmin, (req, res) => res.sendFile(path.join(__dirname, '../public/transcripts.html')));
+    router.get('/admin/transcripts', authenticateJWT, requireAdmin, (req, res, next) => res.sendFile(path.join(__dirname, '../public/transcripts.html')));
 
-    router.get('/api/transcripts/students', authenticateJWT, (req, res) => {
+    router.get('/api/transcripts/students', authenticateJWT, (req, res, next) => {
         let q = 'SELECT s.id, s.name FROM students s WHERE s.academy_id = $1';
         let params = [req.user.academy_id];
 
@@ -128,7 +128,7 @@ module.exports = function makeTranscriptsRouter(io) {
         });
     });
 
-    router.post('/api/transcripts/process', authenticateJWT, pdfUpload.single('file'), async (req, res) => {
+    router.post('/api/transcripts/process', authenticateJWT, pdfUpload.single('file'), async (req, res, next) => {
         try {
             const { student_id } = req.body;
             let transcript_text = req.body.transcript_text || '';
@@ -221,13 +221,12 @@ ${transcriptForAI}`;
 
             res.json(jsonContent);
         } catch (err) {
-            console.error('Transcript error:', err);
-            res.status(500).json({ error: 'Error procesando la transcripción', details: err.message });
+            next(err);
         }
     });
 
 
-    router.post('/api/transcripts/send-to-chat', authenticateJWT, async (req, res) => {
+    router.post('/api/transcripts/send-to-chat', authenticateJWT, async (req, res, next) => {
         try {
             const sender_id = req.user.id || req.user.userId;
             const { student_id, summary } = req.body;
@@ -367,7 +366,7 @@ ${transcriptForAI}`;
         }
     });
 
-    router.get('/api/transcripts/history', authenticateJWT, (req, res) => {
+    router.get('/api/transcripts/history', authenticateJWT, (req, res, next) => {
         let q = `
             SELECT t.id, t.created_at, t.processed_json, t.student_id, s.name as student_name
             FROM transcripts t

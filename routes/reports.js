@@ -11,9 +11,9 @@ const { authenticateJWT }                      = require('../middleware/auth');
 const { requireStudent, requireTeacherOrAdmin } = require('../middleware/roles');
 const { createNotification }                   = require('../notifications');
 
-router.get('/student/reports', authenticateJWT, requireStudent, (req, res) => {
+router.get('/student/reports', authenticateJWT, requireStudent, (req, res, next) => {
     db.query('SELECT * FROM reports WHERE student_id = (SELECT id FROM students WHERE user_id = $1) ORDER BY year DESC, month DESC', [req.user.id], (err, result) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) return next(err);
         const rows = result.rows;
         const monthsNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
         const formatted = rows.map(r => ({
@@ -25,7 +25,7 @@ router.get('/student/reports', authenticateJWT, requireStudent, (req, res) => {
     });
 });
 
-router.get('/reports/student/:id', authenticateJWT, async (req, res) => {
+router.get('/reports/student/:id', authenticateJWT, async (req, res, next) => {
     try {
         // Verify student belongs to the caller's academy
         const ownershipQ = req.user.role === 'student'
@@ -37,12 +37,12 @@ router.get('/reports/student/:id', authenticateJWT, async (req, res) => {
         const monthsNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
         res.json(result.rows.map(r => ({ ...r, monthName: monthsNames[r.month - 1], url: r.file_url })));
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 });
 
 // AI Report Generation
-router.post('/generate-report', authenticateJWT, requireTeacherOrAdmin, async (req, res) => {
+router.post('/generate-report', authenticateJWT, requireTeacherOrAdmin, async (req, res, next) => {
     try {
         const { student_id, studentId, month, year, observations, send_email, sendEmail } = req.body;
         const sid = student_id || studentId;
@@ -202,7 +202,7 @@ router.post('/generate-report', authenticateJWT, requireTeacherOrAdmin, async (r
 
     } catch (err) {
         console.error('[Report] Error:', err.message);
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 });
 

@@ -13,7 +13,7 @@ const { requireStudent, requireTeacherOrAdmin } = require('../middleware/roles')
 
 const isPostgres = db.isPostgres;
 
-router.post('/api/ai-tutor/extract-pdf', authenticateJWT, async (req, res) => {
+router.post('/api/ai-tutor/extract-pdf', authenticateJWT, async (req, res, next) => {
     const uploadMem = multer({
         storage: multer.memoryStorage(),
         limits: { fileSize: 10 * 1024 * 1024 }
@@ -35,7 +35,7 @@ router.post('/api/ai-tutor/extract-pdf', authenticateJWT, async (req, res) => {
     });
 });
 
-router.post('/api/ai-tutor/chat', authenticateJWT, async (req, res) => {
+router.post('/api/ai-tutor/chat', authenticateJWT, async (req, res, next) => {
     const { messages: rawMessages, conversationId: clientConversationId } = req.body;
     console.log('[ai-tutor/chat] user:', req.user?.id, 'role:', req.user?.role, 'academy_id:', req.user?.academy_id);
     console.log('[ai-tutor/chat] GROQ_API_KEY set:', !!process.env.GROQ_API_KEY);
@@ -121,7 +121,7 @@ router.post('/api/ai-tutor/chat', authenticateJWT, async (req, res) => {
     }
 });
 
-router.get('/api/ai-tutor/history', authenticateJWT, async (req, res) => {
+router.get('/api/ai-tutor/history', authenticateJWT, async (req, res, next) => {
   try {
     const convResult = await db.query(
       'SELECT id FROM ai_conversations WHERE user_id = $1 AND academy_id = $2 ORDER BY created_at DESC LIMIT 1',
@@ -141,7 +141,7 @@ router.get('/api/ai-tutor/history', authenticateJWT, async (req, res) => {
   }
 });
 
-router.post('/api/ai-tutor/generate-pdf', authenticateJWT, (req, res) => {
+router.post('/api/ai-tutor/generate-pdf', authenticateJWT, (req, res, next) => {
     try {
         const { text } = req.body;
         const doc = new PDFDocument();
@@ -165,7 +165,7 @@ router.post('/api/ai-tutor/generate-pdf', authenticateJWT, (req, res) => {
     }
 });
 
-router.post('/api/exam-simulator/generate', authenticateJWT, requireStudent, async (req, res) => {
+router.post('/api/exam-simulator/generate', authenticateJWT, requireStudent, async (req, res, next) => {
     try {
         const { topic, difficulty, numQuestions, course } = req.body;
         const prompt = `Genera un examen de ${topic} para ${course} con ${numQuestions} preguntas de nivel ${difficulty}.
@@ -207,56 +207,56 @@ router.post('/api/exam-simulator/generate', authenticateJWT, requireStudent, asy
     }
 });
 
-router.get('/api/ai/conversations', authenticateJWT, async (req, res) => {
+router.get('/api/ai/conversations', authenticateJWT, async (req, res, next) => {
     try {
         const result = await db.query('SELECT * FROM ai_conversations WHERE user_id = $1 AND academy_id = $2 ORDER BY COALESCE(is_pinned, FALSE) DESC, updated_at DESC', [req.user.id, req.user.academy_id]);
         res.json(result.rows || []);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 });
 
 // Create new conversation
-router.post('/api/ai/conversations', authenticateJWT, (req, res) => {
+router.post('/api/ai/conversations', authenticateJWT, (req, res, next) => {
     const { title } = req.body;
     const sql = isPostgres
         ? 'INSERT INTO ai_conversations (user_id, title) VALUES ($1, $2) RETURNING id'
         : 'INSERT INTO ai_conversations (user_id, title) VALUES ($1, $2)';
     db.query(sql, [req.user.id, title || 'Nueva conversación'], (err, result) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) return next(err);
         const id = isPostgres ? result.rows[0].id : result.lastID;
         res.json({ id });
     });
 });
 
 // Pin conversation
-router.put('/api/ai/conversations/:id/pin', authenticateJWT, (req, res) => {
+router.put('/api/ai/conversations/:id/pin', authenticateJWT, (req, res, next) => {
     const { is_pinned } = req.body;
     db.query('UPDATE ai_conversations SET is_pinned = $1 WHERE id = $2 AND user_id = $3', [is_pinned ? 1 : 0, req.params.id, req.user.id], (err) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) return next(err);
         res.json({ success: true });
     });
 });
 
 // Get messages for a conversation
-router.get('/api/ai/conversations/:id/messages', authenticateJWT, async (req, res) => {
+router.get('/api/ai/conversations/:id/messages', authenticateJWT, async (req, res, next) => {
     try {
         const ownerCheck = await db.query('SELECT id FROM ai_conversations WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
         if (!ownerCheck.rows.length) return res.status(403).json({ error: 'Acceso denegado' });
         const result = await db.query('SELECT * FROM ai_messages WHERE conversation_id = $1 ORDER BY created_at ASC', [req.params.id]);
         res.json(result.rows || []);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 });
 
 // Save message to conversation
-router.post('/api/ai/conversations/:id/messages', authenticateJWT, (req, res) => {
+router.post('/api/ai/conversations/:id/messages', authenticateJWT, (req, res, next) => {
     const { role, content } = req.body;
     const conversationId = req.params.id;
 
     db.query('INSERT INTO ai_messages (conversation_id, role, content) VALUES ($1, $2, $3)', [conversationId, role, content], (err) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) return next(err);
 
         // Update conversation title if it's the first message and update updated_at
         db.query('SELECT COUNT(*) as count FROM ai_messages WHERE conversation_id = $1', [conversationId], (err, countRes) => {
@@ -273,16 +273,16 @@ router.post('/api/ai/conversations/:id/messages', authenticateJWT, (req, res) =>
 });
 
 // Delete conversation
-router.delete('/api/ai/conversations/:id', authenticateJWT, (req, res) => {
+router.delete('/api/ai/conversations/:id', authenticateJWT, (req, res, next) => {
     db.query('DELETE FROM ai_messages WHERE conversation_id = $1', [req.params.id], () => {
         db.query('DELETE FROM ai_conversations WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id], (err) => {
-            if (err) return res.status(500).json({ error: err.message });
+            if (err) return next(err);
             res.json({ success: true });
         });
     });
 });
 
-router.post('/api/help-assistant/chat', authenticateJWT, async (req, res) => {
+router.post('/api/help-assistant/chat', authenticateJWT, async (req, res, next) => {
   try {
     const { message, conversationHistory = [] } = req.body;
     const role = req.user.role;
