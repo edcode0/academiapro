@@ -116,11 +116,30 @@ const initCrons = require('./cron');
 const PORT = process.env.PORT || 3000;
 
 
+// Required when behind a reverse proxy (Railway) so secure cookies and req.ip work correctly
+if (process.env.NODE_ENV === 'production') {
+    app.set('trust proxy', 1);
+}
+
 const allowedOrigins = process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(',')
     : ['http://localhost:3000'];
 app.use(cors({ origin: allowedOrigins, credentials: true }));
-app.use(helmet({ contentSecurityPolicy: false }));
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "cdnjs.cloudflare.com", "cdn.jsdelivr.net"],
+      styleSrc: ["'self'", "'unsafe-inline'", "fonts.googleapis.com", "cdnjs.cloudflare.com", "cdn.jsdelivr.net"],
+      fontSrc: ["'self'", "fonts.gstatic.com", "cdnjs.cloudflare.com"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'", "ws:", "wss:"],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      upgradeInsecureRequests: [],
+    },
+  },
+}));
 
 const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false });
 const registerLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false });
@@ -135,7 +154,27 @@ app.use('/api/ai-tutor', aiLimiter);
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(session({ secret: process.env.SESSION_SECRET || 'academia-secret-change-in-prod', resave: false, saveUninitialized: false }));
+// Session secret: fail-fast in production; ephemeral random in dev to avoid blocking local work
+let sessionSecret = process.env.SESSION_SECRET;
+if (!sessionSecret) {
+    if (process.env.NODE_ENV === 'production') {
+        console.error('[FATAL] SESSION_SECRET must be set in production');
+        process.exit(1);
+    }
+    sessionSecret = require('crypto').randomBytes(32).toString('hex');
+    console.warn('[WARN] SESSION_SECRET not set — using ephemeral dev secret. Sessions reset on restart.');
+}
+app.use(session({
+    secret: sessionSecret,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 24 * 60 * 60 * 1000
+    }
+}));
 app.use(passport.initialize());
 app.use(passport.session());
 app.use(calendarRouter);
