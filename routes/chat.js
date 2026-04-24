@@ -91,25 +91,6 @@ module.exports = function makeChatRouter(io) {
         });
     });
 
-    router.get('/api/chat/messages/:userId', authenticateJWT, async (req, res) => {
-        try {
-            const sql = `
-                SELECT m.*, u.name as sender_name
-                FROM messages m
-                LEFT JOIN users u ON u.id = m.sender_id
-                WHERE m.academy_id = $3
-                  AND ((m.sender_id = $1 AND m.receiver_id = $2)
-                    OR (m.sender_id = $2 AND m.receiver_id = $1))
-                ORDER BY m.created_at ASC
-                LIMIT 100
-            `;
-            const msgs = await db.query(sql, [req.user.id, req.params.userId, req.user.academy_id]);
-            res.json(msgs.rows || []);
-        } catch (e) {
-            res.status(500).json({ error: e.message });
-        }
-    });
-
     // Admin backwards compatibility alias
     router.get('/api/chat/conversations', authenticateJWT, (req, res) => {
         res.redirect('/api/chat/rooms');

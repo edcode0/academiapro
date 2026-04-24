@@ -63,11 +63,47 @@ Plan 5 fases tras auditoría estática de Codex. Todos los hallazgos verificados
 | 4 — Error sanitization | Middleware central, migrar ~125 `err.message → next(err)` | ⏳ |
 | 5 — Verificación dirigida | Tests smoke para cada hallazgo + arreglar runner JWT→cookies | ⏳ |
 
-## DEUDA — Smoke tests rotos desde commit JWT→cookies (51fea5b)
+## DEUDA — Smoke tests rotos desde commit JWT→cookies (51fea5b) [PARA CODEX]
 
-El test runner en `tests/smoke*.js` extrae `data.token` del body y lo pasa como `Authorization: Bearer`. Tras migrar el login a cookies httpOnly, el body ya no contiene `token` → 27/41 checks fallan con 401. No es regresión, es que el runner quedó obsoleto.
+### Contexto
+El commit 51fea5b migró el login de devolver JWT en el body a setear cookie httpOnly `token`. El runner `tests/smoke.js` quedó asumiendo `r.body.token`, que ahora siempre es `null`. Resultado: 27/41 checks fallan con 401 porque las llamadas autenticadas van sin token.
 
-**Fix requerido:** cambiar el runner a usar cookie jar (axios `withCredentials` o manejo manual de `Set-Cookie`). Tocar solo cuando llegue Fase 5.
+### Evidencia
+- Login endpoints en `routes/auth.js` hacen `res.cookie('token', jwt, {...})` y devuelven solo `{ user: {...} }` (sin `token`).
+- Middleware `middleware/auth.js:12` lee exclusivamente `req.cookies.token`.
+- Runner `tests/smoke.js`:
+  - L39-42: declara `ownerToken/studentToken/teacherToken/joinStuToken`.
+  - L53: helper `request(method, urlPath, { body, token })` que en L66-68 pone `Authorization: Bearer ${token}`.
+  - L175, 209, 292, 309: `ownerToken = r.body?.token ?? null` — siempre null ahora.
+
+### Fix requerido
+Reemplazar el modo `Authorization: Bearer` por un cookie jar mínimo:
+
+1. En el helper `request` (L53):
+   - Aceptar `cookie` en lugar/además de `token`: `function request(method, urlPath, { body, cookie } = {})`
+   - Si `cookie` presente, setear `headers['Cookie'] = cookie`
+   - Devolver también `setCookie: res.headers['set-cookie']` en el resolve (L85)
+
+2. Parser de cookie tras login (después de L175 y equivalentes):
+   ```js
+   const setCookies = r.setCookie || [];
+   const tokenCookie = setCookies.find(c => c.startsWith('token='));
+   ownerCookie = tokenCookie ? tokenCookie.split(';')[0] : null; // "token=eyJ..."
+   ```
+
+3. Renombrar variables: `ownerToken → ownerCookie` (y equivalentes). En cada llamada autenticada pasar `{ cookie: ownerCookie }` en vez de `{ token: ownerToken }`.
+
+4. Labels de asserts: "Owner JWT received" → "Owner session cookie received".
+
+### Ubicaciones a tocar en tests/smoke.js
+- L53-98: helper `request` (añadir soporte cookie + devolver setCookie)
+- L39-42: renombrar variables
+- L175, 181, 209, 218, 232, 235, 239, 244, 252, 264, 293, 310, 329, 335, 340, 349, 358, 373, 381, 387+: cambiar `token: xToken` → `cookie: xCookie`
+- L175, 209, 292, 309: cambiar extracción `r.body?.token` → parsing de `set-cookie`
+
+### Criterio de éxito
+- `npm run test:smoke` → ≥56/64 (baseline anterior). Los 8 restantes son Groq restringido en test env, esperados.
+- No tocar el servidor ni el middleware. Solo `tests/smoke.js`.
 
 ---
 

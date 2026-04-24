@@ -207,8 +207,7 @@ router.post('/api/auth/join', async (req, res) => {
         if (invite_token) {
             // Invite link flow: re-validate token from DB — never trust client role/academy_id
             const inviteResult = await db.query(
-                `SELECT il.role, il.academy_id, a.name, a.teacher_code, a.student_code,
-                        a.id, a.subscription_status
+                `SELECT il.role, il.academy_id, a.name, a.teacher_code, a.student_code, a.id
                  FROM invitation_links il
                  JOIN academies a ON a.id = il.academy_id
                  WHERE il.token = $1 AND il.expires_at > NOW()`,

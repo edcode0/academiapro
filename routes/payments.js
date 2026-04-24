@@ -125,17 +125,17 @@ router.get('/api/teacher-payments', authenticateJWT, requireAdmin, (req, res) =>
                     const hours = indivHours + groupHours;
                     const totalAmount = parseFloat(((indivHours * (teacher.hourly_rate || 0)) + (groupHours * (teacher.group_hourly_rate || 0))).toFixed(2));
 
-                    db.query('SELECT id, status FROM teacher_payments WHERE teacher_id = $1 AND month = $2 AND year = $3',
-                        [teacher.id, month, year], (err, pRes) => {
+                    db.query('SELECT id, paid FROM teacher_payments WHERE teacher_id = $1 AND academy_id = $2 AND month = $3 AND year = $4',
+                        [teacher.id, acadId, month, year], (err, pRes) => {
                             const existing = pRes && pRes.rows && pRes.rows[0];
                             if (existing) {
-                                if (existing.status !== 'paid') {
-                                    db.query('UPDATE teacher_payments SET hours = $1, hourly_rate = $2, total_amount = $3 WHERE id = $4',
-                                        [hours, teacher.hourly_rate || 0, totalAmount, existing.id]);
+                                if (!existing.paid) {
+                                    db.query('UPDATE teacher_payments SET hours = $1, hourly_rate = $2, total_amount = $3 WHERE id = $4 AND academy_id = $5',
+                                        [hours, teacher.hourly_rate || 0, totalAmount, existing.id, acadId]);
                                 }
                             } else {
-                                db.query('INSERT INTO teacher_payments (teacher_id, month, year, hours, hourly_rate, total_amount) VALUES ($1, $2, $3, $4, $5, $6)',
-                                    [teacher.id, month, year, hours, teacher.hourly_rate || 0, totalAmount]);
+                                db.query('INSERT INTO teacher_payments (teacher_id, academy_id, month, year, hours, hourly_rate, total_amount) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+                                    [teacher.id, acadId, month, year, hours, teacher.hourly_rate || 0, totalAmount]);
                             }
 
                             processed++;
@@ -156,7 +156,7 @@ router.get('/api/teacher-payments', authenticateJWT, requireAdmin, (req, res) =>
 
 router.post('/api/teacher-payments/:id/pay', authenticateJWT, requireAdmin, (req, res) => {
     const today = new Date().toISOString().split('T')[0];
-    db.query("UPDATE teacher_payments SET status = 'paid', paid_at = $1 WHERE id = $2 AND academy_id = $3", [today, req.params.id, req.user.academy_id], (err) => {
+    db.query('UPDATE teacher_payments SET paid = 1, paid_at = $1 WHERE id = $2 AND academy_id = $3', [today, req.params.id, req.user.academy_id], (err) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ success: true });
     });

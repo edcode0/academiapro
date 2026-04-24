@@ -190,24 +190,32 @@ router.delete('/api/admin/teachers/:id/unassign-student/:studentId', authenticat
 });
 
 // POST mark teacher month as paid
-router.post('/api/admin/teachers/:id/mark-paid', authenticateJWT, requireAdmin, (req, res) => {
-    const { month, year, hours, hourly_rate, total } = req.body;
-    const checkSQL = 'SELECT id FROM teacher_payments WHERE teacher_id = $1 AND month = $2 AND year = $3';
-    db.query(checkSQL, [req.params.id, month, year], (err, r) => {
-        if (r?.rows[0]) {
-            db.query('UPDATE teacher_payments SET status = \'paid\', paid_date = $1, hours = $2, hourly_rate = $3, total = $4 WHERE id = $5',
-                [new Date().toISOString().split('T')[0], hours, hourly_rate, total, r.rows[0].id], (err) => {
-                    if (err) return res.status(500).json({ error: err.message });
-                    res.json({ success: true });
-                });
+router.post('/api/admin/teachers/:id/mark-paid', authenticateJWT, requireAdmin, async (req, res) => {
+    try {
+        const { month, year, hours, hourly_rate, total } = req.body;
+        const today = new Date().toISOString().split('T')[0];
+
+        const existing = await db.query(
+            'SELECT id FROM teacher_payments WHERE teacher_id = $1 AND academy_id = $2 AND month = $3 AND year = $4',
+            [req.params.id, req.user.academy_id, month, year]
+        );
+
+        if (existing.rows?.[0]) {
+            await db.query(
+                'UPDATE teacher_payments SET paid = 1, paid_at = $1, hours = $2, hourly_rate = $3, total_amount = $4 WHERE id = $5 AND academy_id = $6',
+                [today, hours, hourly_rate, total, existing.rows[0].id, req.user.academy_id]
+            );
         } else {
-            db.query('INSERT INTO teacher_payments (teacher_id, academy_id, month, year, hours, hourly_rate, total, status, paid_date) VALUES ($1, $2, $3, $4, $5, $6, $7, \'paid\', $8)',
-                [req.params.id, req.user.academy_id, month, year, hours, hourly_rate, total, new Date().toISOString().split('T')[0]], (err) => {
-                    if (err) return res.status(500).json({ error: err.message });
-                    res.json({ success: true });
-                });
+            await db.query(
+                'INSERT INTO teacher_payments (teacher_id, academy_id, month, year, hours, hourly_rate, total_amount, paid, paid_at) VALUES ($1, $2, $3, $4, $5, $6, $7, 1, $8)',
+                [req.params.id, req.user.academy_id, month, year, hours, hourly_rate, total, today]
+            );
         }
-    });
+        res.json({ success: true });
+    } catch (err) {
+        console.error('[Teachers] mark-paid error:', err.message);
+        res.status(500).json({ error: 'Error al marcar pago' });
+    }
 });
 
 router.delete('/api/admin/teachers/:id', authenticateJWT, requireAdmin, (req, res) => {
