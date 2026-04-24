@@ -7,7 +7,8 @@
     "start": "node index.js",
     "dev": "node --watch index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "test:smoke": "node tests/smoke.js"
+    "test:smoke": "node tests/smoke.js",
+    "test:socket-authz": "node tests/socket-authz.js"
   },
   "keywords": [],
   "author": "",
@@ -37,5 +38,8 @@
     "resend": "^6.9.2",
     "socket.io": "^4.8.3",
     "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.3"
   }
 }
