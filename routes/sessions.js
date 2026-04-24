@@ -177,13 +177,19 @@ router.put('/api/sessions/:id', authenticateJWT, requireTeacherOrAdmin, async (r
 
 router.delete('/api/sessions/:id', authenticateJWT, requireTeacherOrAdmin, async (req, res) => {
     try {
-        // Get the session first to find its slot_id
+        const isTeacher = req.user.role === 'teacher';
+        // Teachers can only delete sessions of their own students; admins scope by academy
+        const scopeSql = `student_id IN (SELECT id FROM students WHERE academy_id=$2${isTeacher ? ' AND assigned_teacher_id=$3' : ''})`;
+        const scopeParams = isTeacher
+            ? [req.params.id, req.user.academy_id, req.user.id]
+            : [req.params.id, req.user.academy_id];
+
         const sessionRes = await db.query(
-            'SELECT * FROM sessions WHERE id=$1 AND student_id IN (SELECT id FROM students WHERE academy_id=$2)',
-            [req.params.id, req.user.academy_id]
+            `SELECT * FROM sessions WHERE id=$1 AND ${scopeSql}`,
+            scopeParams
         );
         const session = sessionRes.rows[0];
-        if (!session) return res.json({ success: true }); // already gone
+        if (!session) return res.json({ success: true }); // already gone or not owned
 
         // If session has a slot, clean up the slot
         if (session.slot_id) {
@@ -202,10 +208,9 @@ router.delete('/api/sessions/:id', authenticateJWT, requireTeacherOrAdmin, async
             }
         }
 
-        // Delete the session — re-scope by academy_id to prevent cross-tenant delete
         await db.query(
-            'DELETE FROM sessions WHERE id=$1 AND student_id IN (SELECT id FROM students WHERE academy_id=$2)',
-            [req.params.id, req.user.academy_id]
+            `DELETE FROM sessions WHERE id=$1 AND ${scopeSql}`,
+            scopeParams
         );
         res.json({ success: true });
     } catch (err) {

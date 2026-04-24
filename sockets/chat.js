@@ -21,14 +21,36 @@ module.exports = function initChatSocket(io) {
         socket.join(`academy_${user.academy_id}`);
         socket.join(`user_${user.id}`);
 
-        socket.on('join_rooms', (roomIds) => {
+        // Tenant-scoped membership check: ensures user is in room_members AND room belongs to their academy
+        const isRoomMember = async (roomId) => {
+            if (roomId == null || !Number.isFinite(+roomId)) return false;
+            const result = await db.query(
+                `SELECT 1 FROM room_members rm
+                 JOIN rooms r ON r.id = rm.room_id
+                 WHERE rm.room_id = $1 AND rm.user_id = $2 AND r.academy_id = $3`,
+                [+roomId, user.id, user.academy_id]
+            );
+            return (result.rows || []).length > 0;
+        };
+
+        socket.on('join_rooms', async (roomIds) => {
             if (!Array.isArray(roomIds)) return;
-            roomIds.forEach(roomId => socket.join(`room_${roomId}`));
-            console.log('User', user.id, 'joined rooms:', roomIds);
+            const allowed = [];
+            for (const roomId of roomIds) {
+                if (await isRoomMember(roomId)) {
+                    socket.join(`room_${roomId}`);
+                    allowed.push(roomId);
+                }
+            }
+            console.log('User', user.id, 'joined rooms:', allowed);
         });
 
-        socket.on('join_room', (roomId) => {
-            socket.join(`room_${roomId}`);
+        socket.on('join_room', async (roomId) => {
+            if (await isRoomMember(roomId)) {
+                socket.join(`room_${roomId}`);
+            } else {
+                socket.emit('error', { message: 'Not a member of this room' });
+            }
         });
 
         socket.on('sendMessage', async ({ roomId, content, tempId }) => {
@@ -36,11 +58,7 @@ module.exports = function initChatSocket(io) {
             try {
                 if (!roomId || !content?.trim()) return;
 
-                const memberCheck = await db.query(
-                    'SELECT 1 FROM room_members WHERE room_id = $1 AND user_id = $2',
-                    [roomId, user.id]
-                );
-                if (!memberCheck.rows.length) {
+                if (!(await isRoomMember(roomId))) {
                     console.log('User', user.id, 'not member of room', roomId);
                     socket.emit('error', { message: 'Not a member of this room' });
                     return;
@@ -80,7 +98,8 @@ module.exports = function initChatSocket(io) {
             }
         });
 
-        socket.on('typing', ({ roomId }) => {
+        socket.on('typing', async ({ roomId }) => {
+            if (!(await isRoomMember(roomId))) return;
             socket.to(`room_${roomId}`).emit('typing', {
                 userId: user.id,
                 userName: user.name

@@ -151,7 +151,16 @@ router.post('/api/calendar/meet', authenticateJWT, requireTeacherOrAdmin, async 
 router.delete('/api/calendar/slots/:id', authenticateJWT, async (req, res) => {
     if (req.user.role === 'student') return res.status(403).json({ error: 'Access denied' });
     try {
-        const slotRes = await db.query('SELECT * FROM available_slots WHERE id = $1 AND academy_id = $2', [req.params.id, req.user.academy_id]);
+        const isTeacher = req.user.role === 'teacher';
+        // Teachers can only delete their own slots; admins scope by academy
+        const whereSql = isTeacher
+            ? 'id = $1 AND academy_id = $2 AND teacher_id = $3'
+            : 'id = $1 AND academy_id = $2';
+        const params = isTeacher
+            ? [req.params.id, req.user.academy_id, req.user.id]
+            : [req.params.id, req.user.academy_id];
+
+        const slotRes = await db.query(`SELECT * FROM available_slots WHERE ${whereSql}`, params);
         const slot = slotRes.rows[0];
         if (!slot) return res.status(404).json({ error: 'Slot not found' });
 
@@ -162,16 +171,15 @@ router.delete('/api/calendar/slots/:id', authenticateJWT, async (req, res) => {
             sessionsDeleted = delSessions.rowCount || 0;
         }
 
-        // Delete from Google Calendar (non-blocking)
+        // Delete from Google Calendar (non-blocking) — use slot owner's tokens, not requester's
         if (slot.google_event_id) {
-            const teacherRes = await db.query('SELECT calendar_access_token, calendar_refresh_token FROM users WHERE id = $1', [req.user.id]);
+            const teacherRes = await db.query('SELECT calendar_access_token, calendar_refresh_token FROM users WHERE id = $1', [slot.teacher_id]);
             deleteCalendarEvent(teacherRes.rows[0], slot.google_event_id).catch(e =>
                 console.error('[Calendar] Delete event error:', e.message)
             );
         }
 
-        // Delete the slot
-        await db.query('DELETE FROM available_slots WHERE id = $1 AND academy_id = $2', [req.params.id, req.user.academy_id]);
+        await db.query(`DELETE FROM available_slots WHERE ${whereSql}`, params);
         res.json({ success: true, sessionsDeleted });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -179,20 +187,36 @@ router.delete('/api/calendar/slots/:id', authenticateJWT, async (req, res) => {
 });
 
 // Teacher assigns a student to a free slot
-router.put('/api/calendar/slots/:id', authenticateJWT, requireTeacherOrAdmin, (req, res) => {
-    const { student_id, is_booked } = req.body;
-    const slotWhere = req.user.role === 'admin'
-        ? 'WHERE id = $3 AND academy_id = $4'
-        : 'WHERE id = $3 AND teacher_id = $4';
-    const slotParam = req.user.role === 'admin' ? req.user.academy_id : req.user.id;
-    db.query(
-        `UPDATE available_slots SET student_id = $1, is_booked = $2 ${slotWhere}`,
-        [student_id, is_booked, req.params.id, slotParam],
-        (err) => {
-            if (err) return res.status(500).json({ error: err.message });
-            res.json({ success: true });
+router.put('/api/calendar/slots/:id', authenticateJWT, requireTeacherOrAdmin, async (req, res) => {
+    try {
+        const { student_id, is_booked } = req.body;
+        const isTeacher = req.user.role === 'teacher';
+
+        // Validate student_id belongs to the academy (and to the teacher, if teacher role)
+        if (student_id != null) {
+            const studentCheck = await db.query(
+                `SELECT id FROM students WHERE id = $1 AND academy_id = $2${isTeacher ? ' AND assigned_teacher_id = $3' : ''}`,
+                isTeacher ? [student_id, req.user.academy_id, req.user.id] : [student_id, req.user.academy_id]
+            );
+            if (!studentCheck.rows.length) {
+                return res.status(400).json({ error: 'Invalid student' });
+            }
         }
-    );
+
+        const slotWhere = isTeacher
+            ? 'WHERE id = $3 AND teacher_id = $4'
+            : 'WHERE id = $3 AND academy_id = $4';
+        const slotParam = isTeacher ? req.user.id : req.user.academy_id;
+
+        await db.query(
+            `UPDATE available_slots SET student_id = $1, is_booked = $2 ${slotWhere}`,
+            [student_id, is_booked, req.params.id, slotParam]
+        );
+        res.json({ success: true });
+    } catch (err) {
+        console.error('[Calendar] Update slot error:', err.message);
+        res.status(500).json({ error: 'Error updating slot' });
+    }
 });
 
 // Student books a slot
