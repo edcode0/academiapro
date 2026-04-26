@@ -15,3 +15,5 @@
 [2026-04-21] | El catch genérico en routes/ai.js exponía `e.message` de Groq directamente al usuario ("Organization has been restricted..."). | Los errores de APIs externas (Groq, Resend, Google) nunca deben llegar al cliente. Usar un catch específico para la llamada externa y devolver 503 con mensaje amigable.
 
 [2026-04-21] | El todo.md acumuló planes de sesiones de marzo mezclados con el plan de refactor activo, con números de línea obsoletos. | Separar el todo.md en secciones: "Activo" (con estado real) y "Archivo" (planes históricos). Actualizar líneas y métricas tras cada sesión de trabajo.
+
+[2026-04-26] | Helmet 6+ aplica `script-src-attr 'none'` por defecto aunque `script-src` permita `'unsafe-inline'`. Esto bloqueó todos los `onclick=""` de login.html (y de los otros 27 HTML), impidiendo el acceso a la academia. | Al configurar Helmet CSP, declarar `scriptSrcAttr` explícitamente — heredar el default es romper inline handlers. Si el proyecto usa inline handlers (28 HTML), `scriptSrcAttr` debe igualar `scriptSrc`.
