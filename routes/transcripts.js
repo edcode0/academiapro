@@ -216,8 +216,7 @@ ${transcriptForAI}`;
                 ? 'INSERT INTO transcripts (academy_id, teacher_id, student_id, raw_text, processed_json) VALUES ($1, $2, $3, $4, $5)'
                 : 'INSERT INTO transcripts (academy_id, teacher_id, student_id, raw_text, processed_json) VALUES ($1, $2, $3, $4, $5)';
 
-            await db.query(insertSql, [req.user.academy_id, ['teacher', 'admin'].includes(req.user.role) ? req.user.id : null, student_id, transcript_text.substring(0, 5000), JSON.stringify(jsonContent)])
-                .catch(err => console.error('[Transcript] History save failed:', err.message));
+            await db.query(insertSql, [req.user.academy_id, ['teacher', 'admin'].includes(req.user.role) ? req.user.id : null, student_id, transcript_text.substring(0, 5000), JSON.stringify(jsonContent)]);
 
             res.json(jsonContent);
         } catch (err) {

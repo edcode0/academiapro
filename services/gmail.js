@@ -36,10 +36,22 @@ module.exports = function makeGmailService(io) {
             ? Math.floor(new Date(teacher.gmail_last_check).getTime() / 1000)
             : Math.floor(Date.now() / 1000) - 86400;
 
-        const searchQuery = `(from:meet-recordings-noreply@google.com OR subject:"Transcripción de" OR subject:"Transcript of") after:${lastCheck}`;
+        // Include transcript_email alias if configured (so emails sent to that address are found)
+        const emailFilter = teacher.transcript_email ? ` OR to:${teacher.transcript_email}` : '';
+        const searchQuery = `(from:meet-recordings-noreply@google.com OR subject:"Transcripción de" OR subject:"Transcript of"${emailFilter}) after:${lastCheck}`;
 
-        const messagesRes = await gmail.users.messages.list({ userId: 'me', q: searchQuery, maxResults: 10 });
-        const messages    = messagesRes.data.messages || [];
+        // Paginate through all results so no emails are missed when first page is all duplicates
+        const messages = [];
+        let pageToken;
+        do {
+            const pageRes = await gmail.users.messages.list({
+                userId: 'me', q: searchQuery, maxResults: 50,
+                ...(pageToken && { pageToken })
+            });
+            (pageRes.data.messages || []).forEach(m => messages.push(m));
+            pageToken = pageRes.data.nextPageToken;
+        } while (pageToken && messages.length < 200); // safety cap
+
         if (!messages.length) {
             console.log('[Gmail] No new transcript emails found');
         } else {

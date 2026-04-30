@@ -255,15 +255,26 @@ app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public/login.
 app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'public/register.html')));
 app.get('/join', (req, res) => res.sendFile(path.join(__dirname, 'public/join.html')));
 app.get('/auth-success', (req, res) => res.sendFile(path.join(__dirname, 'public', 'auth-success.html')));
-app.get('/teacher', (req, res) => res.sendFile(path.join(__dirname, 'public', 'teacher_dashboard.html')));
-app.get('/teacher/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'teacher_dashboard.html')));
-app.get('/teacher/sessions', (req, res) => res.sendFile(path.join(__dirname, 'public', 'teacher_sessions.html')));
-app.get('/teacher/exams', (req, res) => res.sendFile(path.join(__dirname, 'public', 'teacher_exams.html')));
-app.get('/teacher/students', (req, res) => res.sendFile(path.join(__dirname, 'public', 'teacher_dashboard.html')));
-app.get('/teacher/calendar', (req, res) => res.sendFile(path.join(__dirname, 'public', 'teacher_calendar.html')));
-app.get('/teacher/chat', (req, res) => res.sendFile(path.join(__dirname, 'public', 'chat.html')));
-app.get('/teacher/settings', (req, res) => res.sendFile(path.join(__dirname, 'public', 'teacher_settings.html')));
-app.get('/teacher/transcripts', (req, res) => res.sendFile(path.join(__dirname, 'public', 'transcripts.html')));
+// Page-level auth: redirect to /login instead of returning 401 JSON
+const requireTeacherPage = (req, res, next) => {
+    try {
+        const token = req.cookies?.token;
+        if (!token) return res.redirect('/login');
+        const user = jwt.verify(token, process.env.JWT_SECRET);
+        if (!['teacher', 'admin'].includes(user.role)) return res.redirect('/login');
+        next();
+    } catch { res.redirect('/login'); }
+};
+
+app.get('/teacher', requireTeacherPage, (req, res) => res.sendFile(path.join(__dirname, 'public', 'teacher_dashboard.html')));
+app.get('/teacher/dashboard', requireTeacherPage, (req, res) => res.sendFile(path.join(__dirname, 'public', 'teacher_dashboard.html')));
+app.get('/teacher/sessions', requireTeacherPage, (req, res) => res.sendFile(path.join(__dirname, 'public', 'teacher_sessions.html')));
+app.get('/teacher/exams', requireTeacherPage, (req, res) => res.sendFile(path.join(__dirname, 'public', 'teacher_exams.html')));
+app.get('/teacher/students', requireTeacherPage, (req, res) => res.sendFile(path.join(__dirname, 'public', 'teacher_dashboard.html')));
+app.get('/teacher/calendar', requireTeacherPage, (req, res) => res.sendFile(path.join(__dirname, 'public', 'teacher_calendar.html')));
+app.get('/teacher/chat', requireTeacherPage, (req, res) => res.sendFile(path.join(__dirname, 'public', 'chat.html')));
+app.get('/teacher/settings', requireTeacherPage, (req, res) => res.sendFile(path.join(__dirname, 'public', 'teacher_settings.html')));
+app.get('/teacher/transcripts', requireTeacherPage, (req, res) => res.sendFile(path.join(__dirname, 'public', 'transcripts.html')));
 app.get('/student', (req, res) => res.sendFile(path.join(__dirname, 'public', 'student_portal.html')));
 app.get('/student-portal', (req, res) => res.sendFile(path.join(__dirname, 'public', 'student_portal.html')));
 
