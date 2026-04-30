@@ -50,7 +50,7 @@ module.exports = function makeGmailService(io) {
             });
             (pageRes.data.messages || []).forEach(m => messages.push(m));
             pageToken = pageRes.data.nextPageToken;
-        } while (pageToken && messages.length < 200); // safety cap
+        } while (pageToken); // exhaust all pages — query is already bounded by after:${lastCheck}
 
         if (!messages.length) {
             console.log('[Gmail] No new transcript emails found');
