@@ -353,6 +353,15 @@
             display: none;
             z-index: 2000;
         }
+
+        .spinner {
+            width: 32px; height: 32px; margin: 0 auto;
+            border: 3px solid var(--border);
+            border-top-color: var(--secondary);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
     <link rel="stylesheet" href="/glassmorphism.css">
     <link rel="stylesheet" href="/shared-dashboard.css">

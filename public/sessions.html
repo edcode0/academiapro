@@ -412,6 +412,15 @@
         .toast-success {
             background: var(--success);
         }
+
+        .spinner {
+            width: 32px; height: 32px; margin: 0 auto;
+            border: 3px solid var(--border);
+            border-top-color: var(--secondary);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
     <link rel="stylesheet" href="/glassmorphism.css">
     <link rel="stylesheet" href="/shared-dashboard.css">
@@ -528,6 +537,9 @@
             <input type="month" id="monthFilter" class="month-filter" onchange="filterTable()">
         </div>
 
+        <div id="loading-sessions" class="loading-state" style="text-align:center;padding:2rem;display:none">
+            <div class="spinner"></div>
+        </div>
         <div class="card">
             <table>
                 <thead>
@@ -541,9 +553,7 @@
                         <th>Acciones</th>
                     </tr>
                 </thead>
-                <tbody id="sessionsTableBody">
-                    <!-- Data here -->
-                </tbody>
+                <tbody id="sessionsTableBody"></tbody>
             </table>
         </div>
     </main>
@@ -614,6 +624,7 @@
         }
 
         async function loadSessions() {
+            document.getElementById('loading-sessions').style.display = 'block';
             try {
                 const res = await fetch('/api/sessions-list');
                 const data = await res.json();
@@ -626,7 +637,9 @@
                 document.getElementById('stats-week').textContent = data.stats.sessionsThisWeek;
 
                 renderTable();
-            } catch (err) { console.error(err); }
+            } catch (err) { console.error(err); } finally {
+                document.getElementById('loading-sessions').style.display = 'none';
+            }
         }
 
         function renderTable() {
@@ -669,7 +682,7 @@
                     </td>
                 </tr>
                 `;
-            }).join('') || '<tr><td colspan="7" style="text-align:center; padding: 2rem;">No se encontraron sesiones</td></tr>';
+            }).join('') || `<tr><td colspan="7"><div class="empty-state" style="text-align:center;padding:3rem;color:#6c757d"><p>No hay sesiones todavía.</p></div></td></tr>`;
         }
 
         function filterTable() {

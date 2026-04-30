@@ -59,9 +59,9 @@ Plan 5 fases tras auditoria estatica de Codex. Todos los hallazgos verificados c
 |------|-------|--------|
 | 1 - P0/P1 authz gaps | `sockets/chat.js` (room bypass), `routes/sessions.js` (DELETE teacher filter), `routes/calendar.js` (DELETE+PUT) | ✅ `711aa67` |
 | 2 - Config hardening | `SESSION_SECRET` fail-fast, cookie `httpOnly/secure/sameSite`, `trust proxy` | ✅ |
-| 3 - Schema bugs | `auth.js` (quitar `subscription_status`), `teachers.js` (mark-paid columnas), `chat.js` (ruta legacy `receiver_id`) | ⏳ |
-| 4 - Error sanitization | Middleware central, migrar ~125 `err.message -> next(err)` | ⏳ |
-| 5 - Verificacion dirigida | Tests smoke para cada hallazgo + arreglar runner JWT->cookies | ⏳ |
+| 3 - Schema bugs | `auth.js` (quitar `subscription_status`), `teachers.js` (mark-paid columnas), `chat.js` (ruta legacy `receiver_id`) | ✅ `69869eb` |
+| 4 - Error sanitization | Middleware central, migrar ~125 `err.message -> next(err)` | ✅ `0d0f2f2` |
+| 5 - Verificacion dirigida | Tests smoke para cada hallazgo + arreglar runner JWT->cookies | ✅ `5875e13` + `fb6b51c` |
 
 ## DEUDA - Smoke tests rotos desde commit JWT->cookies (`51fea5b`) [PARA CODEX]
 
