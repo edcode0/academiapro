@@ -227,7 +227,7 @@ ${transcriptForAI}`;
     });
 
 
-    router.post('/api/transcripts/send-to-chat', authenticateJWT, async (req, res, next) => {
+    router.post('/api/transcripts/send-to-chat', authenticateJWT, requireTeacherOrAdmin, async (req, res, next) => {
         try {
             const sender_id = req.user.id || req.user.userId;
             const { student_id, summary } = req.body;
@@ -394,17 +394,25 @@ ${transcriptForAI}`;
                 [student_id, req.user.academy_id]
             );
             if (!studentCheck.rows?.[0]) return res.status(403).json({ error: 'Alumno no pertenece a esta academia' });
-            await db.query(
-                'UPDATE transcripts SET student_id = $1, pending_match = FALSE WHERE id = $2 AND academy_id = $3',
-                [student_id, id, req.user.academy_id]
+            // Teachers can only assign their own pending transcripts
+            const transcriptFilter = req.user.role === 'teacher'
+                ? 'WHERE id = $2 AND academy_id = $3 AND teacher_id = $4'
+                : 'WHERE id = $2 AND academy_id = $3';
+            const params = req.user.role === 'teacher'
+                ? [student_id, id, req.user.academy_id, req.user.id]
+                : [student_id, id, req.user.academy_id];
+            const result = await db.query(
+                `UPDATE transcripts SET student_id = $1, pending_match = FALSE ${transcriptFilter}`,
+                params
             );
+            if ((result.rowCount || 0) === 0) return res.status(403).json({ error: 'Transcripción no encontrada o sin permiso' });
             res.json({ success: true });
         } catch (err) {
             next(err);
         }
     });
 
-    router.get('/api/transcripts/history', authenticateJWT, (req, res, next) => {
+    router.get('/api/transcripts/history', authenticateJWT, requireTeacherOrAdmin, (req, res, next) => {
         let q = `
             SELECT t.id, t.created_at, t.processed_json, t.student_id, s.name as student_name
             FROM transcripts t

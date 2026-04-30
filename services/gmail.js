@@ -47,6 +47,7 @@ module.exports = function makeGmailService(io) {
         }
 
         let processed = 0;
+        let batchEarliestMs = null; // track oldest email in batch for reliable retry
 
         for (const msg of messages) {
             try {
@@ -58,6 +59,8 @@ module.exports = function makeGmailService(io) {
                 }
 
                 const email = await gmail.users.messages.get({ userId: 'me', id: msg.id, format: 'full' });
+                const emailMs = parseInt(email.data.internalDate || '0');
+                if (!batchEarliestMs || emailMs < batchEarliestMs) batchEarliestMs = emailMs;
 
                 function extractText(payload) {
                     if (payload.mimeType === 'text/plain' && payload.body?.data)
@@ -147,7 +150,12 @@ module.exports = function makeGmailService(io) {
                     }
                 }
                 if (!studentUserId) {
-                    console.warn(`[Gmail] No user_id for student ${student.name}, skipping`);
+                    console.warn(`[Gmail] No user_id for student ${student.name} — saving as pending`);
+                    await db.query(
+                        'INSERT INTO transcripts (academy_id, teacher_id, student_id, raw_text, processed_json, gmail_msg_id, pending_match) VALUES ($1, $2, NULL, $3, $4, $5, TRUE)',
+                        [teacher.academy_id, teacher.id, body.substring(0, 5000), JSON.stringify(analysisData), msg.id]
+                    );
+                    processed++;
                     continue;
                 }
 
@@ -227,16 +235,19 @@ module.exports = function makeGmailService(io) {
                 });
 
                 processed++;
-                await db.query(
-                    isPostgres
-                        ? 'UPDATE users SET gmail_last_check=NOW() WHERE id=$1'
-                        : "UPDATE users SET gmail_last_check=datetime('now') WHERE id=$1",
-                    [teacher.id]
-                ).catch(err => console.error('[Gmail] Last check update failed:', err.message));
                 console.log(`[Gmail] Processed transcript for student ${student.name}`);
             } catch (err) {
                 console.error('[Gmail] Error processing email:', err.message);
             }
+        }
+
+        // Update last_check to just before the oldest email in this batch.
+        // Dedup (gmail_msg_id unique index) prevents re-processing successes;
+        // failed emails remain in range for the next cron run.
+        if (batchEarliestMs) {
+            const nextCheck = new Date(batchEarliestMs - 1000).toISOString();
+            await db.query('UPDATE users SET gmail_last_check=$1 WHERE id=$2', [nextCheck, teacher.id])
+                .catch(err => console.error('[Gmail] Last check update failed:', err.message));
         }
 
         return processed;
