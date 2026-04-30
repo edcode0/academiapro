@@ -311,6 +311,41 @@ async function runTests() {
         check('GET /api/transcripts/history -> 200', r.status === 200, `status=${r.status}`);
     });
 
+    await section('Transcripts - authz: student cannot access history', async () => {
+        if (!studentCookie) { warn('No studentCookie - skipping student authz check'); return; }
+        const r = await request('GET', '/api/transcripts/history', { cookie: studentCookie });
+        check('GET /api/transcripts/history as student -> 403', r.status === 403, `status=${r.status}`);
+    });
+
+    await section('Transcripts - authz: student cannot process transcript', async () => {
+        if (!studentCookie || !studentRecordId) { warn('No studentCookie or studentRecordId - skipping'); return; }
+        const r = await request('POST', '/api/transcripts/process', {
+            cookie: studentCookie,
+            body: { student_id: studentRecordId, transcript_text: 'Texto de prueba con suficiente longitud para pasar la validacion minima.' },
+        });
+        check('POST /api/transcripts/process as student -> 403', r.status === 403, `status=${r.status}`);
+    });
+
+    await section('Transcripts - authz: teacher cannot access out-of-scope student', async () => {
+        if (!teacherCookie || !studentRecordId) { warn('No teacherCookie or studentRecordId - skipping'); return; }
+        // Teacher (not assigned to this student) tries to process a transcript for ownerCookie's student
+        const r = await request('POST', '/api/transcripts/process', {
+            cookie: teacherCookie,
+            body: { student_id: studentRecordId, transcript_text: 'Texto de prueba con suficiente longitud para pasar la validacion minima.' },
+        });
+        check('POST /api/transcripts/process as unassigned teacher -> 403', r.status === 403, `status=${r.status}`);
+    });
+
+    await section('Transcripts - authz: teacher cannot send-to-chat for out-of-scope student', async () => {
+        if (!teacherCookie || !studentRecordId) { warn('No teacherCookie or studentRecordId - skipping'); return; }
+        const summary = { resumen: 'test', deberes: [], conceptos_clave: [], pistas_profesor: [], proximos_pasos: [], mensaje_motivador: '' };
+        const r = await request('POST', '/api/transcripts/send-to-chat', {
+            cookie: teacherCookie,
+            body: { student_id: studentRecordId, summary },
+        });
+        check('POST /api/transcripts/send-to-chat as unassigned teacher -> 403 or 404', r.status === 403 || r.status === 404, `status=${r.status}`);
+    });
+
     await section('AI Tutor - conversations CRUD', async () => {
         const list = await request('GET', '/api/ai/conversations', { cookie: ownerCookie });
         check('GET /api/ai/conversations -> 200', list.status === 200, `status=${list.status}`);

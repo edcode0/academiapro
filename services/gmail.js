@@ -241,13 +241,23 @@ module.exports = function makeGmailService(io) {
             }
         }
 
-        // Update last_check to just before the oldest email in this batch.
-        // Dedup (gmail_msg_id unique index) prevents re-processing successes;
-        // failed emails remain in range for the next cron run.
+        // Update last_check:
+        // - If we fetched real emails: set to just before the oldest in the batch.
+        //   Dedup (gmail_msg_id unique index) skips already-processed ones;
+        //   failed emails remain in range for the next cron run.
+        // - If all messages were duplicates (batchEarliestMs still null): advance to
+        //   NOW() to avoid infinite rescanning of the same already-processed range.
         if (batchEarliestMs) {
             const nextCheck = new Date(batchEarliestMs - 1000).toISOString();
             await db.query('UPDATE users SET gmail_last_check=$1 WHERE id=$2', [nextCheck, teacher.id])
                 .catch(err => console.error('[Gmail] Last check update failed:', err.message));
+        } else if (messages.length > 0) {
+            await db.query(
+                isPostgres
+                    ? 'UPDATE users SET gmail_last_check=NOW() WHERE id=$1'
+                    : "UPDATE users SET gmail_last_check=datetime('now') WHERE id=$1",
+                [teacher.id]
+            ).catch(err => console.error('[Gmail] Last check update (all-dups) failed:', err.message));
         }
 
         return processed;

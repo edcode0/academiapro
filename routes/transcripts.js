@@ -164,11 +164,10 @@ module.exports = function makeTranscriptsRouter(io) {
                 return res.status(400).json({ error: 'Se requiere ID de alumno y un texto válido de la clase (mín. 10 caracteres).' });
             }
 
-            const studentCheck = await db.query(
-                'SELECT id FROM students WHERE id = $1 AND academy_id = $2',
-                [student_id, req.user.academy_id]
-            );
-            if (!studentCheck.rows?.[0]) return res.status(403).json({ error: 'Alumno no pertenece a esta academia' });
+            const studentCheck = req.user.role === 'teacher'
+                ? await db.query('SELECT id FROM students WHERE id = $1 AND academy_id = $2 AND assigned_teacher_id = $3', [student_id, req.user.academy_id, req.user.id])
+                : await db.query('SELECT id FROM students WHERE id = $1 AND academy_id = $2', [student_id, req.user.academy_id]);
+            if (!studentCheck.rows?.[0]) return res.status(403).json({ error: 'Alumno no encontrado o no asignado a este profesor' });
 
             // Truncate to ~12 000 chars to stay well within token limits
             const transcriptForAI = transcript_text.substring(0, 12000);
@@ -292,6 +291,16 @@ ${transcriptForAI}`;
                 });
             }
 
+            // Teachers can only message their own assigned students
+            if (req.user.role === 'teacher') {
+                const scopeCheck = await db.query(
+                    "SELECT id FROM students WHERE user_id = $1 AND academy_id = $2 AND assigned_teacher_id = $3",
+                    [studentUserId, academy_id, req.user.id]
+                );
+                if (!(scopeCheck.rows || []).length)
+                    return res.status(403).json({ error: 'Este alumno no está asignado a ti' });
+            }
+
             // Step 2: Find or create direct room between sender and studentUserId
             const sqlFindRoom = `
                 SELECT r.id FROM rooms r
@@ -389,11 +398,10 @@ ${transcriptForAI}`;
         try {
             const { student_id } = req.body;
             const { id } = req.params;
-            const studentCheck = await db.query(
-                'SELECT id FROM students WHERE id = $1 AND academy_id = $2',
-                [student_id, req.user.academy_id]
-            );
-            if (!studentCheck.rows?.[0]) return res.status(403).json({ error: 'Alumno no pertenece a esta academia' });
+            const studentCheck = req.user.role === 'teacher'
+                ? await db.query('SELECT id FROM students WHERE id = $1 AND academy_id = $2 AND assigned_teacher_id = $3', [student_id, req.user.academy_id, req.user.id])
+                : await db.query('SELECT id FROM students WHERE id = $1 AND academy_id = $2', [student_id, req.user.academy_id]);
+            if (!studentCheck.rows?.[0]) return res.status(403).json({ error: 'Alumno no encontrado o no asignado a este profesor' });
             // Teachers can only assign their own pending transcripts
             const transcriptFilter = req.user.role === 'teacher'
                 ? 'WHERE id = $2 AND academy_id = $3 AND teacher_id = $4'
