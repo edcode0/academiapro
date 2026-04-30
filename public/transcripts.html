@@ -382,6 +382,14 @@
             <p>Sube la transcripción de una videollamada y la IA generará un resumen para el alumno</p>
         </div>
 
+        <!-- Gmail Status Block -->
+        <div id="gmail-status-block" style="background:#1e293b;border:1px solid #334155;border-radius:0.75rem;padding:1rem 1.25rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+            <span id="gmail-status-badge" style="font-weight:600;font-size:0.9rem;padding:0.4rem 0.8rem;border-radius:0.4rem;background:#374151;color:#9ca3af;">⏳ Cargando estado Gmail...</span>
+            <a href="/teacher/settings#gmail-card" class="btn btn-sm" style="font-size:0.8rem;padding:0.35rem 0.75rem;">⚙️ Configurar Gmail</a>
+            <button id="check-gmail-btn" onclick="checkGmailNow()" class="btn btn-sm" style="font-size:0.8rem;padding:0.35rem 0.75rem;" disabled>🔄 Comprobar ahora</button>
+            <span id="gmail-check-result" style="font-size:0.85rem;color:#94a3b8;"></span>
+        </div>
+
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
             <!-- Upload Form -->
             <div class="card">
@@ -473,6 +481,13 @@
                 </div>
             </div>
         </div>
+
+        <!-- Pending Transcripts Section -->
+        <div id="pending-section" style="display:none;margin-top:2rem;">
+            <h3 style="color:#f59e0b;margin-bottom:1rem;">⚠️ Transcripciones pendientes de asignar (<span id="pending-count">0</span>)</h3>
+            <p style="color:#94a3b8;font-size:0.9rem;margin-bottom:1rem;">Estas transcripciones de Gmail no pudieron identificar al alumno automáticamente. Asígnalas manualmente.</p>
+            <div id="pending-list"></div>
+        </div>
     </main>
 
     <div id="loadingOverlay">
@@ -482,6 +497,106 @@
     </div>
 
     <script>
+        async function loadGmailStatus() {
+            try {
+                const res = await fetch('/api/gmail/status', { credentials: 'include' });
+                if (!res.ok) return;
+                const data = await res.json();
+                const badge = document.getElementById('gmail-status-badge');
+                const btn = document.getElementById('check-gmail-btn');
+                if (data.connected) {
+                    badge.textContent = '✅ Gmail conectado';
+                    badge.style.background = '#064e3b';
+                    badge.style.color = '#6ee7b7';
+                    btn.disabled = false;
+                } else {
+                    badge.textContent = '❌ Gmail no conectado';
+                    badge.style.background = '#450a0a';
+                    badge.style.color = '#fca5a5';
+                }
+            } catch(e) { console.error('Gmail status error:', e); }
+        }
+
+        async function checkGmailNow() {
+            const btn = document.getElementById('check-gmail-btn');
+            const result = document.getElementById('gmail-check-result');
+            btn.disabled = true;
+            btn.textContent = '⏳ Comprobando...';
+            result.textContent = '';
+            try {
+                const res = await fetch('/api/gmail/check-transcripts', { method: 'POST', credentials: 'include' });
+                const data = await res.json();
+                if (data.success) {
+                    result.textContent = data.processed > 0 ? `✅ ${data.processed} transcripción(es) procesada(s)` : '📭 No hay emails nuevos';
+                    if (data.processed > 0) { loadHistory(); loadPendingTranscripts(); }
+                } else {
+                    result.textContent = '❌ ' + (data.error || 'Error al comprobar');
+                }
+            } catch(e) {
+                result.textContent = '❌ Error de conexión';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🔄 Comprobar ahora';
+            }
+        }
+
+        async function loadPendingTranscripts() {
+            try {
+                const res = await fetch('/api/transcripts/pending', { credentials: 'include' });
+                if (!res.ok) return;
+                const items = await res.json();
+                const section = document.getElementById('pending-section');
+                const list = document.getElementById('pending-list');
+                const countEl = document.getElementById('pending-count');
+                if (!items.length) { section.style.display = 'none'; return; }
+                section.style.display = 'block';
+                countEl.textContent = items.length;
+                list.innerHTML = items.map(t => {
+                    let parsed = {};
+                    try { parsed = JSON.parse(t.processed_json || '{}'); } catch(e) {}
+                    return `<div style="background:#1e293b;border:1px solid #f59e0b33;border-radius:0.5rem;padding:1rem;margin-bottom:0.75rem;">
+                        <div style="font-size:0.8rem;color:#94a3b8;margin-bottom:0.5rem;">${new Date(t.created_at).toLocaleString('es-ES')} · Gmail ID: ${t.gmail_msg_id || '—'}</div>
+                        <div style="color:#e2e8f0;margin-bottom:0.75rem;">${parsed.resumen || parsed.summary || '(sin resumen)'}</div>
+                        <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+                            <select id="assign-student-${t.id}" style="background:#0f172a;color:#e2e8f0;border:1px solid #475569;border-radius:0.4rem;padding:0.3rem 0.5rem;font-size:0.85rem;">
+                                <option value="">— Seleccionar alumno —</option>
+                            </select>
+                            <button onclick="assignPendingTranscript(${t.id})" class="btn btn-sm" style="background:#d97706;color:#fff;font-size:0.8rem;">Asignar</button>
+                        </div>
+                    </div>`;
+                }).join('');
+                // Populate student selects
+                const studRes = await fetch('/api/transcripts/students', { credentials: 'include' });
+                if (studRes.ok) {
+                    const students = await studRes.json();
+                    items.forEach(t => {
+                        const sel = document.getElementById(`assign-student-${t.id}`);
+                        if (sel) students.forEach(s => {
+                            const opt = document.createElement('option');
+                            opt.value = s.id; opt.textContent = s.name;
+                            sel.appendChild(opt);
+                        });
+                    });
+                }
+            } catch(e) { console.error('Pending transcripts error:', e); }
+        }
+
+        async function assignPendingTranscript(transcriptId) {
+            const sel = document.getElementById(`assign-student-${transcriptId}`);
+            const studentId = sel?.value;
+            if (!studentId) { showToast('Selecciona un alumno primero'); return; }
+            try {
+                const res = await fetch(`/api/transcripts/${transcriptId}/assign`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ student_id: studentId })
+                });
+                if (res.ok) { showToast('✅ Transcripción asignada'); loadPendingTranscripts(); loadHistory(); }
+                else { const d = await res.json(); showToast('❌ ' + (d.error || 'Error')); }
+            } catch(e) { showToast('❌ Error de conexión'); }
+        }
+
         let currentUser = null;
         let lastProcessedJson = null;
         let currentStudentId = null;
@@ -506,6 +621,8 @@
 
                 loadStudents();
                 loadHistory();
+                loadGmailStatus();
+                loadPendingTranscripts();
 
             } catch (e) { window.location.href = '/login'; }
         }

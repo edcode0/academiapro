@@ -525,7 +525,13 @@ async function initDb() {
     )`,
 
     // Deduplication column for Gmail transcript emails
-    "ALTER TABLE transcripts ADD COLUMN IF NOT EXISTS gmail_msg_id TEXT"
+    "ALTER TABLE transcripts ADD COLUMN IF NOT EXISTS gmail_msg_id TEXT",
+
+    // Transcripts: pending_match column
+    "ALTER TABLE transcripts ADD COLUMN IF NOT EXISTS pending_match BOOLEAN DEFAULT FALSE",
+
+    // Transcripts: unique index on gmail_msg_id per academy
+    "CREATE UNIQUE INDEX IF NOT EXISTS idx_transcripts_gmail_msg ON transcripts(academy_id, gmail_msg_id) WHERE gmail_msg_id IS NOT NULL"
   ];
 
   for (const sql of migrations) {

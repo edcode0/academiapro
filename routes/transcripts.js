@@ -113,7 +113,7 @@ module.exports = function makeTranscriptsRouter(io) {
 
     router.get('/admin/transcripts', authenticateJWT, requireAdmin, (req, res, next) => res.sendFile(path.join(__dirname, '../public/transcripts.html')));
 
-    router.get('/api/transcripts/students', authenticateJWT, (req, res, next) => {
+    router.get('/api/transcripts/students', authenticateJWT, requireTeacherOrAdmin, (req, res, next) => {
         let q = 'SELECT s.id, s.name FROM students s WHERE s.academy_id = $1';
         let params = [req.user.academy_id];
 
@@ -128,7 +128,7 @@ module.exports = function makeTranscriptsRouter(io) {
         });
     });
 
-    router.post('/api/transcripts/process', authenticateJWT, pdfUpload.single('file'), async (req, res, next) => {
+    router.post('/api/transcripts/process', authenticateJWT, requireTeacherOrAdmin, pdfUpload.single('file'), async (req, res, next) => {
         try {
             const { student_id } = req.body;
             let transcript_text = req.body.transcript_text || '';
@@ -217,7 +217,8 @@ ${transcriptForAI}`;
                 ? 'INSERT INTO transcripts (academy_id, teacher_id, student_id, raw_text, processed_json) VALUES ($1, $2, $3, $4, $5)'
                 : 'INSERT INTO transcripts (academy_id, teacher_id, student_id, raw_text, processed_json) VALUES ($1, $2, $3, $4, $5)';
 
-            db.query(insertSql, [req.user.academy_id, ['teacher', 'admin'].includes(req.user.role) ? req.user.id : null, student_id, transcript_text.substring(0, 5000), JSON.stringify(jsonContent)]);
+            await db.query(insertSql, [req.user.academy_id, ['teacher', 'admin'].includes(req.user.role) ? req.user.id : null, student_id, transcript_text.substring(0, 5000), JSON.stringify(jsonContent)])
+                .catch(err => console.error('[Transcript] History save failed:', err.message));
 
             res.json(jsonContent);
         } catch (err) {
@@ -363,6 +364,43 @@ ${transcriptForAI}`;
         } catch (err) {
             console.error('send-to-chat error:', err);
             serverErr(res, err);
+        }
+    });
+
+    router.get('/api/transcripts/pending', authenticateJWT, requireTeacherOrAdmin, (req, res, next) => {
+        let q = `
+            SELECT t.id, t.created_at, t.processed_json, t.gmail_msg_id
+            FROM transcripts t
+            WHERE t.academy_id = $1 AND t.pending_match = TRUE
+        `;
+        let params = [req.user.academy_id];
+        if (req.user.role === 'teacher') {
+            q += ' AND t.teacher_id = $2';
+            params.push(req.user.id);
+        }
+        q += ' ORDER BY t.created_at DESC LIMIT 20';
+        db.query(q, params, (err, result) => {
+            if (err) return serverErr(res, err);
+            res.json(result.rows || []);
+        });
+    });
+
+    router.put('/api/transcripts/:id/assign', authenticateJWT, requireTeacherOrAdmin, async (req, res, next) => {
+        try {
+            const { student_id } = req.body;
+            const { id } = req.params;
+            const studentCheck = await db.query(
+                'SELECT id FROM students WHERE id = $1 AND academy_id = $2',
+                [student_id, req.user.academy_id]
+            );
+            if (!studentCheck.rows?.[0]) return res.status(403).json({ error: 'Alumno no pertenece a esta academia' });
+            await db.query(
+                'UPDATE transcripts SET student_id = $1, pending_match = FALSE WHERE id = $2 AND academy_id = $3',
+                [student_id, id, req.user.academy_id]
+            );
+            res.json({ success: true });
+        } catch (err) {
+            next(err);
         }
     });
 

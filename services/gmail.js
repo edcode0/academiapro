@@ -60,20 +60,26 @@ module.exports = function makeGmailService(io) {
                 const email = await gmail.users.messages.get({ userId: 'me', id: msg.id, format: 'full' });
 
                 function extractText(payload) {
-                    if (payload.mimeType === 'text/plain' && payload.body?.data) {
+                    if (payload.mimeType === 'text/plain' && payload.body?.data)
                         return Buffer.from(payload.body.data, 'base64').toString('utf-8');
+                    if (payload.mimeType === 'text/html' && payload.body?.data) {
+                        const html = Buffer.from(payload.body.data, 'base64').toString('utf-8');
+                        return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
                     }
                     if (payload.parts) {
                         for (const part of payload.parts) {
                             const text = extractText(part);
-                            if (text) return text;
+                            if (text && text.length > 50) return text;
                         }
                     }
                     return '';
                 }
 
                 const body = extractText(email.data.payload);
-                if (!body || body.length < 100) continue;
+                if (!body || body.length < 100) {
+                    console.warn(`[Gmail] Skipping email ${msg.id}: body too short (${body?.length || 0} chars)`);
+                    continue;
+                }
 
                 // Get teacher's students
                 const studentsResult = teacher.role === 'admin'
@@ -94,7 +100,7 @@ module.exports = function makeGmailService(io) {
                     model:    'llama-3.3-70b-versatile',
                     messages: [{
                         role:    'user',
-                        content: `Analiza esta transcripción de clase de Google Meet y genera un resumen estructurado.\n\nAlumnos posibles: ${studentNames}\n\nTranscripción:\n${body.substring(0, 8000)}\n\nResponde SOLO en JSON con este formato exacto:\n{\n  "student_name": "nombre del alumno que aparece o más probable",\n  "summary": "Resumen de lo tratado en clase en 2-3 frases",\n  "topics_covered": ["tema1", "tema2"],\n  "topics_pending": ["tema pendiente 1"],\n  "homework": ["tarea 1", "tarea 2"],\n  "key_points": ["punto clave 1", "punto clave 2"],\n  "teacher_notes": "Observaciones importantes del profesor"\n}`
+                        content: `Analiza esta transcripción de clase y genera un resumen estructurado.\n\nAlumnos posibles: ${studentNames}\n\nTranscripción:\n${body.substring(0, 8000)}\n\nResponde SOLO en JSON con este formato exacto:\n{\n  "student_name": "nombre del alumno identificado o más probable",\n  "resumen": "Resumen de lo tratado en clase en 2-3 frases",\n  "conceptos_clave": ["concepto 1", "concepto 2"],\n  "deberes": ["tarea 1", "tarea 2"],\n  "pistas_profesor": ["consejo o observación del profesor 1"],\n  "proximos_pasos": ["próximo tema 1"],\n  "mensaje_motivador": "Mensaje corto de ánimo para el alumno"\n}`
                     }],
                     max_tokens:      1000,
                     temperature:     0.3,
@@ -114,12 +120,17 @@ module.exports = function makeGmailService(io) {
                     s.name.toLowerCase().includes((analysisData.student_name || '').toLowerCase()) ||
                     (analysisData.student_name || '').toLowerCase().includes(s.name.toLowerCase())
                 );
-                if (!exactMatch && students.length > 0) {
-                    console.warn('[Gmail] Ambiguous student match, falling back to first student:', students[0]?.name);
-                }
-                const student = exactMatch || students[0];
 
-                if (!student) continue;
+                if (!exactMatch) {
+                    console.warn(`[Gmail] No student match for student_name="${analysisData.student_name}" — saving as pending`);
+                    await db.query(
+                        'INSERT INTO transcripts (academy_id, teacher_id, student_id, raw_text, processed_json, gmail_msg_id, pending_match) VALUES ($1, $2, NULL, $3, $4, $5, TRUE)',
+                        [teacher.academy_id, teacher.id, body.substring(0, 5000), JSON.stringify(analysisData), msg.id]
+                    );
+                    processed++;
+                    continue;
+                }
+                const student = exactMatch;
 
                 // Resolve student user_id
                 let studentUserId = student.user_id;
@@ -153,7 +164,9 @@ module.exports = function makeGmailService(io) {
 
                 if (!roomId) {
                     const newRoom = await db.query(
-                        `INSERT INTO rooms (academy_id, type, name, created_at) VALUES ($1, 'direct', $2, NOW()) RETURNING id`,
+                        isPostgres
+                            ? `INSERT INTO rooms (academy_id, type, name, created_at) VALUES ($1, 'direct', $2, NOW()) RETURNING id`
+                            : `INSERT INTO rooms (academy_id, type, name, created_at) VALUES ($1, 'direct', $2, datetime('now'))`,
                         [teacher.academy_id, `${teacher.name} - ${student.name}`]
                     );
                     roomId = newRoom.rows[0].id;
@@ -167,15 +180,16 @@ module.exports = function makeGmailService(io) {
                 // Build and save chat message
                 const d = analysisData;
                 const chatMessage =
-                    `📋 **Resumen de clase - ${new Date().toLocaleDateString('es-ES')}**\n\n` +
-                    `📚 **Temas tratados:**\n${(d.topics_covered || []).map(t => `• ${t}`).join('\n') || '• Ver transcripción'}\n\n` +
-                    `📝 **Deberes:**\n${(d.homework || []).length ? d.homework.map(h => `• ${h}`).join('\n') : '• Sin deberes asignados'}\n\n` +
-                    `🎯 **Puntos clave:**\n${(d.key_points || []).map(k => `• ${k}`).join('\n') || ''}\n\n` +
-                    `⏭️ **Próximos temas:**\n${(d.topics_pending || []).map(t => `• ${t}`).join('\n') || '• Por determinar'}\n\n` +
-                    `💬 **Nota del profesor:**\n${d.teacher_notes || d.summary || ''}`;
+                    `📚 *Resumen de tu clase*\n\n${d.resumen || d.summary || ''}\n\n` +
+                    `📝 *Deberes:*\n${(d.deberes || d.homework || []).map(x => '• ' + x).join('\n') || '• Sin deberes'}\n\n` +
+                    `💡 *Conceptos:*\n${(d.conceptos_clave || d.topics_covered || []).map(x => '• ' + x).join('\n')}\n\n` +
+                    `🎯 *Consejos:*\n${(d.pistas_profesor || d.key_points || []).map(x => '• ' + x).join('\n')}\n\n` +
+                    `💪 ${d.mensaje_motivador || d.teacher_notes || ''}`;
 
                 await db.query(
-                    `INSERT INTO messages (room_id, sender_id, academy_id, content, created_at) VALUES ($1, $2, $3, $4, NOW())`,
+                    isPostgres
+                        ? `INSERT INTO messages (room_id, sender_id, academy_id, content, created_at) VALUES ($1, $2, $3, $4, NOW())`
+                        : `INSERT INTO messages (room_id, sender_id, academy_id, content, created_at) VALUES ($1, $2, $3, $4, datetime('now'))`,
                     [roomId, teacher.id, teacher.academy_id, chatMessage]
                 );
 
@@ -213,14 +227,18 @@ module.exports = function makeGmailService(io) {
                 });
 
                 processed++;
+                await db.query(
+                    isPostgres
+                        ? 'UPDATE users SET gmail_last_check=NOW() WHERE id=$1'
+                        : "UPDATE users SET gmail_last_check=datetime('now') WHERE id=$1",
+                    [teacher.id]
+                ).catch(err => console.error('[Gmail] Last check update failed:', err.message));
                 console.log(`[Gmail] Processed transcript for student ${student.name}`);
             } catch (err) {
                 console.error('[Gmail] Error processing email:', err.message);
             }
         }
 
-        await db.query('UPDATE users SET gmail_last_check=NOW() WHERE id=$1', [teacher.id])
-            .catch(err => console.error('[Gmail] Last check update failed:', err.message));
         return processed;
     }
 
