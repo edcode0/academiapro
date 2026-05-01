@@ -12,6 +12,7 @@ const { requireTeacherOrAdmin } = require('../middleware/roles');
 const { sendWelcomeEmail, sendJoinWelcomeEmail } = require('../services/email');
 
 const JWT_SECRET = process.env.JWT_SECRET;
+const COOKIE_OPTS = { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 7 * 24 * 60 * 60 * 1000 };
 
 const { generateCode, generateUserCode } = require('../utils/codes');
 const rateLimit = require('express-rate-limit');
@@ -181,7 +182,7 @@ router.post('/auth/login', async (req, res, next) => {
             JWT_SECRET,
             { expiresIn: '7d' }
         );
-        res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'strict' });
+        res.cookie('token', token, COOKIE_OPTS);
 
         console.log('Login successful: id=%d role=%s', user.id, user.role);
         res.json({
@@ -287,7 +288,7 @@ router.post('/api/auth/join', async (req, res, next) => {
         // Send welcome email (non-blocking)
         sendJoinWelcomeEmail(user, academy.name, role);
 
-        res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'strict' });
+        res.cookie('token', token, COOKIE_OPTS);
         res.json({
             user: { id: user.id, name: user.name, email: user.email, role: user.role }
         });
@@ -299,10 +300,10 @@ router.post('/api/auth/join', async (req, res, next) => {
 });
 
 router.get('/auth/google', (req, res, next) => {
-    if (req.query.academy_code) res.cookie('pending_code', req.query.academy_code, { maxAge: 1000 * 60 * 15, httpOnly: true, secure: true, sameSite: 'strict' });
+    if (req.query.academy_code) res.cookie('pending_code', req.query.academy_code, { maxAge: 1000 * 60 * 15, httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
     const role = req.query.role;
     if (role && ['admin', 'teacher', 'student'].includes(role)) {
-        res.cookie('pending_role', role, { maxAge: 1000 * 60 * 15, httpOnly: true, secure: true, sameSite: 'strict' });
+        res.cookie('pending_role', role, { maxAge: 1000 * 60 * 15, httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
     }
     passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
 });
@@ -325,7 +326,7 @@ router.get('/auth/google/callback', passport.authenticate('google', { failureRed
                 { id: existingUser.id, email: existingUser.email, role: existingUser.role, academy_id: existingUser.academy_id, name: existingUser.name, user_code: existingUser.user_code },
                 JWT_SECRET, { expiresIn: '7d' }
             );
-            res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'strict', maxAge: 7 * 24 * 60 * 60 * 1000 });
+            res.cookie('token', token, COOKIE_OPTS);
             console.log('Google Auth existing user: id=%d role=%s', existingUser.id, existingUser.role);
             return res.redirect('/auth-success');
         }
@@ -384,7 +385,7 @@ router.get('/auth/google/callback', passport.authenticate('google', { failureRed
             { id: newUser.id, email: newUser.email, role: newUser.role, academy_id: newUser.academy_id, name: newUser.name, user_code: newUser.user_code },
             JWT_SECRET, { expiresIn: '7d' }
         );
-        res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'strict', maxAge: 7 * 24 * 60 * 60 * 1000 });
+        res.cookie('token', token, COOKIE_OPTS);
         console.log('Google Auth new user: id=%d role=%s', newUser.id, newUser.role);
         return res.redirect('/auth-success');
 

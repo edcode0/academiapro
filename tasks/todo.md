@@ -63,6 +63,28 @@ Plan 5 fases tras auditoria estatica de Codex. Todos los hallazgos verificados c
 | 4 - Error sanitization | Middleware central, migrar ~125 `err.message -> next(err)` | ✅ `0d0f2f2` |
 | 5 - Verificacion dirigida | Tests smoke para cada hallazgo + arreglar runner JWT->cookies | ✅ `5875e13` + `fb6b51c` |
 
+## TRANSCRIPCIONES ✅ COMMIT `2a92b0b` (2026-04-30)
+
+| Fix | Estado |
+|-----|--------|
+| Schema canónico único Gmail+manual | ✅ |
+| Student matching seguro (pending_match) | ✅ |
+| gmail_last_check por email (no por loop) | ✅ |
+| Parser email: text/html + text/plain | ✅ |
+| SQLite compat NOW() en gmail.js | ✅ |
+| await en insert historial manual | ✅ |
+| requireTeacherOrAdmin en rutas proceso | ✅ |
+| Rutas pending + assign | ✅ |
+| DB: pending_match col + UNIQUE INDEX gmail_msg_id | ✅ |
+| UI: bloque estado Gmail + sección pendientes | ✅ |
+
+**PENDIENTE (no se puede hacer desde código):**
+- Railway: verificar `BASE_URL=https://academiapro.academy` en variables de entorno
+- Google Cloud Console: verificar redirect URI `https://academiapro.academy/api/gmail/callback`
+- transcript_email: actualmente es config muerta (limpieza opcional)
+
+---
+
 ## DEUDA - Smoke tests rotos desde commit JWT->cookies (`51fea5b`) [PARA CODEX]
 
 ### Contexto

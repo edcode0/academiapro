@@ -265,6 +265,24 @@ const requireTeacherPage = (req, res, next) => {
         next();
     } catch { res.redirect('/login'); }
 };
+const requireStudentPage = (req, res, next) => {
+    try {
+        const token = req.cookies?.token;
+        if (!token) return res.redirect('/login');
+        const user = jwt.verify(token, process.env.JWT_SECRET);
+        if (user.role !== 'student') return res.redirect('/login');
+        next();
+    } catch { res.redirect('/login'); }
+};
+const requireAdminPage = (req, res, next) => {
+    try {
+        const token = req.cookies?.token;
+        if (!token) return res.redirect('/login');
+        const user = jwt.verify(token, process.env.JWT_SECRET);
+        if (user.role !== 'admin') return res.redirect('/login');
+        next();
+    } catch { res.redirect('/login'); }
+};
 
 app.get('/teacher', requireTeacherPage, (req, res) => res.sendFile(path.join(__dirname, 'public', 'teacher_dashboard.html')));
 app.get('/teacher/dashboard', requireTeacherPage, (req, res) => res.sendFile(path.join(__dirname, 'public', 'teacher_dashboard.html')));
@@ -275,8 +293,8 @@ app.get('/teacher/calendar', requireTeacherPage, (req, res) => res.sendFile(path
 app.get('/teacher/chat', requireTeacherPage, (req, res) => res.sendFile(path.join(__dirname, 'public', 'chat.html')));
 app.get('/teacher/settings', requireTeacherPage, (req, res) => res.sendFile(path.join(__dirname, 'public', 'teacher_settings.html')));
 app.get('/teacher/transcripts', requireTeacherPage, (req, res) => res.sendFile(path.join(__dirname, 'public', 'transcripts.html')));
-app.get('/student', (req, res) => res.sendFile(path.join(__dirname, 'public', 'student_portal.html')));
-app.get('/student-portal', (req, res) => res.sendFile(path.join(__dirname, 'public', 'student_portal.html')));
+app.get('/student', requireStudentPage, (req, res) => res.sendFile(path.join(__dirname, 'public', 'student_portal.html')));
+app.get('/student-portal', requireStudentPage, (req, res) => res.sendFile(path.join(__dirname, 'public', 'student_portal.html')));
 
 
 
@@ -325,8 +343,10 @@ app.get('/teacher/student/:id', authenticateJWT, requireTeacherOrAdmin, (req, re
 });
 
 // Admin Teacher Pages
-app.get('/admin/teachers', authenticateJWT, (req, res) => res.sendFile(path.join(__dirname, 'public/admin_teachers.html')));
-app.get('/admin/teacher/:id', authenticateJWT, (req, res) => res.sendFile(path.join(__dirname, 'public/admin_teacher_profile.html')));
+app.get('/admin/teachers', requireAdminPage, (req, res) => res.sendFile(path.join(__dirname, 'public/admin_teachers.html')));
+app.get('/admin/teacher/:id', requireAdminPage, (req, res) => res.sendFile(path.join(__dirname, 'public/admin_teacher_profile.html')));
+app.get('/admin', (req, res) => res.redirect('/'));
+app.get('/dashboard', (req, res) => res.redirect('/'));
 
 
 
