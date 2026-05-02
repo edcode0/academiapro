@@ -1,4 +1,4 @@
-# tasks/todo.md - Estado actual (verificado 2026-04-24)
+# tasks/todo.md - Estado actual (verificado 2026-05-02)
 
 ---
 
@@ -85,31 +85,21 @@ Plan 5 fases tras auditoria estatica de Codex. Todos los hallazgos verificados c
 
 ---
 
-## DEUDA - Smoke tests rotos desde commit JWT->cookies (`51fea5b`) [PARA CODEX]
+## DEUDA - Smoke tests ✅ RESUELTO (verificado 2026-05-02)
 
-### Contexto
-El commit `51fea5b` migro el login de devolver JWT en el body a setear cookie httpOnly `token`. El runner `tests/smoke.js` quedo asumiendo `r.body.token`, que ahora siempre es `null`. Resultado: gran parte de los checks autenticados fallan con `401` porque las llamadas van sin cookie.
+`npm run test:smoke` → **62/62 passed**. El fix ya estaba aplicado en commits anteriores. Documentación estaba desactualizada.
 
-### Evidencia
-- Los endpoints de login/join en `routes/auth.js` hacen `res.cookie('token', ...)` y no devuelven `token` en JSON.
-- `middleware/auth.js` lee `req.cookies.token`.
-- `tests/smoke.js` sigue usando `Authorization: Bearer ...` y extrayendo `r.body?.token`.
+---
 
-### Fix requerido
-1. En el helper `request`, aceptar `cookie` y devolver `setCookie`.
-2. Tras login/join, parsear `set-cookie` y guardar `token=...`.
-3. Renombrar variables `*Token -> *Cookie` y pasar `{ cookie }` en todas las llamadas autenticadas.
-4. Actualizar labels y asserts para reflejar autenticacion por cookie.
+## FIXES SESIÓN 2026-05-02 ✅ COMPLETO
 
-### Cobertura adicional 2026-04-24
-1. Alinear la asercion de portal-data con la respuesta real (`averageScore` top-level).
-2. Anadir un test separado de websocket authz con `socket.io-client` para validar que un no-miembro no puede unirse a salas ajenas ni recibir eventos.
-3. Exponer script npm dedicado para el test websocket.
+| Fix | Commit | Descripción |
+|-----|--------|-------------|
+| Google OAuth `callbackURL` | `ed8fff5` | Hardcodeado a dominio Railway → cambiado a `BASE_URL`. Causa: `TokenError: Bad Request` en cada login con Google (Sentry JAVASCRIPT-NEXTJS-2) |
+| Gmail query sender | `3970702` | Query solo buscaba `meet-recordings-noreply@google.com`. Gemini AI Notes envía desde `gemini-notes@google.com` → transcripciones nunca encontradas |
 
-### Criterio de exito
-- `npm run test:smoke` -> >=56/64 (baseline anterior). Los 8 restantes por Groq restringido en test env siguen siendo esperados.
-- El test websocket debe fallar si un no-miembro recibe `new_message` de una sala ajena.
-- No tocar el servidor ni el middleware para arreglar el runner; solo tests y scripts.
+**Pendiente operacional (no es código):**
+- Teachers con `invalid_grant` (IDs 1 y 9): deben reconectar Gmail desde Ajustes. Posible causa: app en modo Testing en Google Cloud Console (tokens caducan a los 7 días).
 
 ---
 
