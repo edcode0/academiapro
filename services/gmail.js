@@ -38,7 +38,7 @@ module.exports = function makeGmailService(io) {
 
         // Include transcript_email alias if configured (so emails sent to that address are found)
         const emailFilter = teacher.transcript_email ? ` OR to:${teacher.transcript_email}` : '';
-        const searchQuery = `(from:meet-recordings-noreply@google.com OR subject:"Transcripción de" OR subject:"Transcript of"${emailFilter}) after:${lastCheck}`;
+        const searchQuery = `(from:meet-recordings-noreply@google.com OR from:gemini-notes@google.com OR subject:"Transcripción de" OR subject:"Transcript of" OR subject:"Notas de"${emailFilter}) after:${lastCheck}`;
 
         // Paginate through all results so no emails are missed when first page is all duplicates
         const messages = [];
