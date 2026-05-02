@@ -198,9 +198,7 @@ app.use('/assets', express.static(path.join(__dirname, 'public/assets')));
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID || 'dummy',
     clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'dummy',
-    callbackURL: process.env.NODE_ENV === 'production'
-        ? 'https://web-production-d02f4.up.railway.app/auth/google/callback'
-        : 'http://localhost:3000/auth/google/callback',
+    callbackURL: `${process.env.BASE_URL || 'http://localhost:3000'}/auth/google/callback`,
     passReqToCallback: true
 }, (req, accessToken, refreshToken, profile, cb) => cb(null, profile)));
 
